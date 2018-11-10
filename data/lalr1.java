@@ -508,29 +508,7 @@ b4_define_state])[
      YYSTR is taken from yytname.  */
   private final String yytnamerr_ (String yystr)
   {
-    if (yystr.charAt (0) == '"')
-      {
-        StringBuffer yyr = new StringBuffer ();
-        strip_quotes: for (int i = 1; i < yystr.length (); i++)
-          switch (yystr.charAt (i))
-            {
-            case '\'':
-            case ',':
-              break strip_quotes;
-
-            case '\\':
-              if (yystr.charAt(++i) != '\\')
-                break strip_quotes;
-              /* Fall through.  */
-            default:
-              yyr.append (yystr.charAt (i));
-              break;
-
-            case '"':
-              return yyr.toString ();
-            }
-      }
-    else if (yystr.equals ("$end"))
+    if (yystr.equals ("$end"))
       return "end of input";
 
     return yystr;

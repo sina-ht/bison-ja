@@ -10,7 +10,7 @@ msgstr ""
 "Project-Id-Version: GNU bison 3.4.91.1-98f1\n"
 "Report-Msgid-Bugs-To: bug-bison@gnu.org\n"
 "POT-Creation-Date: 2019-11-23 14:19+0900\n"
-"PO-Revision-Date: 2019-11-23 14:22+0900\n"
+"PO-Revision-Date: 2019-11-24 20:39+0900\n"
 "Last-Translator: Hiroshi Takekawa <sian@big.or.jp>\n"
 "Language-Team: Japanese <translation-team-ja@lists.sourceforge.net>\n"
 "Language: ja\n"
@@ -853,19 +853,19 @@ msgid "explicit type given in untyped grammar"
 msgstr ""
 
 #: src/scan-code.l:639
-#, fuzzy, c-format
+#, c-format
 msgid "$$ for the midrule at $%d of %s has no declared type"
-msgstr "$%d 個の `%s' が宣言された型を持っていません"
+msgstr "$$ に対する $%d midrule %s が宣言された型を持っていません"
 
 #: src/scan-code.l:645
-#, fuzzy, c-format
+#, c-format
 msgid "$$ of %s has no declared type"
-msgstr "`%s' の $$ に宣言のない型があります"
+msgstr "%s の $$ に宣言のない型があります"
 
 #: src/scan-code.l:671
-#, fuzzy, c-format
+#, c-format
 msgid "$%s of %s has no declared type"
-msgstr "$%$2s の %$1s に宣言のない型があります"
+msgstr "$%s の %s に宣言のない型があります"
 
 #: src/scan-code.l:694
 #, c-format
@@ -898,9 +898,9 @@ msgid "invalid null character"
 msgstr "無効な null 文字"
 
 #: src/scan-gram.l:437
-#, fuzzy, c-format
+#, c-format
 msgid "unexpected identifier in bracketed name: %s"
-msgstr "識別子 \"%s\" は C++ の特別な演算子名です"
+msgstr "ブラケットに囲まれた識別子としては期待されていません: %s"
 
 #: src/scan-gram.l:459
 #, c-format
@@ -908,10 +908,9 @@ msgid "an identifier expected"
 msgstr "識別子が期待されています"
 
 #: src/scan-gram.l:464
-#, fuzzy
 msgid "invalid character in bracketed name"
 msgid_plural "invalid characters in bracketed name"
-msgstr[0] "無効なユーザ名 \"%s\" が %s:%d にあります。中断します"
+msgstr[0] "ブラケットに囲まれた名前に不正な文字があります"
 
 #: src/scan-gram.l:535
 #, c-format
@@ -924,19 +923,19 @@ msgid "empty character literal"
 msgstr "空の文字定数"
 
 #: src/scan-gram.l:563
-#, fuzzy, c-format
+#, c-format
 msgid "extra characters in character literal"
-msgstr "リテラル中で null 文字が確保されました"
+msgstr "キャラクタリテラルに余分な文字があります"
 
 #: src/scan-gram.l:612 src/scan-gram.l:622 src/scan-gram.l:640
-#, fuzzy, c-format
+#, c-format
 msgid "invalid number after \\-escape: %s"
-msgstr "-q= の後に番号が期待されますが、%s が与えられました\n"
+msgstr "\\ エスケープの後に不正な数字があります: %s"
 
 #: src/scan-gram.l:652
-#, fuzzy, c-format
+#, c-format
 msgid "invalid character after \\-escape: %s"
-msgstr "エスケープキャラクタを決定できません"
+msgstr "\\ エスケープの後に不正な文字があります: %s\""
 
 #: src/scan-gram.l:824
 #, c-format
@@ -954,9 +953,9 @@ msgid "missing %s at end of line"
 msgstr "行末に %s がありません"
 
 #: src/scan-skel.l:140
-#, fuzzy, c-format
+#, c-format
 msgid "unclosed %s directive in skeleton"
-msgstr "文字列が命令の途中で終わっています."
+msgstr "スケルトンの %s ディレクティブがクローズされていません"
 
 #: src/scan-skel.l:257
 #, c-format
@@ -974,38 +973,36 @@ msgid "POSIX Yacc forbids dashes in symbol names: %s"
 msgstr ""
 
 #: src/symtab.c:118
-#, fuzzy, c-format
+#, c-format
 msgid "too many symbols in input grammar (limit is %d)"
-msgstr "シンボルが多すぎます (トークン + 非終端アイテム) -- 最大 %d"
+msgstr "入力している文法のシンボルが多すぎます(最大 %d)"
 
 #: src/symtab.c:300
-#, fuzzy, c-format
+#, c-format
 msgid "%s redeclaration for %s"
-msgstr "\"%s\" のラベル:"
+msgstr "%s は %s の再宣言です"
 
 #: src/symtab.c:313
-#, fuzzy, c-format
+#, c-format
 msgid "%s redeclaration for <%s>"
-msgstr "\"%s\" のラベル:"
+msgstr "%s は <%s> の再宣言です"
 
 #: src/symtab.c:325
-#, fuzzy, c-format
+#, c-format
 msgid "symbol %s redeclared as a token"
-msgstr "シンボル %s が再宣言されました"
+msgstr "シンボル %s がトークンとして再宣言されました"
 
 #: src/symtab.c:326
-#, fuzzy, c-format
+#, c-format
 msgid "symbol %s redeclared as a nonterminal"
-msgstr "シンボル %s が再宣言されました"
+msgstr "シンボル %s が非終端として再宣言されました"
 
 #: src/symtab.c:370
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "symbol %s is used, but is not defined as a token and has no rules; did you "
 "mean %s?"
-msgstr ""
-"シンボル %s が使われていますが、トークンとして定義されておらず、規則を持ちま"
-"せん"
+msgstr "シンボル %s が使われていますが、トークンとして定義されておらず、規則を持ちません。%s と間違えましたか？"
 
 #: src/symtab.c:380
 #, c-format
@@ -1030,14 +1027,14 @@ msgid "nonterminals cannot be given an explicit number"
 msgstr ""
 
 #: src/symtab.c:575
-#, fuzzy, c-format
+#, c-format
 msgid "redefining user token number of %s"
-msgstr "%s に先行した再定義です"
+msgstr "%s のユーザトークンナンバーの再定義です"
 
 #: src/symtab.c:578
-#, fuzzy, c-format
+#, c-format
 msgid "user token number of %s too large"
-msgstr "%s に先行した再定義です"
+msgstr "%s のユーザトークンナンバーが大きすぎます"
 
 #: src/symtab.c:617
 #, c-format
@@ -1050,11 +1047,9 @@ msgid "useless %s for type <%s>"
 msgstr ""
 
 #: src/symtab.c:650
-#, fuzzy, c-format
+#, c-format
 msgid "type <%s> is used, but is not associated to any symbol"
-msgstr ""
-"シンボル %s が使われていますが、トークンとして定義されておらず、規則を持ちま"
-"せん"
+msgstr "タイプ %s が使われていますが、シンボルと対応づけられていません"
 
 #: src/symtab.c:695
 #, c-format
@@ -1062,19 +1057,19 @@ msgid "nonterminals cannot be given a string alias"
 msgstr ""
 
 #: src/symtab.c:698
-#, fuzzy, c-format
+#, c-format
 msgid "symbol %s used more than once as a literal string"
-msgstr "シンボル `%s' はリテラル文字列として複数回使われました"
+msgstr "シンボル %s はリテラル文字列として複数回使われました"
 
 #: src/symtab.c:701
-#, fuzzy, c-format
+#, c-format
 msgid "symbol %s given more than one literal string"
-msgstr "シンボル `%s' は複数のリテラル文字列が与えられました"
+msgstr "シンボル %s に複数のリテラル文字列が与えられました"
 
 #: src/symtab.c:736
-#, fuzzy, c-format
+#, c-format
 msgid "user token number %d redeclaration for %s"
-msgstr "%s の型が再定義されました"
+msgstr "ユーザトークンナンバー %d が %s に対して再定義されました"
 
 #: src/symtab.c:740
 #, c-format

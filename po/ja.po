@@ -1,16 +1,16 @@
 # Japanese message for GNU bison
-# Copyright (C) 2001, 2012, 2018 Free Software Foundation, Inc.
+# Copyright (C) 2001-2020 Free Software Foundation, Inc.
 # This file is distributed under the same license as the bison package.
 # Daisuke Yamashita <yamad@mb.infoweb.ne.jp>, 2001.
 # Yasuaki Taniguchi <yasuakit@gmail.com>, 2010
 # Takeshi Hamasaki <hmatrjp@users.sourceforge.jp>, 2012, 2018
-# Hiroshi Takekawa <sian@big.or.jp>, <sian.ht@gmail.com>, 2019
+# Hiroshi Takekawa <sian@big.or.jp>, <sian.ht@gmail.com>, 2019-2020
 msgid ""
 msgstr ""
-"Project-Id-Version: GNU bison 3.4.91.1-98f1\n"
+"Project-Id-Version: GNU bison 3.5.2.161-62a1a-dirty\n"
 "Report-Msgid-Bugs-To: bug-bison@gnu.org\n"
-"POT-Creation-Date: 2019-11-23 14:19+0900\n"
-"PO-Revision-Date: 2019-11-25 19:16+0900\n"
+"POT-Creation-Date: 2020-03-02 19:06+0900\n"
+"PO-Revision-Date: 2020-03-02 19:21+0900\n"
 "Last-Translator: Hiroshi Takekawa <sian@big.or.jp>\n"
 "Language-Team: Japanese <translation-team-ja@lists.sourceforge.net>\n"
 "Language: ja\n"
@@ -21,74 +21,78 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Poedit 2.1.1\n"
 
-#: src/complain.c:114
+#: src/complain.c:115
 msgid "S/R conflicts (enabled by default)"
 msgstr "S/R 競合 (デフォルトで有効)"
 
-#: src/complain.c:115
+#: src/complain.c:116
 msgid "R/R conflicts (enabled by default)"
 msgstr "R/R 競合 (デフォルトで有効)"
 
-#: src/complain.c:116
+#: src/complain.c:117
 msgid "string aliases not attached to a symbol"
 msgstr "文字列エイリアスとシンボルの対応がない"
 
-#: src/complain.c:117
+#: src/complain.c:118
 msgid "obsolete constructs"
 msgstr "もはや用いられないコンストラクト"
 
-#: src/complain.c:118
+#: src/complain.c:119
 #, c-format
 msgid "empty rules without %empty"
 msgstr "%empty なしでの空の規則"
 
-#: src/complain.c:119
+#: src/complain.c:120
 msgid "unset or unused midrule values"
 msgstr "設定されていないか使われていない midrule 値"
 
-#: src/complain.c:120
+#: src/complain.c:121
 msgid "useless precedence and associativity"
 msgstr "意味のない precedence と associativity"
 
-#: src/complain.c:121
+#: src/complain.c:122
 msgid "incompatibilities with POSIX Yacc"
 msgstr "POSIX Yacc との非互換性"
 
-#: src/complain.c:122
+#: src/complain.c:123
 msgid "all other warnings (enabled by default)"
 msgstr "その他の警告全て (デフォルトで有効)"
 
-#: src/complain.c:123
+#: src/complain.c:124
 msgid "all the warnings except 'dangling-alias' and 'yacc'"
 msgstr "'dangling-alias' と 'yacc' 以外の警告全て"
 
-#: src/complain.c:124
+#: src/complain.c:125
 msgid "turn off warnings in CATEGORY"
 msgstr "CATEGORY の警告をオフ"
 
-#: src/complain.c:125
+#: src/complain.c:126
 msgid "turn off all the warnings"
 msgstr "全ての警告をオフ"
 
-#: src/complain.c:126
+#: src/complain.c:127
 msgid "treat warnings as errors"
 msgstr "警告をエラー扱いする"
 
-#: src/complain.c:151
+#: src/complain.c:152
 msgid "Warning categories include:"
 msgstr "含まれる警告カテゴリ:"
 
-#: src/complain.c:254
+#: src/complain.c:257
 msgid "warning"
 msgstr "警告"
 
-#: src/complain.c:256
+#: src/complain.c:259
 msgid "error"
 msgstr "エラー"
 
-#: src/complain.c:258
+#: src/complain.c:261
 msgid "fatal error"
 msgstr "致命的エラー"
+
+#: src/complain.c:452
+msgid "note"
+msgstr "ノート"
 
 #: src/complain.c:545
 #, c-format
@@ -100,26 +104,49 @@ msgstr "POSIX Yacc は %s をサポートしていません"
 msgid "deprecated directive: %s, use %s"
 msgstr "非推奨の指示です:%s、%s を使ってください"
 
-#: src/complain.c:569
+#: src/complain.c:567
 #, c-format
 msgid "duplicate directive"
 msgstr "重複した指示"
 
-#: src/complain.c:571
+#: src/complain.c:569
 #, c-format
 msgid "duplicate directive: %s"
 msgstr "重複した指示: %s"
 
-#: src/complain.c:573 src/complain.c:586 src/reader.c:136 src/symtab.c:303
-#: src/symtab.c:316 src/symtab.c:553
-#, c-format
+#: src/complain.c:570 src/complain.c:579 src/reader.c:133 src/symtab.c:300
+#: src/symtab.c:309 src/symtab.c:539
 msgid "previous declaration"
 msgstr "以前の宣言"
 
-#: src/complain.c:583
+#: src/complain.c:578
 #, c-format
 msgid "only one %s allowed per rule"
 msgstr "一つの条件部につき一つしか %s を使えません"
+
+#: src/complain.c:598
+msgid "syntax error"
+msgstr "文法エラー"
+
+#: src/complain.c:599
+msgid "unexpected %0$s"
+msgstr "予期しない %0$s"
+
+#: src/complain.c:600
+msgid "expected %1$s before %0$s"
+msgstr "%0$s の前に %1$s があるべきです"
+
+#: src/complain.c:601
+msgid "expected %1$s or %2$s before %0$s"
+msgstr "%0$s の前に %1$s か %2$s があるべきです"
+
+#: src/complain.c:602
+msgid "expected %1$s or %2$s or %3$s before %0$s"
+msgstr "%0$s の前に %1$s か %2$s か %3$s があるべきです"
+
+#: src/complain.c:603
+msgid "expected %1$s or %2$s or %4$s or %5$s before %0$s"
+msgstr "%0$s の前に %1$s か %2$s か %4$s か %5$s があるべきです"
 
 #: src/conflicts.c:81
 #, c-format
@@ -417,7 +444,8 @@ msgid ""
 msgstr ""
 "ファイル出力:\n"
 "      --defines[=FILE]       ヘッダも生成\n"
-"  -d                         ヘッダを生成(FILE は指定できない、POSIX Yacc 向け)\n"
+"  -d                         ヘッダを生成(FILE は指定できない、POSIX Yacc 向"
+"け)\n"
 "  -r, --report=THINGS        オートマトンについて詳細を出力\n"
 "      --report-file=FILE     レポートを FILE に出力\n"
 "  -v, --verbose              '--report=state' を同じ\n"
@@ -448,7 +476,9 @@ msgstr ""
 #. email address.
 #: src/getargs.c:453
 msgid "Report translation bugs to <http://translationproject.org/team/>.\n"
-msgstr "翻訳に関するバグは<translation-team-ja@lists.sourceforge.net>に報告してください。\n"
+msgstr ""
+"翻訳に関するバグは<translation-team-ja@lists.sourceforge.net>に報告してくださ"
+"い。\n"
 
 #: src/getargs.c:456
 msgid "For complete documentation, run: info bison.\n"
@@ -525,7 +555,7 @@ msgstr ""
 "// Home page: <%s>.\n"
 "\n"
 
-#: src/location.c:150 src/scan-gram.l:909
+#: src/location.c:150 src/scan-gram.l:924
 #, c-format
 msgid "line number overflow"
 msgstr "行番号がオーバーフローしました"
@@ -558,77 +588,116 @@ msgstr "衝突のせいでパーサ内の規則が使用できません"
 msgid "fix-its can be applied.  Rerun with option '--update'."
 msgstr "自動的に修正できます。'--update' を付けて再度実行してください。"
 
-#: src/muscle-tab.c:532
+#: src/muscle-tab.c:531
 #, c-format
 msgid "%%define variable %s redefined"
 msgstr "%%define 変数 %s が再定義されました"
 
-#: src/muscle-tab.c:536 src/symtab.c:331
-#, c-format
+#: src/muscle-tab.c:534 src/symtab.c:320
 msgid "previous definition"
 msgstr "前の定義"
 
-#: src/muscle-tab.c:595 src/muscle-tab.c:696 src/muscle-tab.c:757
+#: src/muscle-tab.c:593 src/muscle-tab.c:694 src/muscle-tab.c:753
 #, c-format
 msgid "%s: undefined %%define variable %s"
 msgstr "%s: 未定義の %%define 変数 %s"
 
-#: src/muscle-tab.c:629
+#: src/muscle-tab.c:627
 #, c-format
 msgid "%%define variable '%s' requires '{...}' values"
 msgstr "%%define 変数 '%s' は '{...}' を値として必要としています"
 
-#: src/muscle-tab.c:634
+#: src/muscle-tab.c:632
 #, c-format
 msgid "%%define variable '%s' requires keyword values"
 msgstr "%%define 変数 '%s' はキーワードを値として必要としています"
 
-#: src/muscle-tab.c:639
+#: src/muscle-tab.c:637
 #, c-format
 msgid "%%define variable '%s' requires '\"...\"' values"
 msgstr "%%define 変数 '%s' は '\"...\"' を値として必要としています"
 
-#: src/muscle-tab.c:690
+#: src/muscle-tab.c:688
 #, c-format
 msgid "invalid value for %%define Boolean variable %s"
 msgstr "%%define Boolean variable %s としては不正な値"
 
-#: src/muscle-tab.c:744
+#: src/muscle-tab.c:741
 #, c-format
 msgid "invalid value for %%define variable %s: %s"
 msgstr "%%define 変数 %s の値として不適切です: %s"
 
-#: src/muscle-tab.c:749
+#: src/muscle-tab.c:745
 #, c-format
 msgid "accepted value: %s"
 msgstr "受け入れられた値: %s"
 
-#: src/parse-gram.y:746
+#: src/parse-gram.y:144
+msgid "end of file"
+msgstr "ファイル末尾"
+
+#: src/parse-gram.y:145
+msgid "string"
+msgstr "文字列"
+
+#: src/parse-gram.y:146
+msgid "translatable string"
+msgstr "翻訳可能な文字列"
+
+#: src/parse-gram.y:192
+msgid "[identifier]"
+msgstr "[識別子]"
+
+#: src/parse-gram.y:193
+msgid "character literal"
+msgstr "文字リテラル"
+
+#: src/parse-gram.y:195
+msgid "epilogue"
+msgstr "エピローグ"
+
+#: src/parse-gram.y:197
+msgid "identifier"
+msgstr "識別子"
+
+#: src/parse-gram.y:198
+msgid "identifier:"
+msgstr "識別子:"
+
+#: src/parse-gram.y:203
+msgid "<tag>"
+msgstr "<タグ>"
+
+#: src/parse-gram.y:228
+msgid "integer literal"
+msgstr "整数リテラル"
+
+#: src/parse-gram.y:754
 #, c-format
 msgid "character literals cannot be nonterminals"
 msgstr "文字リテラルは非終端にはなれません"
 
-#: src/parse-gram.y:753
+#: src/parse-gram.y:760
 #, c-format
 msgid "character literals cannot be used together with %s"
 msgstr "文字リテラルは %s と一緒に使えません"
 
-#: src/parse-gram.y:758
+#: src/parse-gram.y:763
 #, c-format
 msgid "definition of %s"
 msgstr "%s の定義"
 
-#: src/parse-gram.y:889
+#: src/parse-gram.y:906
 #, c-format
 msgid "missing identifier in parameter declaration"
 msgstr "パラメータの宣言に識別子がありません"
 
-#: src/parse-gram.y:1018
+#: src/parse-gram.y:1035
 #, c-format
 msgid "invalid version requirement: %s"
 msgstr "必要なバージョン指定が無効です: %s"
 
-#: src/parse-gram.y:1032
+#: src/parse-gram.y:1049
 #, c-format
 msgid "require bison %s, but have %s"
 msgstr "bison %s が必要ですが、%s です。"
@@ -691,82 +760,82 @@ msgstr "衝突のせいでパーサ内の規則が使用できません"
 msgid "multiple %s declarations"
 msgstr "%s が複数個宣言されました"
 
-#: src/reader.c:129
+#: src/reader.c:128
 #, c-format
 msgid "result type clash on merge function %s: <%s> != <%s>"
 msgstr "結果のタイプがマージ関数 %s と衝突します: <%s> != <%s>"
 
-#: src/reader.c:202
+#: src/reader.c:199
 #, c-format
 msgid "duplicated symbol name for %s ignored"
 msgstr "%s の重複するシンボル名を無視します"
 
-#: src/reader.c:238
+#: src/reader.c:235
 #, c-format
 msgid "rule given for %s, which is a token"
 msgstr "%s に規則が与えられ、それはトークンとなります"
 
-#: src/reader.c:295
+#: src/reader.c:292
 #, c-format
 msgid "type clash on default action: <%s> != <%s>"
 msgstr "デフォルトのアクションではタイプが衝突します: <%s> != <%s>"
 
-#: src/reader.c:318
+#: src/reader.c:315
 #, c-format
 msgid "empty rule for typed nonterminal, and no action"
 msgstr "空の型付き非終端アイテム用規則であり、動作が起りません"
 
-#: src/reader.c:334
+#: src/reader.c:331
 #, c-format
 msgid "unused value: $%d"
 msgstr "使われていない値: $%d"
 
-#: src/reader.c:336
+#: src/reader.c:333
 #, c-format
 msgid "unset value: $$"
 msgstr "未設定の値: $$"
 
-#: src/reader.c:346
+#: src/reader.c:343
 #, c-format
 msgid "%%empty on non-empty rule"
 msgstr "空でない規則に %%empty"
 
-#: src/reader.c:356
+#: src/reader.c:353
 #, c-format
 msgid "empty rule without %%empty"
 msgstr "%%empty なしで空の規則"
 
-#: src/reader.c:372
+#: src/reader.c:369
 #, c-format
 msgid "token for %%prec is not defined: %s"
 msgstr "%%prec に対するトークンが定義されていません: %s"
 
-#: src/reader.c:377
+#: src/reader.c:374
 #, c-format
 msgid "only midrule actions can be typed: %s"
 msgstr "midrule アクションにしか型をつけられません: %s"
 
-#: src/reader.c:504 src/reader.c:526 src/reader.c:597
+#: src/reader.c:501 src/reader.c:523 src/reader.c:594
 #, c-format
 msgid "%s affects only GLR parsers"
 msgstr "%s は GLR パーサにしか影響しません"
 
-#: src/reader.c:507
+#: src/reader.c:504
 #, c-format
 msgid "%s must be followed by positive number"
 msgstr "%s の後は正の数でなければなりません"
 
-#: src/reader.c:562
+#: src/reader.c:559
 #, c-format
 msgid "POSIX Yacc does not support typed midrule actions"
 msgstr "POSIX Yacc は型つき midrule アクションをサポートしていません"
 
-#: src/reader.c:666
+#: src/reader.c:663
 #, c-format
 msgid "rule is too long"
 msgstr "規則が長すぎます"
 
-#: src/reader.c:779
+#: src/reader.c:776
 #, c-format
 msgid "no rules in the input grammar"
 msgstr "入力した文法に規則が定義されていません"
@@ -839,63 +908,63 @@ msgstr " at %s"
 msgid ", cannot be accessed from midrule action at $%d"
 msgstr ", %d にある midrule アクションからアクセスできません"
 
-#: src/scan-code.l:423 src/scan-gram.l:831
+#: src/scan-code.l:422 src/scan-gram.l:846
 #, c-format
 msgid "integer out of range: %s"
 msgstr "整数が値の範囲外です: %s"
 
-#: src/scan-code.l:498
+#: src/scan-code.l:496
 #, c-format
 msgid "invalid reference: %s"
 msgstr "無効な参照: %s"
 
-#: src/scan-code.l:506
+#: src/scan-code.l:503
 #, c-format
 msgid "syntax error after '%c', expecting integer, letter, '_', '[', or '$'"
 msgstr ""
 "'%c' の後に文法エラーがあります。整数、文字、'_', '[','$' が来るはずです。"
 
-#: src/scan-code.l:512
+#: src/scan-code.l:509
 #, c-format
 msgid "symbol not found in production before $%d: %.*s"
 msgstr "$%d の前の出力にシンボルがありません: %.*s"
 
-#: src/scan-code.l:517
+#: src/scan-code.l:514
 #, c-format
 msgid "symbol not found in production: %.*s"
 msgstr "結果にシンボルが見つかりません: %.*s"
 
-#: src/scan-code.l:532
+#: src/scan-code.l:528
 #, c-format
 msgid "misleading reference: %s"
 msgstr "紛らわしい参照: %s"
 
-#: src/scan-code.l:548
+#: src/scan-code.l:543
 #, c-format
 msgid "ambiguous reference: %s"
 msgstr "曖昧な参照: \"%s"
 
-#: src/scan-code.l:584
+#: src/scan-code.l:579
 #, c-format
 msgid "explicit type given in untyped grammar"
 msgstr "型なしの文法に明示的に型が与えられています"
 
-#: src/scan-code.l:639
+#: src/scan-code.l:634
 #, c-format
 msgid "$$ for the midrule at $%d of %s has no declared type"
 msgstr "$$ に対する $%d midrule %s が宣言された型を持っていません"
 
-#: src/scan-code.l:645
+#: src/scan-code.l:640
 #, c-format
 msgid "$$ of %s has no declared type"
 msgstr "%s の $$ に宣言のない型があります"
 
-#: src/scan-code.l:671
+#: src/scan-code.l:666
 #, c-format
 msgid "$%s of %s has no declared type"
 msgstr "$%s の %s に宣言のない型があります"
 
-#: src/scan-code.l:694
+#: src/scan-code.l:689
 #, c-format
 msgid "multiple occurrences of $%d with api.value.automove"
 msgstr "api.value.automove が有効で $%d が複数回でてきます"
@@ -915,67 +984,67 @@ msgstr "無効な指示: %s"
 msgid "invalid identifier: %s"
 msgstr "無効な識別子: %s"
 
-#: src/scan-gram.l:365
+#: src/scan-gram.l:366
 msgid "invalid character"
 msgid_plural "invalid characters"
 msgstr[0] "無効な文"
 
-#: src/scan-gram.l:383
+#: src/scan-gram.l:384
 #, c-format
 msgid "invalid null character"
 msgstr "無効な null 文字"
 
-#: src/scan-gram.l:437
+#: src/scan-gram.l:438
 #, c-format
 msgid "unexpected identifier in bracketed name: %s"
 msgstr "ブラケットに囲まれた識別子としては期待されていません: %s"
 
-#: src/scan-gram.l:459
+#: src/scan-gram.l:460
 #, c-format
 msgid "an identifier expected"
 msgstr "識別子が期待されています"
 
-#: src/scan-gram.l:464
+#: src/scan-gram.l:465
 msgid "invalid character in bracketed name"
 msgid_plural "invalid characters in bracketed name"
 msgstr[0] "ブラケットに囲まれた名前に不正な文字があります"
 
-#: src/scan-gram.l:535
+#: src/scan-gram.l:536 src/scan-gram.l:550
 #, c-format
 msgid "POSIX Yacc does not support string literals"
 msgstr "POSIX Yacc は文字列リテラルをサポートしていません"
 
-#: src/scan-gram.l:557
+#: src/scan-gram.l:572
 #, c-format
 msgid "empty character literal"
 msgstr "空の文字定数"
 
-#: src/scan-gram.l:563
+#: src/scan-gram.l:578
 #, c-format
 msgid "extra characters in character literal"
 msgstr "キャラクタリテラルに余分な文字があります"
 
-#: src/scan-gram.l:612 src/scan-gram.l:622 src/scan-gram.l:640
+#: src/scan-gram.l:627 src/scan-gram.l:637 src/scan-gram.l:655
 #, c-format
 msgid "invalid number after \\-escape: %s"
 msgstr "\\ エスケープの後に不正な数字があります: %s"
 
-#: src/scan-gram.l:652
+#: src/scan-gram.l:667
 #, c-format
 msgid "invalid character after \\-escape: %s"
 msgstr "\\ エスケープの後に不正な文字があります: %s\""
 
-#: src/scan-gram.l:824
+#: src/scan-gram.l:839
 #, c-format
 msgid "POSIX Yacc does not support hexadecimal literals"
 msgstr "POSIX Yacc は16進数リテラルをサポートしていません"
 
-#: src/scan-gram.l:962
+#: src/scan-gram.l:977
 #, c-format
 msgid "missing %s at end of file"
 msgstr "ファイル末尾に %s がありません"
 
-#: src/scan-gram.l:973
+#: src/scan-gram.l:988
 #, c-format
 msgid "missing %s at end of line"
 msgstr "行末に %s がありません"
@@ -985,12 +1054,12 @@ msgstr "行末に %s がありません"
 msgid "unclosed %s directive in skeleton"
 msgstr "スケルトンの %s ディレクティブがクローズされていません"
 
-#: src/scan-skel.l:257
+#: src/scan-skel.l:251
 #, c-format
 msgid "too few arguments for %s directive in skeleton"
 msgstr "スケルトンの %s ディレクティブの引数が少なすぎます"
 
-#: src/scan-skel.l:264
+#: src/scan-skel.l:258
 #, c-format
 msgid "too many arguments for %s directive in skeleton"
 msgstr "スケルトンの %s ディレクティブの引数が多すぎます"
@@ -1000,136 +1069,138 @@ msgstr "スケルトンの %s ディレクティブの引数が多すぎます"
 msgid "POSIX Yacc forbids dashes in symbol names: %s"
 msgstr "POSIX Yacc ではシンボル名にダッシュは使えません: %s"
 
-#: src/symtab.c:118
+#: src/symtab.c:119
 #, c-format
 msgid "too many symbols in input grammar (limit is %d)"
 msgstr "入力している文法のシンボルが多すぎます(最大 %d)"
 
-#: src/symtab.c:300
+#: src/symtab.c:299
 #, c-format
 msgid "%s redeclaration for %s"
 msgstr "%s は %s の再宣言です"
 
-#: src/symtab.c:313
+#: src/symtab.c:308
 #, c-format
 msgid "%s redeclaration for <%s>"
 msgstr "%s は <%s> の再宣言です"
 
-#: src/symtab.c:325
+#: src/symtab.c:317
 #, c-format
 msgid "symbol %s redeclared as a token"
 msgstr "シンボル %s がトークンとして再宣言されました"
 
-#: src/symtab.c:326
+#: src/symtab.c:318
 #, c-format
 msgid "symbol %s redeclared as a nonterminal"
 msgstr "シンボル %s が非終端として再宣言されました"
 
-#: src/symtab.c:370
+#: src/symtab.c:358
 #, c-format
 msgid ""
 "symbol %s is used, but is not defined as a token and has no rules; did you "
 "mean %s?"
-msgstr "シンボル %s が使われていますが、トークンとして定義されておらず、規則を持ちません。%s と間違えましたか？"
+msgstr ""
+"シンボル %s が使われていますが、トークンとして定義されておらず、規則を持ちま"
+"せん。%s と間違えましたか？"
 
-#: src/symtab.c:380
+#: src/symtab.c:368
 #, c-format
 msgid "symbol %s is used, but is not defined as a token and has no rules"
 msgstr ""
 "シンボル %s が使われていますが、トークンとして定義されておらず、規則を持ちま"
 "せん"
 
-#: src/symtab.c:515
+#: src/symtab.c:503
 #, c-format
 msgid "POSIX yacc reserves %%type to nonterminals"
 msgstr "POSIX yacc は %%type を非終端として予約しています"
 
-#: src/symtab.c:550
+#: src/symtab.c:537
 #, c-format
 msgid "symbol %s redeclared"
 msgstr "シンボル %s が再宣言されました"
 
-#: src/symtab.c:572
+#: src/symtab.c:558
 #, c-format
 msgid "nonterminals cannot be given an explicit number"
 msgstr "非終端に明示的な数字を与えられません"
 
-#: src/symtab.c:575
+#: src/symtab.c:561
 #, c-format
 msgid "redefining user token number of %s"
 msgstr "%s のユーザトークンナンバーの再定義です"
 
-#: src/symtab.c:578
+#: src/symtab.c:564
 #, c-format
 msgid "user token number of %s too large"
 msgstr "%s のユーザトークンナンバーが大きすぎます"
 
-#: src/symtab.c:617
+#: src/symtab.c:603
 #, c-format
 msgid "string literal %s not attached to a symbol"
 msgstr "文字列リテラル %s にシンボルが割り当てられていません"
 
-#: src/symtab.c:645
+#: src/symtab.c:631
 #, c-format
 msgid "useless %s for type <%s>"
 msgstr "%s は型 <%s>無用です"
 
-#: src/symtab.c:650
+#: src/symtab.c:636
 #, c-format
 msgid "type <%s> is used, but is not associated to any symbol"
 msgstr "タイプ %s が使われていますが、シンボルと対応づけられていません"
 
-#: src/symtab.c:695
+#: src/symtab.c:681
 #, c-format
 msgid "nonterminals cannot be given a string alias"
 msgstr "非終端に文字列エイリアスは与えられません"
 
-#: src/symtab.c:698
+#: src/symtab.c:684
 #, c-format
 msgid "symbol %s used more than once as a literal string"
 msgstr "シンボル %s はリテラル文字列として複数回使われました"
 
-#: src/symtab.c:701
+#: src/symtab.c:687
 #, c-format
 msgid "symbol %s given more than one literal string"
 msgstr "シンボル %s に複数のリテラル文字列が与えられました"
 
-#: src/symtab.c:736
+#: src/symtab.c:721
 #, c-format
 msgid "user token number %d redeclaration for %s"
 msgstr "ユーザトークンナンバー %d が %s に対して再定義されました"
 
-#: src/symtab.c:740
+#: src/symtab.c:724
 #, c-format
 msgid "previous declaration for %s"
 msgstr "%s に対する以前の宣言"
 
-#: src/symtab.c:1063
+#: src/symtab.c:1047
 #, c-format
 msgid "token number too large"
 msgstr "トークン数が大きすぎます"
 
-#: src/symtab.c:1119
+#: src/symtab.c:1103
 #, c-format
 msgid "the start symbol %s is undefined"
 msgstr "開始シンボル %s は定義されていません"
 
-#: src/symtab.c:1123
+#: src/symtab.c:1107
 #, c-format
 msgid "the start symbol %s is a token"
 msgstr "開始シンボル %s はトークンです"
 
-#: src/symtab.c:1294
+#: src/symtab.c:1278
 #, c-format
 msgid "useless precedence and associativity for %s"
 msgstr "%s に無用な precedence and associativity"
 
-#: src/symtab.c:1297
+#: src/symtab.c:1281
 #, c-format
 msgid "useless precedence for %s"
 msgstr "%s に無用な precedence"
 
-#: src/symtab.c:1301
+#: src/symtab.c:1285
 #, c-format
 msgid "useless associativity for %s, use %%precedence"
 msgstr "%s に無用な associativity、%%precedence を使ってください"

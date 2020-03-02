@@ -2,7 +2,7 @@
 
 # Java language support for Bison
 
-# Copyright (C) 2007-2015, 2018-2019 Free Software Foundation, Inc.
+# Copyright (C) 2007-2015, 2018-2020 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -106,11 +106,14 @@ m4_define([b4_null], [null])
 
 # b4_typed_parser_table_define(TYPE, NAME, DATA, COMMENT)
 # -------------------------------------------------------
+# We use intermediate functions (e.g., yypact_init) to work around the
+# 64KB limit for JVM methods.  See
+# https://lists.gnu.org/r/help-bison/2008-11/msg00004.html.
 m4_define([b4_typed_parser_table_define],
 [m4_ifval([$4], [b4_comment([$4])
   ])dnl
-[private static final ]$1[ yy$2_[] = yy$2_init();
-  private static final ]$1[[] yy$2_init()
+[private static final ]$1[[] yy$2_ = yy$2_init ();
+  private static final ]$1[[] yy$2_init ()
   {
     return new ]$1[[]
     {
@@ -147,18 +150,20 @@ b4_symbol_foreach([b4_token_enum])])])
 # b4-case(ID, CODE)
 # -----------------
 # We need to fool Java's stupid unreachable code detection.
-m4_define([b4_case], [  case $1:
+m4_define([b4_case],
+[  case $1:
   if (yyn == $1)
     $2;
   break;
-    ])
+])
 
 # b4_predicate_case(LABEL, CONDITIONS)
 # ------------------------------------
-m4_define([b4_predicate_case], [  case $1:
+m4_define([b4_predicate_case],
+[  case $1:
      if (! ($2)) YYERROR;
     break;
-    ])
+])
 
 
 ## -------- ##
@@ -220,6 +225,20 @@ m4_define([b4_position_type], [b4_percent_define_get([[api.position.type]])])
 ## ----------------- ##
 ## Semantic Values.  ##
 ## ----------------- ##
+
+
+# b4_symbol_translate(STRING)
+# ---------------------------
+m4_define([b4_symbol_translate],
+[[_($1)]])
+
+
+# b4_trans(STRING)
+# ----------------
+# Translate a symbol.  Avoid collision with b4_translate.
+m4_define([b4_trans],
+[m4_if(b4_has_translations, 0, [$1], [_($1)])])
+
 
 
 # b4_symbol_value(VAL, [SYMBOL-NUM], [TYPE-TAG])
@@ -361,4 +380,4 @@ m4_define([b4_var_decl],
 # -----------------------
 # Expand to either an empty string or "throws THROWS".
 m4_define([b4_maybe_throws],
-          [m4_ifval($1, [throws $1])])
+          [m4_ifval($1, [ throws $1])])

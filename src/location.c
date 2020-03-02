@@ -1,6 +1,6 @@
 /* Locations for Bison
 
-   Copyright (C) 2002, 2005-2015, 2018-2019 Free Software Foundation,
+   Copyright (C) 2002, 2005-2015, 2018-2020 Free Software Foundation,
    Inc.
 
    This file is part of Bison, the GNU Compiler Compiler.
@@ -317,7 +317,7 @@ caret_getc_internal (mbchar_t *res)
 
 /* Move CARET_INFO (which has a valid FILE) to the line number LINE.
    Compute and cache that line's length in CARET_INFO.LINE_LEN.
-   Return whether succesful.*/
+   Return whether successful.*/
 static bool
 caret_set_line (int line)
 {
@@ -400,6 +400,8 @@ caret_set_column (int col)
 void
 location_caret (location loc, const char *style, FILE *out)
 {
+  if (!(feature_flag & feature_caret))
+    return;
   if (!loc.start.line)
     return;
   if (!caret_set_file (loc.start.file))
@@ -486,6 +488,8 @@ location_caret (location loc, const char *style, FILE *out)
 void
 location_caret_suggestion (location loc, const char *s, FILE *out)
 {
+  if (!(feature_flag & feature_caret))
+    return;
   const char *style = "fixit-insert";
   fprintf (out, "      | %*s",
            loc.start.column - 1 - caret_info.skip

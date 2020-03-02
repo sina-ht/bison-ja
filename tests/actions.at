@@ -1,6 +1,6 @@
 # Executing Actions.                               -*- Autotest -*-
 
-# Copyright (C) 2001-2015, 2018-2019 Free Software Foundation, Inc.
+# Copyright (C) 2001-2015, 2018-2020 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -183,7 +183,7 @@ AT_BISON_CHECK([-fcaret one.y], [1], [],
 [[one.y:11.13-18: error: only one %empty allowed per rule
    11 |   %empty {} %empty
       |             ^~~~~~
-one.y:11.3-8:       previous declaration
+one.y:11.3-8: note: previous declaration
    11 |   %empty {} %empty
       |   ^~~~~~
 one.y: warning: fix-its can be applied.  Rerun with option '--update'. [-Wother]
@@ -193,7 +193,7 @@ AT_BISON_CHECK([-fcaret -u one.y], [1], [],
 [[one.y:11.13-18: error: only one %empty allowed per rule
    11 |   %empty {} %empty
       |             ^~~~~~
-one.y:11.3-8:       previous declaration
+one.y:11.3-8: note: previous declaration
    11 |   %empty {} %empty
       |   ^~~~~~
 bison: file 'one.y' was updated (backup: 'one.y~')
@@ -473,7 +473,7 @@ AT_BISON_OPTION_POPDEFS
 AT_CLEANUP
 ])
 
-## FIXME: test Java.
+## FIXME: test Java and D.
 m4_map_args([AT_TEST], [yacc.c], [glr.c], [lalr1.cc], [glr.cc])
 
 m4_popdef([AT_TEST])
@@ -1123,19 +1123,29 @@ AT_PARSER_CHECK([input --debug], 1,
 ]],
 [[Starting parse
 Entering state 0
-Reading a token: Next token is token 'a' (1.1: <> printer for 'a' @ 1)
+Stack now 0
+Reading a token
+Next token is token 'a' (1.1: <> printer for 'a' @ 1)
 Shifting token 'a' (1.1: <> printer for 'a' @ 1)
 Entering state 1
-Reading a token: Next token is token 'b' (1.2: 'b'/'c' printer for 'b' @ 2)
+Stack now 0 1
+Reading a token
+Next token is token 'b' (1.2: 'b'/'c' printer for 'b' @ 2)
 Shifting token 'b' (1.2: 'b'/'c' printer for 'b' @ 2)
 Entering state 3
-Reading a token: Next token is token 'c' (1.3: 'b'/'c' printer for 'c' @ 3)
+Stack now 0 1 3
+Reading a token
+Next token is token 'c' (1.3: 'b'/'c' printer for 'c' @ 3)
 Shifting token 'c' (1.3: 'b'/'c' printer for 'c' @ 3)
 Entering state 5
-Reading a token: Next token is token 'd' (1.4: <> printer for 'd' @ 4)
+Stack now 0 1 3 5
+Reading a token
+Next token is token 'd' (1.4: <> printer for 'd' @ 4)
 Shifting token 'd' (1.4: <> printer for 'd' @ 4)
 Entering state 6
-Reading a token: Now at end of input.
+Stack now 0 1 3 5 6
+Reading a token
+Now at end of input.
 1.5: syntax error, unexpected $end, expecting 'e'
 Error: popping token 'd' (1.4: <> printer for 'd' @ 4)
 Stack now 0 1 3 5
@@ -1232,25 +1242,39 @@ AT_PARSER_CHECK([input --debug], 1,
 ]],
 [[Starting parse
 Entering state 0
-Reading a token: Next token is token 'a' (<*>/<field2>/e printer)
+Stack now 0
+Reading a token
+Next token is token 'a' (<*>/<field2>/e printer)
 Shifting token 'a' (<*>/<field2>/e printer)
 Entering state 1
-Reading a token: Next token is token 'b' (<field1> printer)
+Stack now 0 1
+Reading a token
+Next token is token 'b' (<field1> printer)
 Shifting token 'b' (<field1> printer)
 Entering state 3
-Reading a token: Next token is token 'c' ('c' printer)
+Stack now 0 1 3
+Reading a token
+Next token is token 'c' ('c' printer)
 Shifting token 'c' ('c' printer)
 Entering state 5
-Reading a token: Next token is token 'd' ('d' printer)
+Stack now 0 1 3 5
+Reading a token
+Next token is token 'd' ('d' printer)
 Shifting token 'd' ('d' printer)
 Entering state 6
-Reading a token: Next token is token 'e' (<*>/<field2>/e printer)
+Stack now 0 1 3 5 6
+Reading a token
+Next token is token 'e' (<*>/<field2>/e printer)
 Shifting token 'e' (<*>/<field2>/e printer)
 Entering state 7
-Reading a token: Next token is token 'f' (<*>/<field2>/e printer)
+Stack now 0 1 3 5 6 7
+Reading a token
+Next token is token 'f' (<*>/<field2>/e printer)
 Shifting token 'f' (<*>/<field2>/e printer)
 Entering state 8
-Reading a token: Now at end of input.
+Stack now 0 1 3 5 6 7 8
+Reading a token
+Now at end of input.
 syntax error, unexpected $end, expecting 'g'
 Error: popping token 'f' (<*>/<field2>/e printer)
 Stack now 0 1 3 5 6 7
@@ -1358,13 +1382,16 @@ AT_PARSER_CHECK([input$1 --debug], 0,
 ]],
 [[Starting parse
 Entering state 0
+Stack now 0
 Reducing stack by rule 1 (line 49):
 -> $$ = nterm start (1.1: <]]kind[[> for 'S' @ 1)
-Stack now 0
 Entering state 1
-Reading a token: Now at end of input.
+Stack now 0 1
+Reading a token
+Now at end of input.
 Shifting token END (1.1: <]]kind[[> for 'E' @ 1)
 Entering state 2
+Stack now 0 1 2
 Stack now 0 1 2
 Cleanup: popping token END (1.1: <]]kind[[> for 'E' @ 1)
 Cleanup: popping nterm start (1.1: <]]kind[[> for 'S' @ 1)
@@ -1440,17 +1467,24 @@ AT_COMPILE([input])
 AT_PARSER_CHECK([input --debug], [1], [],
 [[Starting parse
 Entering state 0
-Reading a token: Next token is token 'a' ('a')
+Stack now 0
+Reading a token
+Next token is token 'a' ('a')
 Shifting token 'a' ('a')
 Entering state 1
-Reading a token: Next token is token 'b' ('b')
+Stack now 0 1
+Reading a token
+Next token is token 'b' ('b')
 syntax error
 Shifting token error ()
 Entering state 3
+Stack now 0 1 3
 Next token is token 'b' ('b')
 Shifting token 'b' ('b')
 Entering state 5
-Reading a token: Next token is token $undefined ()
+Stack now 0 1 3 5
+Reading a token
+Next token is token $undefined ()
 Error: popping token 'b' ('b')
 DESTROY 'b'
 Stack now 0 1 3
@@ -1458,13 +1492,16 @@ Error: popping token error ()
 Stack now 0 1
 Shifting token error ()
 Entering state 3
+Stack now 0 1 3
 Next token is token $undefined ()
 Error: discarding token $undefined ()
 Error: popping token error ()
 Stack now 0 1
 Shifting token error ()
 Entering state 3
-Reading a token: Now at end of input.
+Stack now 0 1 3
+Reading a token
+Now at end of input.
 Cleanup: discarding lookahead token $end ()
 Stack now 0 1 3
 Cleanup: popping token error ()
@@ -1608,23 +1645,25 @@ AT_COMPILE([input])
 AT_PARSER_CHECK([input --debug], 1,,
 [[Starting parse
 Entering state 0
+Stack now 0
 Reducing stack by rule 1 (line 30):
 -> $$ = nterm $@1 (: )
-Stack now 0
 Entering state 2
+Stack now 0 2
 Reducing stack by rule 2 (line 31):
 -> $$ = nterm @2 (: 2)
-Stack now 0 2
 Entering state 4
+Stack now 0 2 4
 Reducing stack by rule 3 (line 32):
 -> $$ = nterm @3 (: 3)
-Stack now 0 2 4
 Entering state 5
+Stack now 0 2 4 5
 Reducing stack by rule 4 (line 33):
 -> $$ = nterm @4 (: 4)
-Stack now 0 2 4 5
 Entering state 6
-Reading a token: Now at end of input.
+Stack now 0 2 4 5 6
+Reading a token
+Now at end of input.
 syntax error
 Error: popping nterm @4 (: 4)
 DESTROY 4
@@ -1780,7 +1819,7 @@ float: UNTYPED INT
                                  yy::parser::token::INT,
                                   EOF}]],
                                [[{UNTYPED, INT, EOF}]]),
-                 [AT_VAL.ival = YY_CAST (int, toknum) * 10;
+                 [AT_VAL.ival = toknum * 10;
                   AT_VAL.fval = YY_CAST (float, toknum) / 10.0f;])[
 ]AT_MAIN_DEFINE[
 ]])
@@ -1790,9 +1829,9 @@ AT_PARSER_CHECK([input --debug], 0, [], [stderr])
 # Don't be too picky on the traces, GLR is not exactly the same.  Keep
 # only the lines from the printer.
 AT_CHECK([[sed -ne '/ival:/p' stderr]], 0,
-[[Reading a token: Next token is token UNTYPED (ival: 10, fval: 0.1)
+[[Next token is token UNTYPED (ival: 10, fval: 0.1)
 Shifting token UNTYPED (ival: 10, fval: 0.1)
-Reading a token: Next token is token INT (ival: 20, fval: 0.2)
+Next token is token INT (ival: 20, fval: 0.2)
 Shifting token INT (ival: 20, fval: 0.2)
    $][1 = token UNTYPED (ival: 10, fval: 0.1)
    $][2 = token INT (ival: 20, fval: 0.2)
@@ -1897,7 +1936,7 @@ exp:
 
 %%
 ]AT_YYERROR_DEFINE[
-]AT_YYLEX_DEFINE(["bcd"], [*lvalp = YY_CAST (int, (toknum + 1) * 10)])[
+]AT_YYLEX_DEFINE(["bcd"], [*lvalp = (toknum + 1) * 10])[
 ]AT_MAIN_DEFINE[
 ]])
 AT_BISON_OPTION_POPDEFS

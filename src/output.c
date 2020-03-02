@@ -1,6 +1,6 @@
 /* Output the generated parsing program for Bison.
 
-   Copyright (C) 1984, 1986, 1989, 1992, 2000-2015, 2018-2019 Free
+   Copyright (C) 1984, 1986, 1989, 1992, 2000-2015, 2018-2020 Free
    Software Foundation, Inc.
 
    This file is part of Bison, the GNU Compiler Compiler.
@@ -50,6 +50,10 @@ static struct obstack format_obstack;
 | result of formatting the FIRST and then TABLE_DATA[BEGIN..END[ (of |
 | TYPE), and to the muscle NAME_max, the max value of the            |
 | TABLE_DATA.                                                        |
+|                                                                    |
+| For the typical case of outputting a complete table from 0, pass   |
+| TABLE[0] as FIRST, and 1 as BEGIN.  For instance                   |
+| muscle_insert_base_table ("pact", base, base[0], 1, nstates);      |
 `-------------------------------------------------------------------*/
 
 
@@ -132,6 +136,56 @@ string_output (FILE *out, char const *string)
 }
 
 
+/* Store in BUFFER a copy of SRC where trigraphs are escaped, return
+   the size of the result (including the final NUL).  If called with
+   BUFFERSIZE = 0, returns the needed size for BUFFER.  */
+static ptrdiff_t
+escape_trigraphs (char *buffer, ptrdiff_t buffersize, const char *src)
+{
+#define STORE(c)                                \
+  do                                            \
+    {                                           \
+      if (res < buffersize)                     \
+        buffer[res] = (c);                      \
+      ++res;                                    \
+    }                                           \
+  while (0)
+  ptrdiff_t res = 0;
+  for (ptrdiff_t i = 0, len = strlen (src); i < len; ++i)
+    {
+      if (i + 2 < len
+          && src[i] == '?' && src[i+1] == '?')
+        {
+          switch (src[i+2])
+            {
+            case '!': case '\'':
+            case '(': case ')': case '-': case '/':
+            case '<': case '=': case '>':
+              i += 1;
+              STORE ('?');
+              STORE ('"');
+              STORE ('"');
+              STORE ('?');
+              continue;
+            }
+        }
+      STORE (src[i]);
+    }
+  STORE ('\0');
+#undef STORE
+  return res;
+}
+
+/* Same as xstrdup, except that trigraphs are escaped.  */
+static char *
+xescape_trigraphs (const char *src)
+{
+  ptrdiff_t bufsize = escape_trigraphs (NULL, 0, src);
+  char *buf = xcharalloc (bufsize);
+  escape_trigraphs (buf, bufsize, src);
+  return buf;
+}
+
 /* Generate the b4_<MUSCLE_NAME> (e.g., b4_tname) table with the
    symbol names (aka tags). */
 
@@ -139,16 +193,23 @@ static void
 prepare_symbol_names (char const *muscle_name)
 {
   /* We assume that the table will be output starting at column 2. */
+  const bool quote = STREQ (muscle_name, "tname");
+  bool has_translations = false;
   int j = 2;
   struct quoting_options *qo = clone_quoting_options (0);
   set_quoting_style (qo, c_quoting_style);
   set_quoting_flags (qo, QA_SPLIT_TRIGRAPHS);
   for (int i = 0; i < nsyms; i++)
     {
-      char *cp = quotearg_alloc (symbols[i]->tag, -1, qo);
+      char *cp
+        = symbols[i]->tag[0] == '"' && !quote
+        ? xescape_trigraphs (symbols[i]->tag)
+        : quotearg_alloc (symbols[i]->tag, -1, qo);
       /* Width of the next token, including the two quotes, the
          comma and the space.  */
-      int width = strlen (cp) + 2;
+      int width
+        = strlen (cp) + 2
+        + (!quote && symbols[i]->translatable ? strlen ("N_()") : 0);
 
       if (j + width > 75)
         {
@@ -158,7 +219,14 @@ prepare_symbol_names (char const *muscle_name)
 
       if (i)
         obstack_1grow (&format_obstack, ' ');
+      if (!quote && symbols[i]->translatable)
+        {
+          has_translations = true;
+          obstack_sgrow (&format_obstack, "]b4_symbol_translate([");
+        }
       obstack_escape (&format_obstack, cp);
+      if (!quote && symbols[i]->translatable)
+        obstack_sgrow (&format_obstack, "])[");
       free (cp);
       obstack_1grow (&format_obstack, ',');
       j += width;
@@ -168,6 +236,10 @@ prepare_symbol_names (char const *muscle_name)
 
   /* Finish table and store. */
   muscle_insert (muscle_name, obstack_finish0 (&format_obstack));
+
+  /* Announce whether translation support is needed.  */
+  if (!quote)
+    MUSCLE_INSERT_BOOL ("has_translations", has_translations);
 }
 
 
@@ -192,6 +264,27 @@ prepare_symbols (void)
 
   /* tname -- token names.  */
   prepare_symbol_names ("tname");
+  prepare_symbol_names ("symbol_names");
+
+  /* translatable -- whether a token is translatable. */
+  {
+    bool translatable = false;
+    for (int i = 0; i < ntokens; ++i)
+      if (symbols[i]->translatable)
+        {
+          translatable = true;
+          break;
+        }
+    if (translatable)
+      {
+        int *values = xnmalloc (nsyms, sizeof *values);
+        for (int i = 0; i < ntokens; ++i)
+          values[i] = symbols[i]->translatable;
+        muscle_insert_int_table ("translatable", values,
+                                 values[0], 1, ntokens);
+        free (values);
+      }
+  }
 
   /* Output YYTOKNUM. */
   {

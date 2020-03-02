@@ -2,7 +2,7 @@
 
 # Language-independent M4 Macros for Bison.
 
-# Copyright (C) 2002, 2004-2015, 2018-2019 Free Software Foundation,
+# Copyright (C) 2002, 2004-2015, 2018-2020 Free Software Foundation,
 # Inc.
 
 # This program is free software: you can redistribute it and/or modify
@@ -192,7 +192,7 @@ m4_define([b4_error],
 #   @warn(1@)
 #   @warn(1@,2@)
 m4_define([b4_warn],
-[b4_error([[warn]], [], [], $@)])
+[b4_warn_at([], [], $@)])
 
 # b4_warn_at(START, END, FORMAT, [ARG1], [ARG2], ...)
 # ---------------------------------------------------
@@ -210,7 +210,7 @@ m4_define([b4_warn_at],
 #
 # See b4_warn example.
 m4_define([b4_complain],
-[b4_error([[complain]], [], [], $@)])
+[b4_complain_at([], [], $@)])
 
 # b4_complain_at(START, END, FORMAT, [ARG1], [ARG2], ...)
 # -------------------------------------------------------
@@ -226,8 +226,7 @@ m4_define([b4_complain_at],
 #
 # See b4_warn example.
 m4_define([b4_fatal],
-[b4_error([[fatal]], [], [], $@)dnl
-m4_exit(1)])
+[b4_fatal_at([], [], $@)])
 
 # b4_fatal_at(START, END, FORMAT, [ARG1], [ARG2], ...)
 # ----------------------------------------------------
@@ -533,9 +532,9 @@ m4_define([b4_any_token_visible_if],
 # ----------------------------
 m4_define([b4_token_format],
 [b4_token_visible_if([$2],
-[m4_quote(m4_format([$1],
-                     [b4_symbol([$2], [id])],
-                     [b4_symbol([$2], b4_api_token_raw_if([[number]], [[user_number]]))]))])])
+[m4_format([[$1]],
+           m4_quote(b4_symbol([$2], [id])),
+           m4_quote(b4_symbol([$2], b4_api_token_raw_if([[number]], [[user_number]]))))])])
 
 
 ## ------- ##
@@ -976,8 +975,8 @@ m4_define([b4_percent_code_get],
 [m4_pushdef([b4_macro_name], [[b4_percent_code(]$1[)]])dnl
 m4_ifval([$1], [m4_define([b4_percent_code_bison_qualifiers(]$1[)])])dnl
 m4_ifdef(b4_macro_name,
-[b4_comment([m4_if([$#], [0], [[Unqualified %code]],
-                   [["%code ]$1["]])[ blocks.]])
+[b4_comment(m4_if([$#], [0], [[[Unqualified %code blocks.]]],
+                  [[["%code ]$1[" blocks.]]]))
 b4_user_code([m4_indir(b4_macro_name)])])dnl
 m4_popdef([b4_macro_name])])
 
@@ -1017,21 +1016,23 @@ m4_define([b4_bison_locations_if],
 [b4_locations_if([b4_percent_define_ifdef([[api.location.type]], [], [$1])])])
 
 
-# b4_error_verbose_if([IF-ERRORS-ARE-VERBOSE], [IF-NOT])
+
+# %define parse.error "(custom|detailed|simple|verbose)"
 # ------------------------------------------------------
-# Map %define parse.error "(simple|verbose)" to b4_error_verbose_if and
-# b4_error_verbose_flag.
 b4_percent_define_default([[parse.error]], [[simple]])
 b4_percent_define_check_values([[[[parse.error]],
-                                 [[simple]], [[verbose]]]])
-m4_define([b4_error_verbose_flag],
-          [m4_case(b4_percent_define_get([[parse.error]]),
-                   [simple],  [[0]],
-                   [verbose], [[1]])])
-b4_define_flag_if([error_verbose])
+                                 [[custom]], [[detailed]], [[simple]], [[verbose]]]])
 
-# yytoken_table is needed to support verbose errors.
-b4_error_verbose_if([m4_define([b4_token_table_flag], [1])])
+# b4_parse_error_case(CASE1, THEN1, CASE2, THEN2, ..., ELSE)
+# ----------------------------------------------------------
+m4_define([b4_parse_error_case],
+[m4_case(b4_percent_define_get([[parse.error]]), $@)])
+
+# b4_parse_error_bmatch(PATTERN1, THEN1, PATTERN2, THEN2, ..., ELSE)
+# ------------------------------------------------------------------
+m4_define([b4_parse_error_bmatch],
+[m4_bmatch(b4_percent_define_get([[parse.error]]), $@)])
+
 
 
 # b4_variant_if([IF-VARIANT-ARE-USED], [IF-NOT])
@@ -1117,3 +1118,11 @@ b4_percent_define_ifdef([api.value.type],
 
 # api.value.union.name.
 b4_percent_define_check_kind([api.value.union.name], [keyword])
+
+# parse.error (custom|detailed) >< token-table.
+b4_token_table_if(
+[b4_parse_error_bmatch([custom\|detailed],
+[b4_complain_at(b4_percent_define_get_loc([parse.error]),
+                [['%s' and '%s' cannot be used together]],
+                [%token-table],
+                [%define parse.error (custom|detailed)])])])

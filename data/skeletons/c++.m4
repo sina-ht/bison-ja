@@ -2,7 +2,7 @@
 
 # C++ skeleton for Bison
 
-# Copyright (C) 2002-2019 Free Software Foundation, Inc.
+# Copyright (C) 2002-2020 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -367,9 +367,6 @@ m4_define([b4_symbol_type_define],
       /// \a empty when empty.
       symbol_number_type type_get () const YY_NOEXCEPT;
 
-      /// The token.
-      token_type token () const YY_NOEXCEPT;
-
       /// The symbol type.
       /// \a empty_symbol when empty.
       /// An int, not token_number_type, to be able to store empty_symbol.
@@ -498,22 +495,7 @@ m4_define([b4_public_types_define],
   {
     return type;
   }
-]b4_token_ctor_if([[
-  ]b4_inline([$1])b4_parser_class[::token_type
-  ]b4_parser_class[::by_type::token () const YY_NOEXCEPT
-  {
-    // YYTOKNUM[NUM] -- (External) token number corresponding to the
-    // (internal) symbol number NUM (which must be that of a token).  */
-    static
-    const ]b4_int_type_for([b4_toknum])[
-    yytoken_number_[] =
-    {
-  ]b4_toknum[
-    };
-    return token_type (yytoken_number_[type]);
-  }
-]])[]dnl
-])
+]])
 
 
 # b4_token_constructor_define
@@ -529,11 +511,10 @@ m4_define([b4_token_constructor_define], [])
 # sometimes in the cc file.
 m4_define([b4_yytranslate_define],
 [  b4_inline([$1])b4_parser_class[::token_number_type
-  ]b4_parser_class[::yytranslate_ (]b4_token_ctor_if([token_type],
-                                                          [int])[ t)
+  ]b4_parser_class[::yytranslate_ (int t)
   {
 ]b4_api_token_raw_if(
-[[    return static_cast<yy::parser::token_number_type> (t);]],
+[[    return static_cast<token_number_type> (t);]],
 [[    // YYTRANSLATE[TOKEN-NUM] -- Symbol number corresponding to
     // TOKEN-NUM as returned by yylex.
     static
@@ -543,14 +524,13 @@ m4_define([b4_yytranslate_define],
   ]b4_translate[
     };
     const int user_token_number_max_ = ]b4_user_token_number_max[;
-    const token_number_type undef_token_ = ]b4_undef_token_number[;
 
-    if (static_cast<int> (t) <= yyeof_)
+    if (t <= 0)
       return yyeof_;
-    else if (static_cast<int> (t) <= user_token_number_max_)
+    else if (t <= user_token_number_max_)
       return translate_table[t];
     else
-      return undef_token_;]])[
+      return yy_undef_token_;]])[
   }
 ]])
 

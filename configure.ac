@@ -1,6 +1,6 @@
 # Configure template for GNU Bison.                   -*-Autoconf-*-
 #
-# Copyright (C) 2001-2015, 2018-2019 Free Software Foundation, Inc.
+# Copyright (C) 2001-2015, 2018-2020 Free Software Foundation, Inc.
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,8 +26,10 @@ m4_pattern_allow([^BISON_USE_NLS$])
 
 AC_INIT([GNU Bison],
         m4_esyscmd([build-aux/git-version-gen .tarball-version]),
-        [bug-bison@gnu.org])
-AC_SUBST([PACKAGE_COPYRIGHT_YEAR], [2019])
+        [bug-bison@gnu.org],
+        [],
+        [https://www.gnu.org/software/bison/])
+AC_SUBST([PACKAGE_COPYRIGHT_YEAR], [2020])
 AC_DEFINE_UNQUOTED([PACKAGE_COPYRIGHT_YEAR], [$PACKAGE_COPYRIGHT_YEAR],
                    [The copyright year for this package])
 
@@ -100,12 +102,41 @@ if test "$enable_gcc_warnings" = yes; then
   # -Wno-tautological-constant-out-of-range-compare for Clang 3.3 and
   # 3.4 on GNU/Linux that choke on intprops.h's INT_MULTIPLY_WRAPV,
   # etc.
-  warn_common='-Wall -Wextra -Wcast-align
+  #
+  # ICC: -wr188
+  #
+  # 1669  warnings warnings_default =
+  # ../src/complain.c(318): error #188: enumerated type mixed with another type
+  # 1670      Wconflicts_sr | Wconflicts_rr | Wdeprecated | Wother;
+  # 1671      ^
+  # 1672
+  # 1673../src/complain.c(393): error #188: enumerated type mixed with another type
+  # 1674          warnings w = 1 << wbit;
+  # 1675                       ^
+  #
+  # ICC: -wr3179
+  #
+  # char const *usefulness
+  #   = rule_useless_in_grammar_p (&rules[r]) ? "useless-in-grammar"
+  #   : rule_useless_in_parser_p (&rules[r])  ? "useless-in-parser"
+  #   :                                         "useful";
+  #
+  # gives
+  #
+  # error #3179: deprecated conversion of string literal to char* (should be const char*)
+  #
+  # ICC: -wr2259 (that's in C, in spite of what the error messages which seems to be about C++).
+  # error #2259: non-pointer conversion from "int" to "yybool={signed char}" may lose significant bits
+  #   yybool yynormal YY_ATTRIBUTE_UNUSED = yystackp->yysplitPoint == YY_NULLPTR;
+  #                                         ^
+  warn_common='-Wall -Wextra
+    -Wcast-align -Wchar-subscripts
     -fparse-all-comments -Wdocumentation
     -Wformat -Wimplicit-fallthrough -Wnull-dereference
     -Wno-sign-compare -Wno-tautological-constant-out-of-range-compare
     -Wpointer-arith -Wshadow
-    -Wwrite-strings'
+    -Wwrite-strings
+    -wr188 -wr2259 -wr3179'
   warn_c='-Wbad-function-cast -Wstrict-prototypes'
   warn_cxx='-Wextra-semi -Wnoexcept -Wold-style-cast -Wundefined-func-template
     -Wweak-vtables'
@@ -151,8 +182,6 @@ if test "$enable_gcc_warnings" = yes; then
 
   # Warnings for the test suite, and maybe for bison if GCC is modern
   # enough.
-  gl_WARN_ADD([-Wmissing-declarations], [WARN_CFLAGS_TEST])
-  gl_WARN_ADD([-Wmissing-prototypes], [WARN_CFLAGS_TEST])
   test $lv_cv_gcc_pragma_push_works = yes &&
     AS_VAR_APPEND([WARN_CFLAGS], [" $WARN_CFLAGS_TEST"])
 
@@ -179,6 +208,14 @@ if test "$enable_gcc_warnings" = yes; then
               [[if (sizeof (long) < sizeof (int)) return 1;]])])
   gl_WARN_ADD([-Wzero-as-null-pointer-constant], [WARN_CXXFLAGS],
               [AC_LANG_PROGRAM([], [nullptr])])
+  # Before GCC6, the pragmas don't work well enough to neutralize
+  # this warning.
+  gl_WARN_ADD([-Wuseless-cast], [WARN_CXXFLAGS],
+              [AC_LANG_PROGRAM([], [
+              #if defined __GNUC__ && ! defined __ICC && ! defined __clang__ && __GNUC__ < 6
+              syntax error
+              #endif
+              ])])
   gl_WARN_ADD([-Werror], [WERROR_CXXFLAGS])
   # Warnings for the test suite only.
   for i in $warn_tests;

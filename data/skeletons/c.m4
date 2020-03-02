@@ -2,7 +2,7 @@
 
 # C M4 Macros for Bison.
 
-# Copyright (C) 2002, 2004-2015, 2018-2019 Free Software Foundation,
+# Copyright (C) 2002, 2004-2015, 2018-2020 Free Software Foundation,
 # Inc.
 
 # This program is free software: you can redistribute it and/or modify
@@ -327,11 +327,11 @@ m4_define([b4_attribute_define],
 
 #if defined __GNUC__ && ! defined __ICC && 407 <= __GNUC__ * 100 + __GNUC_MINOR__
 /* Suppress an incorrect diagnostic about yylval being uninitialized.  */
-# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN \
-    _Pragma ("GCC diagnostic push") \
-    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")\
+# define YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN                            \
+    _Pragma ("GCC diagnostic push")                                     \
+    _Pragma ("GCC diagnostic ignored \"-Wuninitialized\"")              \
     _Pragma ("GCC diagnostic ignored \"-Wmaybe-uninitialized\"")
-# define YY_IGNORE_MAYBE_UNINITIALIZED_END \
+# define YY_IGNORE_MAYBE_UNINITIALIZED_END      \
     _Pragma ("GCC diagnostic pop")
 #else
 # define YY_INITIAL_VALUE(Value) Value
@@ -342,6 +342,18 @@ m4_define([b4_attribute_define],
 #endif
 #ifndef YY_INITIAL_VALUE
 # define YY_INITIAL_VALUE(Value) /* Nothing. */
+#endif
+
+#if defined __cplusplus && defined __GNUC__ && ! defined __ICC && 6 <= __GNUC__
+# define YY_IGNORE_USELESS_CAST_BEGIN                          \
+    _Pragma ("GCC diagnostic push")                            \
+    _Pragma ("GCC diagnostic ignored \"-Wuseless-cast\"")
+# define YY_IGNORE_USELESS_CAST_END            \
+    _Pragma ("GCC diagnostic pop")
+#endif
+#ifndef YY_IGNORE_USELESS_CAST_BEGIN
+# define YY_IGNORE_USELESS_CAST_BEGIN
+# define YY_IGNORE_USELESS_CAST_END
 #endif
 ]])
 
@@ -456,6 +468,13 @@ m4_define([b4_token_enums],
 # if POSIX Yacc is enabled, as #defines.
 m4_define([b4_token_enums_defines],
 [b4_token_enums[]b4_yacc_if([b4_token_defines])])
+
+
+# b4_symbol_translate(STRING)
+# ---------------------------
+m4_define([b4_symbol_translate],
+[[N_($1)]])
+
 
 
 ## ----------------- ##
@@ -650,7 +669,7 @@ b4_locations_if([, [[YYLTYPE const * const yylocationp], [yylocationp]]])[]dnl
 m4_ifset([b4_parse_param], [, b4_parse_param]))[
 {
   YYFPRINTF (yyo, "%s %s (",
-             yytype < YYNTOKENS ? "token" : "nterm", yytname[yytype]);
+             yytype < YYNTOKENS ? "token" : "nterm", yysymbol_name (yytype));
 
 ]b4_locations_if([  YY_LOCATION_PRINT (yyo, *yylocationp);
   YYFPRINTF (yyo, ": ");

@@ -1,11 +1,11 @@
 #                                                            -*- C -*-
 # Yacc compatible skeleton for Bison
 
-# Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2019 Free Software
+# Copyright (C) 1984, 1989-1990, 2000-2015, 2018-2020 Free Software
 # Foundation, Inc.
 
 m4_pushdef([b4_copyright_years],
-           [1984, 1989-1990, 2000-2015, 2018-2019])
+           [1984, 1989-1990, 2000-2015, 2018-2020])
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -348,14 +348,6 @@ m4_if(b4_api_prefix, [yy], [],
 ]b4_cast_define[
 ]b4_null_define[
 
-/* Enabling verbose error messages.  */
-#ifdef YYERROR_VERBOSE
-# undef YYERROR_VERBOSE
-# define YYERROR_VERBOSE 1
-#else
-# define YYERROR_VERBOSE ]b4_error_verbose_if([1], [0])[
-#endif
-
 ]b4_header_include_if([[#include ]b4_percent_define_get([[api.header.include]])],
                       [m4_ifval(m4_quote(b4_spec_header_file),
                                 [/* Use api.header.include to #include this header
@@ -437,7 +429,7 @@ typedef int yy_state_fast_t;
 ]],
 [[#define YY_ASSERT(E) ((void) (0 && (E)))]])[
 
-#if ]b4_lac_if([[1]], [[! defined yyoverflow || YYERROR_VERBOSE]])[
+#if ]b4_lac_if([[1]], [b4_parse_error_case([simple], [[!defined yyoverflow]], [[1]])])[
 
 /* The parser invokes alloca or malloc; define the necessary symbols.  */]dnl
 b4_push_if([], [b4_lac_if([], [[
@@ -504,8 +496,7 @@ void free (void *); /* INFRINGES ON USER NAME SPACE */
 #  endif
 # endif]b4_lac_if([[
 # define YYCOPY_NEEDED 1]])[
-#endif]b4_lac_if([], [[ /* ! defined yyoverflow || YYERROR_VERBOSE */]])[
-
+#endif]b4_lac_if([], [b4_parse_error_case([simple], [[/* !defined yyoverflow */]])])[
 
 #if (! defined yyoverflow \
      && (! defined __cplusplus \
@@ -611,13 +602,42 @@ static const ]b4_int_type_for([b4_translate])[ yytranslate[] =
      [[YYRLINE[YYN] -- Source line where rule number YYN was defined.]])[
 #endif
 
-#if ]b4_api_PREFIX[DEBUG || YYERROR_VERBOSE || ]b4_token_table_flag[
-/* YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
+#if ]b4_parse_error_case([simple], [b4_api_PREFIX[DEBUG || ]b4_token_table_flag], [[1]])[
+/* The user-facing name of the symbol whose (internal) number is
+   YYSYMBOL.  No bounds checking.  */
+static const char *yysymbol_name (int yysymbol) YY_ATTRIBUTE_UNUSED;
+
+]b4_parse_error_bmatch([simple\|verbose],
+[[/* YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
 static const char *const yytname[] =
 {
   ]b4_tname[
 };
+
+static const char *
+yysymbol_name (int yysymbol)
+{
+  return yytname[yysymbol];
+}]],
+[[static const char *
+yysymbol_name (int yysymbol)
+{
+  static const char *const yy_sname[] =
+  {
+  ]b4_symbol_names[
+  };]m4_ifdef([b4_translatable], [[
+  /* YYTRANSLATABLE[SYMBOL-NUM] -- Whether YYTNAME[SYMBOL-NUM] is
+     internationalizable.  */
+  static ]b4_int_type_for([b4_translate])[ yytranslatable[] =
+  {
+  ]b4_translatable[
+  };
+  return (yysymbol < YYNTOKENS && yytranslatable[yysymbol]
+          ? _(yy_sname[yysymbol])
+          : yy_sname[yysymbol]);]], [[
+  return yy_sname[yysymbol];]])[
+}]])[
 #endif
 
 # ifdef YYPRINT
@@ -671,8 +691,9 @@ static const ]b4_int_type_for([b4_toknum])[ yytoknum[] =
       }                                                           \
   while (0)
 
-/* Error token number */
+/* Error symbol internal number. */
 #define YYTERROR        1
+/* Error token external number. */
 #define YYERRCODE       256
 
 ]b4_locations_if([[
@@ -755,7 +776,7 @@ do {                                                            \
     {
       YYFPRINTF (stderr, "   $%d = ", yyi + 1);
       yy_symbol_print (stderr,
-                       yystos[yyssp[yyi + 1 - yynrhs]],
+                       yystos[+yyssp[yyi + 1 - yynrhs]],
                        &]b4_rhs_value(yynrhs, yyi + 1)[
                        ]b4_locations_if([, &]b4_rhs_location(yynrhs, yyi + 1))[]dnl
                        b4_user_args[);
@@ -773,7 +794,7 @@ do {                                    \
    multiple parsers can coexist.  */
 int yydebug;
 #else /* !]b4_api_PREFIX[DEBUG */
-# define YYDPRINTF(Args)
+# define YYDPRINTF(Args) ((void) 0)
 # define YY_SYMBOL_PRINT(Title, Type, Value, Location)
 # define YY_STACK_PRINT(Bottom, Top)
 # define YY_REDUCE_PRINT(Rule)
@@ -854,8 +875,10 @@ yy_lac_stack_realloc (YYPTRDIFF_T *yycapacity, YYPTRDIFF_T yyadd,
       *yybottom = yybottom_new;
       *yycapacity = yyalloc;]m4_if(b4_percent_define_get([[parse.lac.memory-trace]]),
                                    [full], [[
+      YY_IGNORE_USELESS_CAST_BEGIN
       YYDPRINTF ((stderr, "%srealloc to %ld%s", yydebug_prefix,
-                  YY_CAST (long, yyalloc), yydebug_suffix));]])[
+                  YY_CAST (long, yyalloc), yydebug_suffix));
+      YY_IGNORE_USELESS_CAST_END]])[
     }
   return 0;
 }
@@ -892,7 +915,7 @@ do {                                                             \
     {                                                            \
       YYDPRINTF ((stderr,                                        \
                   "LAC: initial context established for %s\n",   \
-                  yytname[yytoken]));                            \
+                  yysymbol_name (yytoken)));                     \
       yy_lac_established = 1;                                    \
       {                                                          \
         int yy_lac_status =                                      \
@@ -921,9 +944,8 @@ do {                                                             \
 do {                                                                     \
   if (yy_lac_established)                                                \
     {                                                                    \
-      if (yydebug)                                                       \
-        YYFPRINTF (stderr, "LAC: initial context discarded due to "      \
-                   Event "\n");                                          \
+      YYDPRINTF ((stderr, "LAC: initial context discarded due to "       \
+                  Event "\n"));                                          \
       yy_lac_established = 0;                                            \
     }                                                                    \
 } while (0)
@@ -945,7 +967,8 @@ yy_lac (yy_state_t *yyesa, yy_state_t **yyes,
 {
   yy_state_t *yyes_prev = yyssp;
   yy_state_t *yyesp = yyes_prev;
-  YYDPRINTF ((stderr, "LAC: checking lookahead %s:", yytname[yytoken]));
+  /* Reduce until we encounter a shift and thereby accept the token.  */
+  YYDPRINTF ((stderr, "LAC: checking lookahead %s:", yysymbol_name (yytoken)));
   if (yytoken == YYUNDEFTOK)
     {
       YYDPRINTF ((stderr, " Always Err\n"));
@@ -953,12 +976,13 @@ yy_lac (yy_state_t *yyesa, yy_state_t **yyes,
     }
   while (1)
     {
-      int yyrule = yypact[*yyesp];
+      int yyrule = yypact[+*yyesp];
       if (yypact_value_is_default (yyrule)
           || (yyrule += yytoken) < 0 || YYLAST < yyrule
           || yycheck[yyrule] != yytoken)
         {
-          yyrule = yydefact[*yyesp];
+          /* Use the default action.  */
+          yyrule = yydefact[+*yyesp];
           if (yyrule == 0)
             {
               YYDPRINTF ((stderr, " Err\n"));
@@ -967,6 +991,7 @@ yy_lac (yy_state_t *yyesa, yy_state_t **yyes,
         }
       else
         {
+          /* Use the action from yytable.  */
           yyrule = yytable[yyrule];
           if (yytable_value_is_error (yyrule))
             {
@@ -980,9 +1005,12 @@ yy_lac (yy_state_t *yyesa, yy_state_t **yyes,
             }
           yyrule = -yyrule;
         }
+      /* By now we know we have to simulate a reduce.  */
+      YYDPRINTF ((stderr, " R%d", yyrule - 1));
       {
+        /* Pop the corresponding number of values from the stack.  */
         YYPTRDIFF_T yylen = yyr2[yyrule];
-        YYDPRINTF ((stderr, " R%d", yyrule - 1));
+        /* First pop from the LAC stack as many tokens as possible.  */
         if (yyesp != yyes_prev)
           {
             YYPTRDIFF_T yysize = yyesp - *yyes + 1;
@@ -993,13 +1021,15 @@ yy_lac (yy_state_t *yyesa, yy_state_t **yyes,
               }
             else
               {
-                yylen -= yysize;
                 yyesp = yyes_prev;
+                yylen -= yysize;
               }
           }
+        /* Only afterwards look at the main stack.  */
         if (yylen)
           yyesp = yyes_prev -= yylen;
       }
+      /* Push the resulting state of the reduction.  */
       {
         yy_state_fast_t yystate;
         {
@@ -1012,7 +1042,9 @@ yy_lac (yy_state_t *yyesa, yy_state_t **yyes,
         if (yyesp == yyes_prev)
           {
             yyesp = *yyes;
+            YY_IGNORE_USELESS_CAST_BEGIN
             *yyesp = YY_CAST (yy_state_t, yystate);
+            YY_IGNORE_USELESS_CAST_END
           }
         else
           {
@@ -1025,20 +1057,155 @@ yy_lac (yy_state_t *yyesa, yy_state_t **yyes,
                 YYDPRINTF ((stderr, "\n"));
                 return 2;
               }
+            YY_IGNORE_USELESS_CAST_BEGIN
             *++yyesp = YY_CAST (yy_state_t, yystate);
+            YY_IGNORE_USELESS_CAST_END
           }
         YYDPRINTF ((stderr, " G%d", yystate));
       }
     }
 }]])[
 
+]b4_parse_error_case([simple], [],
+[[typedef struct
+{
+  yy_state_t *yyssp;
+  int yytoken;]b4_locations_if([[
+  YYLTYPE *yylloc;]])[]b4_lac_if([[
+  yy_state_t *yyesa;
+  yy_state_t **yyes_p;
+  YYPTRDIFF_T *yyes_capacity_p;]])[
+} yyparse_context_t;
 
-#if YYERROR_VERBOSE
+/* Put in YYARG at most YYARGN of the expected tokens given the
+   current YYCTX, and return the number of tokens stored in YYARG.  If
+   YYARG is null, return the number of expected tokens (guaranteed to
+   be less than YYNTOKENS).  */
+static int
+yyexpected_tokens (const yyparse_context_t *yyctx,
+                   int yyarg[], int yyargn)
+{
+  /* Actual size of YYARG. */
+  int yycount = 0;
+]b4_lac_if([[
+  int yyx;
+  for (yyx = 0; yyx < YYNTOKENS; ++yyx)
+    if (yyx != YYTERROR && yyx != YYUNDEFTOK)
+      {
+        {
+          int yy_lac_status = yy_lac (yyctx->yyesa, yyctx->yyes_p, yyctx->yyes_capacity_p,
+                                      yyctx->yyssp, yyx);
+          if (yy_lac_status == 2)
+            return -2;
+          if (yy_lac_status == 1)
+            continue;
+        }
+        if (!yyarg)
+          ++yycount;
+        else if (yycount == yyargn)
+          return 0;
+        else
+          yyarg[yycount++] = yyx;
+      }]],
+[[  int yyn = yypact[+*yyctx->yyssp];
+  if (!yypact_value_is_default (yyn))
+    {
+      /* Start YYX at -YYN if negative to avoid negative indexes in
+         YYCHECK.  In other words, skip the first -YYN actions for
+         this state because they are default actions.  */
+      int yyxbegin = yyn < 0 ? -yyn : 0;
+      /* Stay within bounds of both yycheck and yytname.  */
+      int yychecklim = YYLAST - yyn + 1;
+      int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
+      int yyx;
+      for (yyx = yyxbegin; yyx < yyxend; ++yyx)
+        if (yycheck[yyx + yyn] == yyx && yyx != YYTERROR
+            && !yytable_value_is_error (yytable[yyx + yyn]))
+          {
+            if (!yyarg)
+              ++yycount;
+            else if (yycount == yyargn)
+              return 0;
+            else
+              yyarg[yycount++] = yyx;
+          }
+    }]])[
+  return yycount;
+}
 
-# ifndef yystrlen
-#  if defined __GLIBC__ && defined _STRING_H
-#   define yystrlen(S) (YY_CAST (YYPTRDIFF_T, strlen (S)))
-#  else
+static int
+yysyntax_error_arguments (const yyparse_context_t *yyctx,
+                          int yyarg[], int yyargn)
+{
+  /* Actual size of YYARG. */
+  int yycount = 0;
+  /* There are many possibilities here to consider:
+     - If this state is a consistent state with a default action, then
+       the only way this function was invoked is if the default action
+       is an error action.  In that case, don't check for expected
+       tokens because there are none.
+     - The only way there can be no lookahead present (in yychar) is if
+       this state is a consistent state with a default action.  Thus,
+       detecting the absence of a lookahead is sufficient to determine
+       that there is no unexpected or expected token to report.  In that
+       case, just report a simple "syntax error".
+     - Don't assume there isn't a lookahead just because this state is a
+       consistent state with a default action.  There might have been a
+       previous inconsistent state, consistent state with a non-default
+       action, or user semantic action that manipulated yychar.]b4_lac_if([[
+       In the first two cases, it might appear that the current syntax
+       error should have been detected in the previous state when yy_lac
+       was invoked.  However, at that time, there might have been a
+       different syntax error that discarded a different initial context
+       during error recovery, leaving behind the current lookahead.]], [[
+     - Of course, the expected token list depends on states to have
+       correct lookahead information, and it depends on the parser not
+       to perform extra reductions after fetching a lookahead from the
+       scanner and before detecting a syntax error.  Thus, state merging
+       (from LALR or IELR) and default reductions corrupt the expected
+       token list.  However, the list is correct for canonical LR with
+       one exception: it will still contain any token that will not be
+       accepted due to an error action in a later state.]])[
+  */
+  if (yyctx->yytoken != YYEMPTY)
+    {
+      int yyn;]b4_lac_if([[
+      YYDPRINTF ((stderr, "Constructing syntax error message\n"));]])[
+      yyarg[yycount++] = yyctx->yytoken;
+      yyn = yyexpected_tokens (yyctx, yyarg ? yyarg + 1 : yyarg, yyargn - 1);
+      if (yyn == -2)
+        return -2;]b4_lac_if([[
+      else if (yyn == 0)
+        YYDPRINTF ((stderr, "No expected tokens.\n"));]])[
+      else
+        yycount += yyn;
+    }
+  return yycount;
+}
+]])[
+
+]b4_parse_error_case(
+         [custom],
+[b4_locations_if([[/*  The location of this context.  */
+static YYLTYPE *
+yyparse_context_location (const yyparse_context_t *yyctx) YY_ATTRIBUTE_UNUSED;
+
+static YYLTYPE *
+yyparse_context_location (const yyparse_context_t *yyctx)
+{
+  return yyctx->yylloc;
+}]])[
+
+/* User defined function to report a syntax error.  */
+]b4_function_declare([yyreport_syntax_error], [static int],
+                     [[[const yyparse_context_t *yyctx]], [[yyctx]]],
+                     b4_parse_param)],
+         [simple],
+[[]],
+[[#ifndef yystrlen
+# if defined __GLIBC__ && defined _STRING_H
+#  define yystrlen(S) (YY_CAST (YYPTRDIFF_T, strlen (S)))
+# else
 /* Return the length of YYSTR.  */
 ]b4_function_define([yystrlen], [static YYPTRDIFF_T],
    [[const char *yystr], [yystr]])[
@@ -1048,13 +1215,13 @@ yy_lac (yy_state_t *yyesa, yy_state_t **yyes,
     continue;
   return yylen;
 }
-#  endif
 # endif
+#endif
 
-# ifndef yystpcpy
-#  if defined __GLIBC__ && defined _STRING_H && defined _GNU_SOURCE
-#   define yystpcpy stpcpy
-#  else
+#ifndef yystpcpy
+# if defined __GLIBC__ && defined _STRING_H && defined _GNU_SOURCE
+#  define yystpcpy stpcpy
+# else
 /* Copy YYSRC to YYDEST, returning the address of the terminating '\0' in
    YYDEST.  */
 ]b4_function_define([yystpcpy], [static char *],
@@ -1068,10 +1235,12 @@ yy_lac (yy_state_t *yyesa, yy_state_t **yyes,
 
   return yyd - 1;
 }
-#  endif
 # endif
+#endif
 
-# ifndef yytnamerr
+]b4_parse_error_case(
+         [verbose],
+[[#ifndef yytnamerr
 /* Copy to YYRES the contents of YYSTR after stripping away unnecessary
    quotes and backslashes, so that it's suitable for yyerror.  The
    heuristic is that double-quoting is unnecessary unless the string
@@ -1086,7 +1255,6 @@ yytnamerr (char *yyres, const char *yystr)
     {
       YYPTRDIFF_T yyn = 0;
       char const *yyp = yystr;
-
       for (;;)
         switch (*++yyp)
           {
@@ -1120,7 +1288,8 @@ yytnamerr (char *yyres, const char *yystr)
   else
     return yystrlen (yystr);
 }
-# endif
+#endif
+]])[
 
 /* Copy into *YYMSG, which is of size *YYMSG_ALLOC, an error message
    about the unexpected token YYTOKEN for the state stack whose top is
@@ -1134,103 +1303,22 @@ yytnamerr (char *yyres, const char *yystr)
    yy_lac returned 2]])[.  */
 static int
 yysyntax_error (YYPTRDIFF_T *yymsg_alloc, char **yymsg,
-                ]b4_lac_if([[yy_state_t *yyesa, yy_state_t **yyes,
-                YYPTRDIFF_T *yyes_capacity, ]])[yy_state_t *yyssp, int yytoken)
+                const yyparse_context_t *yyctx)
 {
-  YYPTRDIFF_T yysize0 = yytnamerr (YY_NULLPTR, yytname[yytoken]);
-  YYPTRDIFF_T yysize = yysize0;
   enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
   /* Internationalized format string. */
   const char *yyformat = YY_NULLPTR;
-  /* Arguments of yyformat. */
-  char const *yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
-  /* Number of reported tokens (one for the "unexpected", one per
-     "expected"). */
-  int yycount = 0;
+  /* Arguments of yyformat: reported tokens (one for the "unexpected",
+     one per "expected"). */
+  int yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
+  /* Cumulated lengths of YYARG.  */
+  YYPTRDIFF_T yysize = 0;
 
-  /* There are many possibilities here to consider:
-     - If this state is a consistent state with a default action, then
-       the only way this function was invoked is if the default action
-       is an error action.  In that case, don't check for expected
-       tokens because there are none.
-     - The only way there can be no lookahead present (in yychar) is if
-       this state is a consistent state with a default action.  Thus,
-       detecting the absence of a lookahead is sufficient to determine
-       that there is no unexpected or expected token to report.  In that
-       case, just report a simple "syntax error".
-     - Don't assume there isn't a lookahead just because this state is a
-       consistent state with a default action.  There might have been a
-       previous inconsistent state, consistent state with a non-default
-       action, or user semantic action that manipulated yychar.]b4_lac_if([[
-       In the first two cases, it might appear that the current syntax
-       error should have been detected in the previous state when yy_lac
-       was invoked.  However, at that time, there might have been a
-       different syntax error that discarded a different initial context
-       during error recovery, leaving behind the current lookahead.]], [[
-     - Of course, the expected token list depends on states to have
-       correct lookahead information, and it depends on the parser not
-       to perform extra reductions after fetching a lookahead from the
-       scanner and before detecting a syntax error.  Thus, state merging
-       (from LALR or IELR) and default reductions corrupt the expected
-       token list.  However, the list is correct for canonical LR with
-       one exception: it will still contain any token that will not be
-       accepted due to an error action in a later state.]])[
-  */
-  if (yytoken != YYEMPTY)
-    {
-      int yyn = yypact[*yyssp];]b4_lac_if([[
-      YYDPRINTF ((stderr, "Constructing syntax error message\n"));]])[
-      yyarg[yycount++] = yytname[yytoken];
-      if (!yypact_value_is_default (yyn))
-        {]b4_lac_if([[
-          int yyx;
-
-          for (yyx = 0; yyx < YYNTOKENS; ++yyx)
-            if (yyx != YYTERROR && yyx != YYUNDEFTOK)
-              {
-                {
-                  int yy_lac_status = yy_lac (yyesa, yyes, yyes_capacity,
-                                              yyssp, yyx);
-                  if (yy_lac_status == 2)
-                    return 2;
-                  if (yy_lac_status == 1)
-                    continue;
-                }]], [[
-          /* Start YYX at -YYN if negative to avoid negative indexes in
-             YYCHECK.  In other words, skip the first -YYN actions for
-             this state because they are default actions.  */
-          int yyxbegin = yyn < 0 ? -yyn : 0;
-          /* Stay within bounds of both yycheck and yytname.  */
-          int yychecklim = YYLAST - yyn + 1;
-          int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
-          int yyx;
-
-          for (yyx = yyxbegin; yyx < yyxend; ++yyx)
-            if (yycheck[yyx + yyn] == yyx && yyx != YYTERROR
-                && !yytable_value_is_error (yytable[yyx + yyn]))
-              {]])[
-                if (yycount == YYERROR_VERBOSE_ARGS_MAXIMUM)
-                  {
-                    yycount = 1;
-                    yysize = yysize0;
-                    break;
-                  }
-                yyarg[yycount++] = yytname[yyx];
-                {
-                  YYPTRDIFF_T yysize1 = yysize + yytnamerr (YY_NULLPTR,
-                                                            yytname[yyx]);
-                  if (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM)
-                    yysize = yysize1;
-                  else
-                    return 2;
-                }
-              }
-        }]b4_lac_if([[
-# if ]b4_api_PREFIX[DEBUG
-      else if (yydebug)
-        YYFPRINTF (stderr, "No expected tokens.\n");
-# endif]])[
-    }
+  /* Actual size of YYARG. */
+  int yycount
+    = yysyntax_error_arguments (yyctx, yyarg, YYERROR_VERBOSE_ARGS_MAXIMUM);
+  if (yycount == -2)
+    return 2;
 
   switch (yycount)
     {
@@ -1248,12 +1336,22 @@ yysyntax_error (YYPTRDIFF_T *yymsg_alloc, char **yymsg,
 # undef YYCASE_
     }
 
+  /* Compute error message size.  Don't count the "%s"s, but reserve
+     room for the terminator.  */
+  yysize = yystrlen (yyformat) - 2 * yycount + 1;
   {
-    YYPTRDIFF_T yysize1 = yysize + yystrlen (yyformat);
-    if (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM)
-      yysize = yysize1;
-    else
-      return 2;
+    int yyi;
+    for (yyi = 0; yyi < yycount; ++yyi)
+      {
+        YYPTRDIFF_T yysize1
+          = yysize + ]b4_parse_error_case(
+                              [verbose], [[yytnamerr (YY_NULLPTR, yytname[yyarg[yyi]])]],
+                              [[yystrlen (yysymbol_name (yyarg[yyi]))]]);[
+        if (yysize <= yysize1 && yysize1 <= YYSTACK_ALLOC_MAXIMUM)
+          yysize = yysize1;
+        else
+          return 2;
+      }
   }
 
   if (*yymsg_alloc < yysize)
@@ -1273,25 +1371,26 @@ yysyntax_error (YYPTRDIFF_T *yymsg_alloc, char **yymsg,
     int yyi = 0;
     while ((*yyp = *yyformat) != '\0')
       if (*yyp == '%' && yyformat[1] == 's' && yyi < yycount)
-        {
-          yyp += yytnamerr (yyp, yyarg[yyi++]);
+        {]b4_parse_error_case([verbose], [[
+          yyp += yytnamerr (yyp, yytname[yyarg[yyi++]]);]], [[
+          yyp = yystpcpy (yyp, yysymbol_name (yyarg[yyi++]));]])[
           yyformat += 2;
         }
       else
         {
-          yyp++;
-          yyformat++;
+          ++yyp;
+          ++yyformat;
         }
   }
   return 0;
 }
-#endif /* YYERROR_VERBOSE */
+]])[
 
 ]b4_yydestruct_define[
 
-]b4_pure_if([], [
+]b4_pure_if([], [[
 
-b4_declare_scanner_communication_variables])[]b4_push_if([[
+]b4_declare_scanner_communication_variables])[]b4_push_if([[
 
 struct yypstate
   {]b4_declare_parser_state_variables[
@@ -1416,8 +1515,10 @@ b4_function_define([[yyparse]], [[int]], b4_parse_param)[
 ])],
   [b4_declare_parser_state_variables
 ])b4_lac_if([[
+  /* Whether LAC context is established.  A Boolean.  */
   int yy_lac_established = 0;]])[
   int yyn;
+  /* The return value of yyparse.  */
   int yyresult;
   /* Lookahead token as an internal (translated) token number.  */
   int yytoken = 0;
@@ -1426,12 +1527,11 @@ b4_function_define([[yyparse]], [[int]], b4_parse_param)[
   YYSTYPE yyval;]b4_locations_if([[
   YYLTYPE yyloc;]])[
 
-#if YYERROR_VERBOSE
-  /* Buffer for error messages, and its allocated size.  */
+]b4_parse_error_bmatch([detailed\|verbose],
+[[  /* Buffer for error messages, and its allocated size.  */
   char yymsgbuf[128];
   char *yymsg = yymsgbuf;
-  YYPTRDIFF_T yymsg_alloc = sizeof yymsgbuf;
-#endif
+  YYPTRDIFF_T yymsg_alloc = sizeof yymsgbuf;]])[
 
 #define YYPOPSTACK(N)   (yyvsp -= (N), yyssp -= (N)]b4_locations_if([, yylsp -= (N)])[)
 
@@ -1488,7 +1588,10 @@ yynewstate:
 yysetstate:
   YYDPRINTF ((stderr, "Entering state %d\n", yystate));
   YY_ASSERT (0 <= yystate && yystate < YYNSTATES);
-   *yyssp = YY_CAST (yy_state_t, yystate);
+  YY_IGNORE_USELESS_CAST_BEGIN
+  *yyssp = YY_CAST (yy_state_t, yystate);
+  YY_IGNORE_USELESS_CAST_END
+  YY_STACK_PRINT (yyss, yyssp);
 
   if (yyss + yystacksize - 1 <= yyssp)
 #if !defined yyoverflow && !defined YYSTACK_RELOCATE
@@ -1548,8 +1651,10 @@ yysetstate:
       yyvsp = yyvs + yysize - 1;]b4_locations_if([
       yylsp = yyls + yysize - 1;])[
 
+      YY_IGNORE_USELESS_CAST_BEGIN
       YYDPRINTF ((stderr, "Stack size increased to %ld\n",
                   YY_CAST (long, yystacksize)));
+      YY_IGNORE_USELESS_CAST_END
 
       if (yyss + yystacksize - 1 <= yyssp)
         YYABORT;
@@ -1593,7 +1698,7 @@ yybackup:
       yylval = yypushed_val;]b4_locations_if([[
       yylloc = yypushed_loc;]])])[
 yyread_pushed_token:]])[
-      YYDPRINTF ((stderr, "Reading a token: "));]b4_push_if([b4_pure_if([[
+      YYDPRINTF ((stderr, "Reading a token\n"));]b4_push_if([b4_pure_if([[
       yychar = yypushed_char;
       if (yypushed_val)
         yylval = *yypushed_val;]b4_locations_if([[
@@ -1713,7 +1818,6 @@ yyreduce:
 
   YYPOPSTACK (yylen);
   yylen = 0;
-  YY_STACK_PRINT (yyss, yyssp);
 
   *++yyvsp = yyval;]b4_locations_if([
   *++yylsp = yyloc;])[
@@ -1744,43 +1848,52 @@ yyerrlab:
   if (!yyerrstatus)
     {
       ++yynerrs;
-#if ! YYERROR_VERBOSE
-      yyerror (]b4_yyerror_args[YY_("syntax error"));
-#else
-# define YYSYNTAX_ERROR yysyntax_error (&yymsg_alloc, &yymsg, \]b4_lac_if([[
-                                        yyesa, &yyes, &yyes_capacity, \]])[
-                                        yyssp, yytoken)
-      {
+]b4_parse_error_case(
+         [custom],
+[[      {
+        yyparse_context_t yyctx
+          = {yyssp, yytoken]b4_locations_if([[, &yylloc]])[]b4_lac_if([[, yyesa, &yyes, &yyes_capacity]])[};]b4_lac_if([[
+        if (yychar != YYEMPTY)
+          YY_LAC_ESTABLISH;]])[
+        if (yyreport_syntax_error (&yyctx]m4_ifset([b4_parse_param],
+                                  [[, ]b4_args(b4_parse_param)])[) == 2)
+          goto yyexhaustedlab;
+      }]],
+         [simple],
+[[      yyerror (]b4_yyerror_args[YY_("syntax error"));]],
+[[      {
         char const *yymsgp = YY_("syntax error");
+        yyparse_context_t yyctx
+          = {yyssp, yytoken]b4_locations_if([[, &yylloc]])[]b4_lac_if([[, yyesa, &yyes, &yyes_capacity]])[};
         int yysyntax_error_status;]b4_lac_if([[
         if (yychar != YYEMPTY)
           YY_LAC_ESTABLISH;]])[
-        yysyntax_error_status = YYSYNTAX_ERROR;
+        yysyntax_error_status = yysyntax_error (&yymsg_alloc, &yymsg, &yyctx);
         if (yysyntax_error_status == 0)
           yymsgp = yymsg;
         else if (yysyntax_error_status == 1)
           {
             if (yymsg != yymsgbuf)
               YYSTACK_FREE (yymsg);
-            yymsg = YY_CAST (char *, YYSTACK_ALLOC (YY_CAST (YYSIZE_T, yymsg_alloc)));
-            if (!yymsg)
+            yymsg = YY_CAST (char *,
+                             YYSTACK_ALLOC (YY_CAST (YYSIZE_T, yymsg_alloc)));
+            if (yymsg)
+              {
+                yysyntax_error_status
+                  = yysyntax_error (&yymsg_alloc, &yymsg, &yyctx);
+                yymsgp = yymsg;
+              }
+            else
               {
                 yymsg = yymsgbuf;
                 yymsg_alloc = sizeof yymsgbuf;
                 yysyntax_error_status = 2;
               }
-            else
-              {
-                yysyntax_error_status = YYSYNTAX_ERROR;
-                yymsgp = yymsg;
-              }
           }
         yyerror (]b4_yyerror_args[yymsgp);
         if (yysyntax_error_status == 2)
           goto yyexhaustedlab;
-      }
-# undef YYSYNTAX_ERROR
-#endif
+      }]])[
     }
 
 ]b4_locations_if([[  yyerror_range[1] = yylloc;]])[
@@ -1896,7 +2009,7 @@ yyabortlab:
   goto yyreturn;
 
 
-#if ]b4_lac_if([[1]], [[!defined yyoverflow || YYERROR_VERBOSE]])[
+#if ]b4_lac_if([[1]], [b4_parse_error_case([simple], [[!defined yyoverflow]], [[1]])])[
 /*-------------------------------------------------.
 | yyexhaustedlab -- memory exhaustion comes here.  |
 `-------------------------------------------------*/
@@ -1926,7 +2039,7 @@ yyreturn:
   while (yyssp != yyss)
     {
       yydestruct ("Cleanup: popping",
-                  yystos[*yyssp], yyvsp]b4_locations_if([, yylsp])[]b4_user_args[);
+                  yystos[+*yyssp], yyvsp]b4_locations_if([, yylsp])[]b4_user_args[);
       YYPOPSTACK (1);
     }
 #ifndef yyoverflow
@@ -1942,11 +2055,11 @@ yyreturn:
 | yypushreturn -- ask for the next token.  |
 `-----------------------------------------*/
 yypushreturn:]])[
-#if YYERROR_VERBOSE
-  if (yymsg != yymsgbuf)
-    YYSTACK_FREE (yymsg);
-#endif
+]b4_parse_error_bmatch([detailed\|verbose],
+[[  if (yymsg != yymsgbuf)
+    YYSTACK_FREE (yymsg);]])[
   return yyresult;
 }
-]b4_epilogue[]dnl
+]b4_percent_code_get([[epilogue]])[]dnl
+b4_epilogue[]dnl
 b4_output_end

@@ -7,10 +7,10 @@
 # Hiroshi Takekawa <sian@big.or.jp>, <sian.ht@gmail.com>, 2019-2020
 msgid ""
 msgstr ""
-"Project-Id-Version: GNU bison 3.5.2.161-62a1a-dirty\n"
+"Project-Id-Version: GNU bison 3.5.90.9-aa3e0\n"
 "Report-Msgid-Bugs-To: bug-bison@gnu.org\n"
-"POT-Creation-Date: 2020-03-02 19:06+0900\n"
-"PO-Revision-Date: 2020-03-02 19:21+0900\n"
+"POT-Creation-Date: 2020-04-19 20:26+0900\n"
+"PO-Revision-Date: 2020-04-19 20:29+0900\n"
 "Last-Translator: Hiroshi Takekawa <sian@big.or.jp>\n"
 "Language-Team: Japanese <translation-team-ja@lists.sourceforge.net>\n"
 "Language: ja\n"
@@ -114,8 +114,8 @@ msgstr "重複した指示"
 msgid "duplicate directive: %s"
 msgstr "重複した指示: %s"
 
-#: src/complain.c:570 src/complain.c:579 src/reader.c:133 src/symtab.c:300
-#: src/symtab.c:309 src/symtab.c:539
+#: src/complain.c:570 src/complain.c:579 src/reader.c:133 src/symtab.c:317
+#: src/symtab.c:326 src/symtab.c:557
 msgid "previous declaration"
 msgstr "以前の宣言"
 
@@ -575,7 +575,7 @@ msgstr "バイト数がオーバーフローしました"
 #. language, remembering that "…" (U+2026 HORIZONTAL ELLIPSIS)
 #. sometimes misdisplays and that "..." (three ASCII periods) is a
 #. safer choice in some locales.
-#: src/location.c:250
+#: src/location.c:252
 msgid "..."
 msgstr "..."
 
@@ -588,116 +588,112 @@ msgstr "衝突のせいでパーサ内の規則が使用できません"
 msgid "fix-its can be applied.  Rerun with option '--update'."
 msgstr "自動的に修正できます。'--update' を付けて再度実行してください。"
 
-#: src/muscle-tab.c:531
+#: src/muscle-tab.c:530
 #, c-format
 msgid "%%define variable %s redefined"
 msgstr "%%define 変数 %s が再定義されました"
 
-#: src/muscle-tab.c:534 src/symtab.c:320
+#: src/muscle-tab.c:533 src/symtab.c:337
 msgid "previous definition"
 msgstr "前の定義"
 
-#: src/muscle-tab.c:593 src/muscle-tab.c:694 src/muscle-tab.c:753
+#: src/muscle-tab.c:592 src/muscle-tab.c:693 src/muscle-tab.c:752
 #, c-format
 msgid "%s: undefined %%define variable %s"
 msgstr "%s: 未定義の %%define 変数 %s"
 
-#: src/muscle-tab.c:627
+#: src/muscle-tab.c:626
 #, c-format
 msgid "%%define variable '%s' requires '{...}' values"
 msgstr "%%define 変数 '%s' は '{...}' を値として必要としています"
 
-#: src/muscle-tab.c:632
+#: src/muscle-tab.c:631
 #, c-format
 msgid "%%define variable '%s' requires keyword values"
 msgstr "%%define 変数 '%s' はキーワードを値として必要としています"
 
-#: src/muscle-tab.c:637
+#: src/muscle-tab.c:636
 #, c-format
 msgid "%%define variable '%s' requires '\"...\"' values"
 msgstr "%%define 変数 '%s' は '\"...\"' を値として必要としています"
 
-#: src/muscle-tab.c:688
+#: src/muscle-tab.c:687
 #, c-format
 msgid "invalid value for %%define Boolean variable %s"
 msgstr "%%define Boolean variable %s としては不正な値"
 
-#: src/muscle-tab.c:741
+#: src/muscle-tab.c:740
 #, c-format
 msgid "invalid value for %%define variable %s: %s"
 msgstr "%%define 変数 %s の値として不適切です: %s"
 
-#: src/muscle-tab.c:745
+#: src/muscle-tab.c:744
 #, c-format
 msgid "accepted value: %s"
 msgstr "受け入れられた値: %s"
 
 #: src/parse-gram.y:144
-msgid "end of file"
-msgstr "ファイル末尾"
-
-#: src/parse-gram.y:145
 msgid "string"
 msgstr "文字列"
 
-#: src/parse-gram.y:146
+#: src/parse-gram.y:145
 msgid "translatable string"
 msgstr "翻訳可能な文字列"
 
-#: src/parse-gram.y:192
+#: src/parse-gram.y:191
 msgid "[identifier]"
 msgstr "[識別子]"
 
-#: src/parse-gram.y:193
+#: src/parse-gram.y:192
 msgid "character literal"
 msgstr "文字リテラル"
 
-#: src/parse-gram.y:195
+#: src/parse-gram.y:194
 msgid "epilogue"
 msgstr "エピローグ"
 
-#: src/parse-gram.y:197
+#: src/parse-gram.y:196
 msgid "identifier"
 msgstr "識別子"
 
-#: src/parse-gram.y:198
+#: src/parse-gram.y:197
 msgid "identifier:"
 msgstr "識別子:"
 
-#: src/parse-gram.y:203
+#: src/parse-gram.y:202
 msgid "<tag>"
 msgstr "<タグ>"
 
-#: src/parse-gram.y:228
+#: src/parse-gram.y:227
 msgid "integer literal"
 msgstr "整数リテラル"
 
-#: src/parse-gram.y:754
+#: src/parse-gram.y:753
 #, c-format
 msgid "character literals cannot be nonterminals"
 msgstr "文字リテラルは非終端にはなれません"
 
-#: src/parse-gram.y:760
+#: src/parse-gram.y:759
 #, c-format
 msgid "character literals cannot be used together with %s"
 msgstr "文字リテラルは %s と一緒に使えません"
 
-#: src/parse-gram.y:763
+#: src/parse-gram.y:762
 #, c-format
 msgid "definition of %s"
 msgstr "%s の定義"
 
-#: src/parse-gram.y:906
+#: src/parse-gram.y:913
 #, c-format
 msgid "missing identifier in parameter declaration"
 msgstr "パラメータの宣言に識別子がありません"
 
-#: src/parse-gram.y:1035
+#: src/parse-gram.y:1042
 #, c-format
 msgid "invalid version requirement: %s"
 msgstr "必要なバージョン指定が無効です: %s"
 
-#: src/parse-gram.y:1049
+#: src/parse-gram.y:1056
 #, c-format
 msgid "require bison %s, but have %s"
 msgstr "bison %s が必要ですが、%s です。"
@@ -1064,37 +1060,37 @@ msgstr "スケルトンの %s ディレクティブの引数が少なすぎま�
 msgid "too many arguments for %s directive in skeleton"
 msgstr "スケルトンの %s ディレクティブの引数が多すぎます"
 
-#: src/symtab.c:108
+#: src/symtab.c:124
 #, c-format
 msgid "POSIX Yacc forbids dashes in symbol names: %s"
 msgstr "POSIX Yacc ではシンボル名にダッシュは使えません: %s"
 
-#: src/symtab.c:119
+#: src/symtab.c:135
 #, c-format
 msgid "too many symbols in input grammar (limit is %d)"
 msgstr "入力している文法のシンボルが多すぎます(最大 %d)"
 
-#: src/symtab.c:299
+#: src/symtab.c:316
 #, c-format
 msgid "%s redeclaration for %s"
 msgstr "%s は %s の再宣言です"
 
-#: src/symtab.c:308
+#: src/symtab.c:325
 #, c-format
 msgid "%s redeclaration for <%s>"
 msgstr "%s は <%s> の再宣言です"
 
-#: src/symtab.c:317
+#: src/symtab.c:334
 #, c-format
 msgid "symbol %s redeclared as a token"
 msgstr "シンボル %s がトークンとして再宣言されました"
 
-#: src/symtab.c:318
+#: src/symtab.c:335
 #, c-format
 msgid "symbol %s redeclared as a nonterminal"
 msgstr "シンボル %s が非終端として再宣言されました"
 
-#: src/symtab.c:358
+#: src/symtab.c:375
 #, c-format
 msgid ""
 "symbol %s is used, but is not defined as a token and has no rules; did you "
@@ -1103,104 +1099,104 @@ msgstr ""
 "シンボル %s が使われていますが、トークンとして定義されておらず、規則を持ちま"
 "せん。%s と間違えましたか？"
 
-#: src/symtab.c:368
+#: src/symtab.c:385
 #, c-format
 msgid "symbol %s is used, but is not defined as a token and has no rules"
 msgstr ""
 "シンボル %s が使われていますが、トークンとして定義されておらず、規則を持ちま"
 "せん"
 
-#: src/symtab.c:503
+#: src/symtab.c:521
 #, c-format
 msgid "POSIX yacc reserves %%type to nonterminals"
 msgstr "POSIX yacc は %%type を非終端として予約しています"
 
-#: src/symtab.c:537
+#: src/symtab.c:555
 #, c-format
 msgid "symbol %s redeclared"
 msgstr "シンボル %s が再宣言されました"
 
-#: src/symtab.c:558
+#: src/symtab.c:579
 #, c-format
-msgid "nonterminals cannot be given an explicit number"
-msgstr "非終端に明示的な数字を与えられません"
+msgid "nonterminals cannot be given a token code"
+msgstr "非終端にトークンコードは与えられません"
 
-#: src/symtab.c:561
+#: src/symtab.c:582
 #, c-format
-msgid "redefining user token number of %s"
-msgstr "%s のユーザトークンナンバーの再定義です"
+msgid "redefining code of token %s"
+msgstr "トークン %s のコードの再定義です"
 
-#: src/symtab.c:564
+#: src/symtab.c:585
 #, c-format
-msgid "user token number of %s too large"
-msgstr "%s のユーザトークンナンバーが大きすぎます"
+msgid "code of token %s too large"
+msgstr "トークン %s のコードが大きすぎます"
 
-#: src/symtab.c:603
+#: src/symtab.c:624
 #, c-format
 msgid "string literal %s not attached to a symbol"
 msgstr "文字列リテラル %s にシンボルが割り当てられていません"
 
-#: src/symtab.c:631
+#: src/symtab.c:652
 #, c-format
 msgid "useless %s for type <%s>"
 msgstr "%s は型 <%s>無用です"
 
-#: src/symtab.c:636
+#: src/symtab.c:657
 #, c-format
 msgid "type <%s> is used, but is not associated to any symbol"
 msgstr "タイプ %s が使われていますが、シンボルと対応づけられていません"
 
-#: src/symtab.c:681
+#: src/symtab.c:702
 #, c-format
 msgid "nonterminals cannot be given a string alias"
 msgstr "非終端に文字列エイリアスは与えられません"
 
-#: src/symtab.c:684
+#: src/symtab.c:705
 #, c-format
 msgid "symbol %s used more than once as a literal string"
 msgstr "シンボル %s はリテラル文字列として複数回使われました"
 
-#: src/symtab.c:687
+#: src/symtab.c:708
 #, c-format
 msgid "symbol %s given more than one literal string"
 msgstr "シンボル %s に複数のリテラル文字列が与えられました"
 
-#: src/symtab.c:721
+#: src/symtab.c:742
 #, c-format
-msgid "user token number %d redeclaration for %s"
-msgstr "ユーザトークンナンバー %d が %s に対して再定義されました"
+msgid "code %d reassigned to token %s"
+msgstr "コード %d がトークン %s に再割り当てされました"
 
-#: src/symtab.c:724
+#: src/symtab.c:745
 #, c-format
 msgid "previous declaration for %s"
 msgstr "%s に対する以前の宣言"
 
-#: src/symtab.c:1047
+#: src/symtab.c:1078
 #, c-format
 msgid "token number too large"
 msgstr "トークン数が大きすぎます"
 
-#: src/symtab.c:1103
+#: src/symtab.c:1134
 #, c-format
 msgid "the start symbol %s is undefined"
 msgstr "開始シンボル %s は定義されていません"
 
-#: src/symtab.c:1107
+#: src/symtab.c:1138
 #, c-format
 msgid "the start symbol %s is a token"
 msgstr "開始シンボル %s はトークンです"
 
-#: src/symtab.c:1278
+#: src/symtab.c:1309
 #, c-format
 msgid "useless precedence and associativity for %s"
 msgstr "%s に無用な precedence and associativity"
 
-#: src/symtab.c:1281
+#: src/symtab.c:1312
 #, c-format
 msgid "useless precedence for %s"
 msgstr "%s に無用な precedence"
 
-#: src/symtab.c:1285
+#: src/symtab.c:1316
 #, c-format
 msgid "useless associativity for %s, use %%precedence"
 msgstr "%s に無用な associativity、%%precedence を使ってください"

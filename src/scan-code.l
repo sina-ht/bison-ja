@@ -81,7 +81,7 @@ static bool untyped_var_seen;
    historically almost any character is allowed in a tag.  We disallow
    NUL and newline, as this simplifies our implementation.  We allow
    "->" as a means to dereference a pointer.  */
-tag      ([^\0\n>]|->)+
+tag      ([^\0\n>]|->)*[^-]
 
 /* Zero or more instances of backslash-newline.  Following GCC, allow
    white space between the backslash and the newline.  */
@@ -612,7 +612,7 @@ handle_action_dollar (symbol_list *rule, char *text, const location *dollar_loc)
   char *cp = fetch_type_name (text + 1, &type_name, dollar_loc);
   int n = parse_ref (cp, effective_rule, effective_rule_length,
                      rule->midrule_parent_rhs_index, text, dollar_loc, '$');
-  /* End type_name.  Don't do it ealier: parse_ref depends on TEXT.  */
+  /* End type_name.  Don't do it earlier: parse_ref depends on TEXT.  */
   if (type_name)
     cp[-1] = '\0';
 

@@ -54,8 +54,8 @@ b4_use_push_for_pull_if([
 # or as class instance variable when doing push parsing.
 m4_define([b4_define_state],[[
     /* Lookahead and lookahead in internal form.  */
-    int yychar = yyempty_;
-    int yytoken = 0;
+    int yychar = YYEMPTY_;
+    SymbolKind yytoken = null;
 
     /* State.  */
     int yyn = 0;
@@ -171,15 +171,17 @@ import java.text.MessageFormat;
       return new ]b4_location_type[ (rhs.locationAt (0).end);
   }]])[
 
+]b4_declare_symbol_enum[
+
   /**
    * Communication interface between the scanner and the Bison-generated
    * parser <tt>]b4_parser_class[</tt>.
    */
   public interface Lexer {
-    /** Token returned by the scanner to signal the end of its input.  */
-    public static final int EOF = 0;
-
 ]b4_token_enums[
+    /** Deprecated, use b4_symbol(0, id) instead.  */
+    public static final int EOF = ]b4_symbol(0, id)[;
+
 ]b4_locations_if([[
     /**
      * Method to retrieve the beginning position of the last scanned token.
@@ -219,9 +221,12 @@ import java.text.MessageFormat;
 
 ]b4_parse_error_bmatch(
            [custom], [[
-     void yyreportSyntaxError (][Context yyctx);
+    /**
+     * Build and emit a syntax error message.
+     */
+     void reportSyntaxError (][Context yyctx);
 ]])[
-}
+  }
 
 ]b4_lexer_if([[
   private class YYLexer implements Lexer {
@@ -383,8 +388,8 @@ import java.text.MessageFormat;
     public final ]b4_location_type[ locationAt (int i) {
       return locStack[height - i];
     }
-
-    ]])[public final ]b4_yystype[ valueAt (int i) {
+]])[
+    public final ]b4_yystype[ valueAt (int i) {
       return valueStack[height - i];
     }
 
@@ -456,11 +461,11 @@ import java.text.MessageFormat;
    */
   private int yyLRGotoState (int yystate, int yysym)
   {
-    int yyr = yypgoto_[yysym - yyntokens_] + yystate;
-    if (0 <= yyr && yyr <= yylast_ && yycheck_[yyr] == yystate)
+    int yyr = yypgoto_[yysym - YYNTOKENS_] + yystate;
+    if (0 <= yyr && yyr <= YYLAST_ && yycheck_[yyr] == yystate)
       return yytable_[yyr];
     else
-      return yydefgoto_[yysym - yyntokens_];
+      return yydefgoto_[yysym - YYNTOKENS_];
   }
 
   private int yyaction (int yyn, YYStack yystack, int yylen)]b4_maybe_throws([b4_throws])[
@@ -482,7 +487,7 @@ import java.text.MessageFormat;
         default: break;
       }]b4_parse_trace_if([[
 
-    yySymbolPrint ("-> $$ =", yyr1_[yyn], yyval]b4_locations_if([, yyloc])[);]])[
+    yySymbolPrint ("-> $$ =", SymbolKind.get (yyr1_[yyn]), yyval]b4_locations_if([, yyloc])[);]])[
 
     yystack.pop (yylen);
     yylen = 0;
@@ -497,14 +502,14 @@ import java.text.MessageFormat;
   | Print this symbol on YYOUTPUT.  |
   `--------------------------------*/
 
-  private void yySymbolPrint (String s, int yytype,
-                             ]b4_yystype[ yyvaluep]dnl
-                              b4_locations_if([, Object yylocationp])[)
+  private void yySymbolPrint(String s, SymbolKind yykind,
+                             ]b4_yystype[ yyvalue]b4_locations_if([, ]b4_location_type[ yylocation])[)
   {
-    yycdebug (s + (yytype < yyntokens_ ? " token " : " nterm ")
-              + yysymbolName (yytype) + " ("]b4_locations_if([
-              + yylocationp + ": "])[
-              + (yyvaluep == null ? "(null)" : yyvaluep.toString ()) + ")");
+    yycdebug (s
+              + (yykind.getCode() < YYNTOKENS_ ? " token " : " nterm ")
+              + yykind.getName() + " ("]b4_locations_if([
+              + yylocation + ": "])[
+              + (yyvalue == null ? "(null)" : yyvalue.toString()) + ")");
   }]])[
 
 ]b4_push_if([],[[
@@ -571,7 +576,7 @@ b4_dollar_popdef[]dnl
           yystack.print (yyDebugStream);]])[
 
         /* Accept?  */
-        if (yystate == yyfinal_)
+        if (yystate == YYFINAL_)
           ]b4_push_if([{label = YYACCEPT; break;}],
                       [return true;])[
 
@@ -586,7 +591,7 @@ b4_dollar_popdef[]dnl
 
       case YYGETTOKEN:])[
         /* Read a lookahead token.  */
-        if (yychar == yyempty_)
+        if (yychar == YYEMPTY_)
           {
 ]b4_push_if([[
             if (!push_token_consumed)
@@ -611,8 +616,8 @@ b4_dollar_popdef[]dnl
 
         /* If the proper action on seeing token YYTOKEN is to reduce or to
            detect an error, take that action.  */
-        yyn += yytoken;
-        if (yyn < 0 || yylast_ < yyn || yycheck_[yyn] != yytoken)
+        yyn += yytoken.getCode ();
+        if (yyn < 0 || YYLAST_ < yyn || yycheck_[yyn] != yytoken.getCode ())
           label = YYDEFAULT;
 
         /* <= 0 means reduce or error.  */
@@ -634,7 +639,7 @@ b4_dollar_popdef[]dnl
                            yylval]b4_locations_if([, yylloc])[);
 ]])[
             /* Discard the token being shifted.  */
-            yychar = yyempty_;
+            yychar = YYEMPTY_;
 
             /* Count tokens shifted since error; after three, turn off error
                status.  */
@@ -675,8 +680,8 @@ b4_dollar_popdef[]dnl
         if (yyerrstatus_ == 0)
           {
             ++yynerrs;
-            if (yychar == yyempty_)
-              yytoken = yyempty_;
+            if (yychar == YYEMPTY_)
+              yytoken = null;
             yyreportSyntaxError (new Context (yystack, yytoken]b4_locations_if([[, yylloc]])[));
           }
 
@@ -687,14 +692,14 @@ b4_dollar_popdef[]dnl
             /* If just tried and failed to reuse lookahead token after an
                error, discard it.  */
 
-            if (yychar <= Lexer.EOF)
+            if (yychar <= Lexer.]b4_symbol(0, id)[)
               {
                 /* Return failure if at end of input.  */
-                if (yychar == Lexer.EOF)
+                if (yychar == Lexer.]b4_symbol(0, id)[)
                   ]b4_push_if([{label = YYABORT; break;}], [return false;])[
               }
             else
-              yychar = yyempty_;
+              yychar = YYEMPTY_;
           }
 
         /* Else will try to reuse lookahead token after shifting the error
@@ -721,13 +726,15 @@ b4_dollar_popdef[]dnl
       case YYERRLAB1:
         yyerrstatus_ = 3;       /* Each real token shifted decrements this.  */
 
+        // Pop stack until we find a state that shifts the error token.
         for (;;)
           {
             yyn = yypact_[yystate];
             if (!yyPactValueIsDefault (yyn))
               {
-                yyn += yy_error_token_;
-                if (0 <= yyn && yyn <= yylast_ && yycheck_[yyn] == yy_error_token_)
+                yyn += SymbolKind.]b4_symbol_prefix[YYERROR.getCode ();
+                if (0 <= yyn && yyn <= YYLAST_
+                    && yycheck_[yyn] == SymbolKind.]b4_symbol_prefix[YYERROR.getCode ())
                   {
                     yyn = yytable_[yyn];
                     if (0 < yyn)
@@ -760,7 +767,7 @@ b4_dollar_popdef[]dnl
         yystack.pop (2);]])[
 
         /* Shift the error token.  */]b4_parse_trace_if([[
-        yySymbolPrint ("Shifting", yystos_[yyn],
+        yySymbolPrint ("Shifting", SymbolKind.get (yystos_[yyn]),
                        yylval]b4_locations_if([, yyloc])[);]])[
 
         yystate = yyn;
@@ -788,8 +795,8 @@ b4_dollar_popdef[]dnl
   public void push_parse_initialize ()
   {
     /* Lookahead and lookahead in internal form.  */
-    this.yychar = yyempty_;
-    this.yytoken = 0;
+    this.yychar = YYEMPTY_;
+    this.yytoken = null;
 
     /* State.  */
     this.yyn = 0;
@@ -861,26 +868,49 @@ b4_dollar_popdef[]dnl
    */
   public static final class Context
   {
-    Context (YYStack stack, int token]b4_locations_if([[, ]b4_location_type[ loc]])[)
+    Context (YYStack stack, SymbolKind token]b4_locations_if([[, ]b4_location_type[ loc]])[)
     {
       yystack = stack;
       yytoken = token;]b4_locations_if([[
       yylocation = loc;]])[
     }
+
     private YYStack yystack;
-    private int yytoken;]b4_locations_if([[
-    public ]b4_location_type[ getLocation ()
+
+
+    /**
+     * The symbol kind of the lookahead token.
+     */
+    public final SymbolKind getToken ()
+    {
+      return yytoken;
+    }
+
+    private SymbolKind yytoken;]b4_locations_if([[
+
+    /**
+     * The location of the lookahead.
+     */
+    public final ]b4_location_type[ getLocation ()
     {
       return yylocation;
     }
-    private ]b4_location_type[ yylocation;]])[
-    static final int yyntokens = ]b4_parser_class[.yyntokens_;
 
-    /* Put in YYARG at most YYARGN of the expected tokens given the
-       current YYCTX, and return the number of tokens stored in YYARG.  If
-       YYARG is null, return the number of expected tokens (guaranteed to
-       be less than YYNTOKENS).  */
-    int yyexpectedTokens (int yyarg[], int yyoffset, int yyargn)
+    private ]b4_location_type[ yylocation;]])[
+    static final int NTOKENS = ]b4_parser_class[.YYNTOKENS_;
+
+    /**
+     * Put in YYARG at most YYARGN of the expected tokens given the
+     * current YYCTX, and return the number of tokens stored in YYARG.  If
+     * YYARG is null, return the number of expected tokens (guaranteed to
+     * be less than YYNTOKENS).
+     */
+    int getExpectedTokens (SymbolKind yyarg[], int yyargn)
+    {
+      return getExpectedTokens (yyarg, 0, yyargn);
+    }
+
+    int getExpectedTokens (SymbolKind yyarg[], int yyoffset, int yyargn)
     {
       int yycount = yyoffset;
       int yyn = yypact_[this.yystack.stateAt (0)];
@@ -892,84 +922,82 @@ b4_dollar_popdef[]dnl
              actions.  */
           int yyxbegin = yyn < 0 ? -yyn : 0;
           /* Stay within bounds of both yycheck and yytname.  */
-          int yychecklim = yylast_ - yyn + 1;
-          int yyxend = yychecklim < yyntokens ? yychecklim : yyntokens;
-          for (int x = yyxbegin; x < yyxend; ++x)
-            if (yycheck_[x + yyn] == x && x != yy_error_token_
-                && !yyTableValueIsError (yytable_[x + yyn]))
+          int yychecklim = YYLAST_ - yyn + 1;
+          int yyxend = yychecklim < NTOKENS ? yychecklim : NTOKENS;
+          for (int yyx = yyxbegin; yyx < yyxend; ++yyx)
+            if (yycheck_[yyx + yyn] == yyx && yyx != SymbolKind.]b4_symbol_prefix[YYERROR.getCode ()
+                && !yyTableValueIsError (yytable_[yyx + yyn]))
               {
                 if (yyarg == null)
                   yycount += 1;
                 else if (yycount == yyargn)
                   return 0; // FIXME: this is incorrect.
                 else
-                  yyarg[yycount++] = x;
+                  yyarg[yycount++] = SymbolKind.get (yyx);
               }
         }
       return yycount - yyoffset;
     }
-
-    /* The user-facing name of the symbol whose (internal) number is
-       YYSYMBOL.  No bounds checking.  */
-    static String yysymbolName (int yysymbol)
-    {
-      return ]b4_parser_class[.yysymbolName (yysymbol);
-    }
-
-    int yysyntaxErrorArguments (int[] yyarg, int yyargn)
-    {
-      /* There are many possibilities here to consider:
-         - If this state is a consistent state with a default action,
-           then the only way this function was invoked is if the
-           default action is an error action.  In that case, don't
-           check for expected tokens because there are none.
-         - The only way there can be no lookahead present (in tok) is
-           if this state is a consistent state with a default action.
-           Thus, detecting the absence of a lookahead is sufficient to
-           determine that there is no unexpected or expected token to
-           report.  In that case, just report a simple "syntax error".
-         - Don't assume there isn't a lookahead just because this
-           state is a consistent state with a default action.  There
-           might have been a previous inconsistent state, consistent
-           state with a non-default action, or user semantic action
-           that manipulated yychar.  (However, yychar is currently out
-           of scope during semantic actions.)
-         - Of course, the expected token list depends on states to
-           have correct lookahead information, and it depends on the
-           parser not to perform extra reductions after fetching a
-           lookahead from the scanner and before detecting a syntax
-           error.  Thus, state merging (from LALR or IELR) and default
-           reductions corrupt the expected token list.  However, the
-           list is correct for canonical LR with one exception: it
-           will still contain any token that will not be accepted due
-           to an error action in a later state.
-      */
-      int yycount = 0;
-      if (this.yytoken != yyempty_)
-        {
-          yyarg[yycount++] = this.yytoken;
-          yycount += this.yyexpectedTokens (yyarg, 1, yyargn);
-        }
-      return yycount;
-    }
   }
 
- /**
+]b4_parse_error_bmatch(
+[detailed\|verbose], [[
+  private int yysyntaxErrorArguments (Context yyctx, SymbolKind[] yyarg, int yyargn)
+  {
+    /* There are many possibilities here to consider:
+       - If this state is a consistent state with a default action,
+         then the only way this function was invoked is if the
+         default action is an error action.  In that case, don't
+         check for expected tokens because there are none.
+       - The only way there can be no lookahead present (in tok) is
+         if this state is a consistent state with a default action.
+         Thus, detecting the absence of a lookahead is sufficient to
+         determine that there is no unexpected or expected token to
+         report.  In that case, just report a simple "syntax error".
+       - Don't assume there isn't a lookahead just because this
+         state is a consistent state with a default action.  There
+         might have been a previous inconsistent state, consistent
+         state with a non-default action, or user semantic action
+         that manipulated yychar.  (However, yychar is currently out
+         of scope during semantic actions.)
+       - Of course, the expected token list depends on states to
+         have correct lookahead information, and it depends on the
+         parser not to perform extra reductions after fetching a
+         lookahead from the scanner and before detecting a syntax
+         error.  Thus, state merging (from LALR or IELR) and default
+         reductions corrupt the expected token list.  However, the
+         list is correct for canonical LR with one exception: it
+         will still contain any token that will not be accepted due
+         to an error action in a later state.
+    */
+    int yycount = 0;
+    if (yyctx.getToken () != null)
+      {
+        if (yyarg != null)
+          yyarg[yycount] = yyctx.getToken ();
+        yycount += 1;
+        yycount += yyctx.getExpectedTokens (yyarg, 1, yyargn);
+      }
+    return yycount;
+  }
+]])[
+
+/**
    * Report a syntax error.
    */
   private void yyreportSyntaxError (Context yyctx)
   {]b4_parse_error_bmatch(
 [custom], [[
-    yylexer.yyreportSyntaxError (yyctx);]],
+    yylexer.reportSyntaxError (yyctx);]],
 [detailed\|verbose], [[
     if (yyErrorVerbose)
       {
         final int argmax = 5;
-        int[] yyarg = new int[argmax];
-        int yycount = yyctx.yysyntaxErrorArguments (yyarg, argmax);
+        SymbolKind[] yyarg = new SymbolKind[argmax];
+        int yycount = yysyntaxErrorArguments (yyctx, yyarg, argmax);
         String[] yystr = new String[yycount];
         for (int yyi = 0; yyi < yycount; ++yyi)
-          yystr[yyi] = yysymbolName (yyarg[yyi]);
+          yystr[yyi] = yyarg[yyi].getName();
         String yyformat;
         switch (yycount)
           {
@@ -1013,66 +1041,6 @@ b4_dollar_popdef[]dnl
 
 ]b4_parser_tables_define[
 
-]b4_parse_error_bmatch(
-           [simple\|verbose],
-[[  /* Return YYSTR after stripping away unnecessary quotes and
-     backslashes, so that it's suitable for yyerror.  The heuristic is
-     that double-quoting is unnecessary unless the string contains an
-     apostrophe, a comma, or backslash (other than backslash-backslash).
-     YYSTR is taken from yytname.  */
-  private static String yytnamerr_ (String yystr)
-  {
-    if (yystr.charAt (0) == '"')
-      {
-        StringBuffer yyr = new StringBuffer ();
-        strip_quotes: for (int i = 1; i < yystr.length (); i++)
-          switch (yystr.charAt (i))
-            {
-            case '\'':
-            case ',':
-              break strip_quotes;
-
-            case '\\':
-              if (yystr.charAt(++i) != '\\')
-                break strip_quotes;
-              /* Fall through.  */
-            default:
-              yyr.append (yystr.charAt (i));
-              break;
-
-            case '"':
-              return yyr.toString ();
-            }
-      }
-    else if (yystr.equals ("$end"))
-      return "end of input";
-
-    return yystr;
-  }
-
-  /* YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
-     First, the terminals, then, starting at \a yyntokens_, nonterminals.  */
-  ]b4_typed_parser_table_define([String], [tname], [b4_tname])[
-
-  /* The user-facing name of the symbol whose (internal) number is
-     YYSYMBOL.  No bounds checking.  */
-  static String yysymbolName (int yysymbol)
-  {
-    return yytnamerr_ (yytname_[yysymbol]);
-  }
-]],
-        [custom\|detailed],
-[[  /* The user-facing name of the symbol whose (internal) number is
-     YYSYMBOL.  No bounds checking.  */
-  static String yysymbolName (int yysymbol)
-  {
-    String[] yy_sname =
-    {
-    ]b4_symbol_names[
-    };
-    return yy_sname[yysymbol];
-  }]])[
-
 ]b4_parse_trace_if([[
   ]b4_integral_parser_table_define([rline], [b4_rline],
   [[YYRLINE[YYN] -- Source line where rule number YYN was defined.]])[
@@ -1093,40 +1061,35 @@ b4_dollar_popdef[]dnl
     /* The symbols being reduced.  */
     for (int yyi = 0; yyi < yynrhs; yyi++)
       yySymbolPrint ("   $" + (yyi + 1) + " =",
-                     yystos_[yystack.stateAt (yynrhs - (yyi + 1))],
+                     SymbolKind.get (yystos_[yystack.stateAt (yynrhs - (yyi + 1))]),
                      ]b4_rhs_data(yynrhs, yyi + 1)b4_locations_if([,
                      b4_rhs_location(yynrhs, yyi + 1)])[);
   }]])[
 
   /* YYTRANSLATE_(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
      as returned by yylex, with out-of-bounds checking.  */
-  private static final ]b4_int_type_for([b4_translate])[ yytranslate_ (int t)
+  private static final SymbolKind yytranslate_ (int t)
 ]b4_api_token_raw_if(dnl
 [[  {
-    return t;
+    return SymbolKind.get (t);
   }
 ]],
 [[  {
     int user_token_number_max_ = ]b4_user_token_number_max[;
-    ]b4_int_type_for([b4_translate])[ undef_token_ = ]b4_undef_token_number[;
-
     if (t <= 0)
-      return Lexer.EOF;
+      return SymbolKind.]b4_symbol_prefix[YYEOF;
     else if (t <= user_token_number_max_)
-      return yytranslate_table_[t];
+      return SymbolKind.get (yytranslate_table_[t]);
     else
-      return undef_token_;
+      return SymbolKind.]b4_symbol_prefix[YYUNDEF;
   }
   ]b4_integral_parser_table_define([translate_table], [b4_translate])[
 ]])[
 
-  private static final ]b4_int_type_for([b4_translate])[ yy_error_token_ = 1;
-
-  private static final int yylast_ = ]b4_last[;
-  private static final int yynnts_ = ]b4_nterms_number[;
-  private static final int yyempty_ = -2;
-  private static final int yyfinal_ = ]b4_final_state_number[;
-  private static final int yyntokens_ = ]b4_tokens_number[;
+  private static final int YYLAST_ = ]b4_last[;
+  private static final int YYEMPTY_ = -2;
+  private static final int YYFINAL_ = ]b4_final_state_number[;
+  private static final int YYNTOKENS_ = ]b4_tokens_number[;
 
 ]b4_percent_code_get[
 }

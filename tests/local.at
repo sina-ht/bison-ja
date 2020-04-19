@@ -260,6 +260,11 @@ m4_rpatsubst([$3], [%parse-param { *\([^{}]*[^{} ]\) *}\([^{}].*\)?$],
 m4_ifndef([AT_PARSE_PARAMS],
           [m4_define([AT_PARSE_PARAMS])])
 
+m4_pushdef([AT_PARSER_CLASS],
+[m4_bmatch([$3], [%define  *api\.parser\.class {\([^\}]*\)}],
+           [m4_bregexp([$3], [%define  *api\.parser\.class {\([^\}]*\)}], [\1])],
+           [AT_API_PREFIX[]Parser])])
+
 m4_pushdef([AT_PURE_IF],
 [m4_bmatch([$3], [%define  *api\.pure\|%pure-parser],
            [m4_bmatch([$3], [%define  *api\.pure *false], [$2], [$1])],
@@ -409,6 +414,7 @@ m4_popdef([AT_LOCATION_IF])
 m4_undefine([AT_PARSE_PARAMS])
 m4_popdef([AT_PUSH_IF])
 m4_popdef([AT_PURE_IF])
+m4_popdef([AT_PARSER_CLASS])
 m4_popdef([AT_PARAM_IF])
 m4_popdef([AT_LEXPARAM_IF])
 m4_popdef([AT_LAC_IF])
@@ -513,7 +519,7 @@ m4_define([AT_DATA_GRAMMAR], [AT_LANG_DISPATCH([$0], $@)])
 # AT_YYLEX_DEFINE([INPUT], [ACTION])
 # ----------------------------------
 # INPUT can be empty, or in double quotes, or a list (in braces).
-# ACTION may compute yylval for instance, using "res" as token type,
+# ACTION may compute yylval for instance, using "res" as token kind,
 # and "toknum" as the number of calls to yylex (starting at 0).
 m4_define([AT_YYLEX_PROTOTYPE],
 [AT_YYLEX_RETURN AT_NAME_PREFIX[]lex (]AT_YYLEX_FORMALS[)[]dnl
@@ -622,33 +628,38 @@ location_print (FILE *yyo, ]AT_YYLTYPE[ const * const yylocp)
 
 ]AT_ERROR_CUSTOM_IF([[
 int
-yyreport_syntax_error (const yyparse_context_t *ctx]AT_PARAM_IF([, AT_PARSE_PARAMS])[)
+yyreport_syntax_error (const yypcontext_t *ctx]AT_PARAM_IF([, AT_PARSE_PARAMS])[)
 {
-  /* Arguments of yyformat: reported tokens (one for the "unexpected",
-     one per "expected"). */
-  int arg[YYNTOKENS];
-  int n = yysyntax_error_arguments (ctx, arg, YYNTOKENS);]AT_PARAM_IF([m4_bpatsubst(m4_defn([AT_PARSE_PARAMS]),
+  int res = 0;]AT_PARAM_IF([m4_bpatsubst(m4_defn([AT_PARSE_PARAMS]),
               [[^,]+[^A-Za-z_0-9]\([A-Za-z_][A-Za-z_0-9]*\),* *], [
   YYUSE (\1);])])[]m4_bmatch(m4_defn([AT_PARSE_PARAMS]), [nerrs],[[
   ++global_nerrs;
-  ++*nerrs;]])[
-  if (n == -2)
-    return 2;
-  if (n)
-  {]AT_LOCATION_IF([[
-    LOCATION_PRINT (stderr, *yyparse_context_location (ctx));
-    fprintf (stderr, ": ");]])[
-    fprintf (stderr, "syntax error on token [%s]", yysymbol_name (arg[0]));
-    if (1 < n)
+  ++*nerrs;]])[]AT_LOCATION_IF([[
+  LOCATION_PRINT (stderr, *yypcontext_location (ctx));
+  fprintf (stderr, ": ");]])[
+  fprintf (stderr, "syntax error");
+  {
+    yysymbol_kind_t la = yypcontext_token (ctx);
+    if (la != YYSYMBOL_YYEMPTY)
+      fprintf (stderr, " on token [%s]", yysymbol_name (la));
+  }
+  {
+    enum { TOKENMAX = 10 };
+    yysymbol_kind_t expected[TOKENMAX];
+    int n = yypcontext_expected_tokens (ctx, expected, TOKENMAX);
+    /* Forward errors to yyparse.  */
+    if (n <= 0)
+      res = n;
+    else
       {
         fprintf (stderr, " (expected:");
-        for (int i = 1; i < n; ++i)
-          fprintf (stderr, " [%s]", yysymbol_name (arg[i]));
+        for (int i = 0; i < n; ++i)
+          fprintf (stderr, " [%s]", yysymbol_name (expected[i]));
         fprintf (stderr, ")");
       }
-    fprintf (stderr, "\n");
   }
-  return 0;
+  fprintf (stderr, "\n");
+  return res;
 }
 ]])[
 
@@ -735,34 +746,37 @@ void
   std::cerr << ]AT_LOCATION_IF([l << ": " << ])[m << '\n';
 }]AT_ERROR_CUSTOM_IF([[
 void
-]AT_NAMESPACE[::parser::yyreport_syntax_error (const context& ctx) const
-{
-  /* Arguments of yyformat: reported tokens (one for the "unexpected",
-     one per "expected"). */
-  int arg[yyntokens_];
-  int n = ctx.yysyntax_error_arguments (arg, yyntokens_);]AT_PARAM_IF([m4_bpatsubst(m4_defn([AT_PARSE_PARAMS]),
+]AT_NAMESPACE[::parser::report_syntax_error (const context& ctx) const
+{]AT_PARAM_IF([m4_bpatsubst(m4_defn([AT_PARSE_PARAMS]),
               [[^,]+[^A-Za-z_0-9]\([A-Za-z_][A-Za-z_0-9]*\),* *], [
   YYUSE (\1);])])[]m4_bmatch(m4_defn([AT_PARSE_PARAMS]), [nerrs],[[
   ++global_nerrs;
-  ++*nerrs;]])[
-  if (n)
-  {]AT_LOCATION_IF([[
-    std::cerr << ctx.location () << ": ";]])[
-    std::cerr << "syntax error on token [" << yysymbol_name (arg[0]) << ']';
-    if (1 < n)
+  ++*nerrs;]])[]AT_LOCATION_IF([[
+  std::cerr << ctx.location () << ": ";]])[
+  std::cerr << "syntax error";
+  {
+    symbol_kind_type la = ctx.token ();
+    if (la != symbol_kind::S_YYEMPTY)
+      std::cerr << " on token [" << symbol_name (la) << ']';
+  }
+  {
+    enum { TOKENMAX = 10 };
+    symbol_kind_type expected[TOKENMAX];
+    int n = ctx.expected_tokens (expected, TOKENMAX);
+    if (0 < n)
       {
         std::cerr << " (expected:";
-        for (int i = 1; i < n; ++i)
-          std::cerr << " [" << yysymbol_name (arg[i]) << ']';
+        for (int i = 0; i < n; ++i)
+          std::cerr << " [" << symbol_name (expected[i]) << ']';
         std::cerr << ')';
       }
-    std::cerr << '\n';
   }
+  std::cerr << '\n';
 }]])])
 
 
 # AT_YYLEX_DEFINE(c++)([INPUT], [ACTION])
-# -----------------------------------------
+# ---------------------------------------
 # Same as in C.
 m4_copy([AT_YYLEX_DEFINE(c)], [AT_YYLEX_DEFINE(c++)])
 
@@ -944,13 +958,13 @@ class PositionReader extends BufferedReader {
 # FIXME: We should not hard-code "Calc".
 m4_define([AT_YYERROR_DEFINE(java)],
 [AT_LOCATION_IF([[public void yyerror (Calc.Location l, String m)
-  {]m4_bmatch(m4_defn([AT_PARSE_PARAMS]), [nerrs],[[
+  {]m4_bmatch(m4_defn([AT_PARSE_PARAMS]), [nerrs], [[
     ++global_nerrs;
     ++*nerrs;]])[
     if (l == null)
-      System.err.println (m);
+      System.err.println(m);
     else
-      System.err.println (l + ": " + m);
+      System.err.println(l + ": " + m);
   }
 ]], [[
   public void yyerror (String m)
@@ -962,20 +976,25 @@ m4_define([AT_YYERROR_DEFINE(java)],
 ]])[
 
 ]AT_ERROR_CUSTOM_IF([[
-  public void yyreportSyntaxError (Calc.Context ctx)
-  {
-    int[] arg = new int[ctx.yyntokens];
-    int n = ctx.yysyntaxErrorArguments (arg, ctx.yyntokens);
-    System.err.print (]AT_LOCATION_IF([[ctx.getLocation () + ": "]]
-                      + )["syntax error on token @<:@" + ctx.yysymbolName (arg[0]) + "@:>@");
-    if (1 < n)
-      {
-        System.err.print (" (expected:");
-        for (int i = 1; i < n; ++i)
-          System.err.print (" @<:@" + ctx.yysymbolName (arg[i]) + "@:>@");
-        System.err.print (")");
+  public void reportSyntaxError(Calc.Context ctx) {
+    System.err.print(]AT_LOCATION_IF([[ctx.getLocation() + ": "
+                     + ]])["syntax error");
+    {
+      Calc.SymbolKind token = ctx.getToken();
+      if (token != null)
+        System.err.print(" on token @<:@" + token.getName() + "@:>@");
+    }
+    {
+      Calc.SymbolKind[] arg = new Calc.SymbolKind[ctx.NTOKENS];
+      int n = ctx.getExpectedTokens(arg, ctx.NTOKENS);
+      if (0 < n) {
+        System.err.print(" (expected:");
+        for (int i = 0; i < n; ++i)
+          System.err.print(" @<:@" + arg[i].getName() + "@:>@");
+        System.err.print(")");
       }
-    System.err.println ("");
+    }
+    System.err.println("");
   }
 ]])
 ])
@@ -1007,7 +1026,9 @@ m4_define([AT_MAIN_DEFINE(java)],
   public static void main (String[] args) throws IOException
   {
     ]AT_API_prefix[Parser p = new ]AT_API_prefix[Parser ();
-    System.exit (p.parse () ? 0 : 1);
+    boolean success = p.parse ();
+    if (!success)
+      System.exit (1);
   }
 }]])
 
@@ -1151,7 +1172,7 @@ m4_define([AT_BISON_CHECK_XML],
 # AT_SET_ENV_IF(EXIT-STATUS)
 # --------------------------
 # Put this before a Bison invocation to set the environment to:
-# - define COLUMNS to make the test suite independant of the user's
+# - define COLUMNS to make the test suite independent of the user's
 #   environment;
 # - keep Valgrind from complaining about reachable memory (when
 #   EXIT-STATUS is not 0).
@@ -1580,7 +1601,7 @@ $9
 # (C90 and C++98) guarantee: 32767.  In that case, GCC's -pedantic
 # will issue an error.
 #
-# There is no "" around `wc` since some indent the result.
+# There is no "" around `wc` since some wc indent the result.
 m4_bmatch([$4], [%define lr.type canonical-lr],
 [if test 32767 -lt `wc -l < input.c`; then
   CFLAGS=`echo " $CFLAGS " | sed -e 's/ -pedantic / /'`

@@ -186,50 +186,85 @@ xescape_trigraphs (const char *src)
   return buf;
 }
 
+/* Whether some symbol requires internationalization.  */
+static bool
+has_translations (void)
+{
+  for (int i = 0; i < nsyms; i++)
+    if (symbols[i]->translatable)
+      return true;
+  return false;
+}
+
+/* The tag to show in the generated parsers.  Use "end of file" rather
+   than "$end".  But keep "$end" in the reports, it's shorter and more
+   consistent.  Support i18n if the user already uses it.  */
+static const char *
+symbol_tag (const symbol *sym)
+{
+  const bool eof_is_user_defined
+    = !endtoken->alias || STRNEQ (endtoken->alias->tag, "$end");
+
+  if (!eof_is_user_defined && sym->content == endtoken->content)
+    return "\"end of file\"";
+  else if (sym->content == undeftoken->content)
+    return "\"invalid token\"";
+  else
+    return sym->tag;
+}
+
 /* Generate the b4_<MUSCLE_NAME> (e.g., b4_tname) table with the
    symbol names (aka tags). */
 
 static void
 prepare_symbol_names (char const *muscle_name)
 {
-  /* We assume that the table will be output starting at column 2. */
+  const bool eof_is_user_defined
+    = !endtoken->alias || STRNEQ (endtoken->alias->tag, "$end");
+
   const bool quote = STREQ (muscle_name, "tname");
-  bool has_translations = false;
-  int j = 2;
+  const bool with_translations = !quote && has_translations ();
+
+  /* We assume that the table will be output starting at column 2. */
+  int col = 2;
   struct quoting_options *qo = clone_quoting_options (0);
   set_quoting_style (qo, c_quoting_style);
   set_quoting_flags (qo, QA_SPLIT_TRIGRAPHS);
   for (int i = 0; i < nsyms; i++)
     {
+      const char *tag = symbol_tag (symbols[i]);
+      bool translatable =
+        with_translations
+        && (symbols[i]->translatable
+            || (!eof_is_user_defined && symbols[i]->content == endtoken->content)
+            || symbols[i]->content == undeftoken->content);
+
       char *cp
-        = symbols[i]->tag[0] == '"' && !quote
-        ? xescape_trigraphs (symbols[i]->tag)
-        : quotearg_alloc (symbols[i]->tag, -1, qo);
+        = tag[0] == '"' && !quote
+        ? xescape_trigraphs (tag)
+        : quotearg_alloc (tag, -1, qo);
       /* Width of the next token, including the two quotes, the
          comma and the space.  */
       int width
         = strlen (cp) + 2
-        + (!quote && symbols[i]->translatable ? strlen ("N_()") : 0);
+        + (translatable ? strlen ("N_()") : 0);
 
-      if (j + width > 75)
+      if (col + width > 75)
         {
           obstack_sgrow (&format_obstack, "\n ");
-          j = 1;
+          col = 1;
         }
 
       if (i)
         obstack_1grow (&format_obstack, ' ');
-      if (!quote && symbols[i]->translatable)
-        {
-          has_translations = true;
-          obstack_sgrow (&format_obstack, "]b4_symbol_translate([");
-        }
+      if (translatable)
+        obstack_sgrow (&format_obstack, "]b4_symbol_translate([");
       obstack_escape (&format_obstack, cp);
-      if (!quote && symbols[i]->translatable)
+      if (translatable)
         obstack_sgrow (&format_obstack, "])[");
       free (cp);
       obstack_1grow (&format_obstack, ',');
-      j += width;
+      col += width;
     }
   free (qo);
   obstack_sgrow (&format_obstack, " ]b4_null[");
@@ -239,7 +274,7 @@ prepare_symbol_names (char const *muscle_name)
 
   /* Announce whether translation support is needed.  */
   if (!quote)
-    MUSCLE_INSERT_BOOL ("has_translations", has_translations);
+    MUSCLE_INSERT_BOOL ("has_translations", with_translations);
 }
 
 
@@ -254,7 +289,6 @@ prepare_symbols (void)
   MUSCLE_INSERT_INT ("tokens_number", ntokens);
   MUSCLE_INSERT_INT ("nterms_number", nvars);
   MUSCLE_INSERT_INT ("symbols_number", nsyms);
-  MUSCLE_INSERT_INT ("undef_token_number", undeftoken->content->number);
   MUSCLE_INSERT_INT ("user_token_number_max", max_user_token_number);
 
   muscle_insert_symbol_number_table ("translate",
@@ -544,14 +578,13 @@ prepare_symbol_definitions (void)
 
       /* Its tag.  Typically for documentation purpose.  */
       SET_KEY ("tag");
-      MUSCLE_INSERT_STRING (key, sym->tag);
+      MUSCLE_INSERT_STRING (key, symbol_tag (sym));
 
       SET_KEY ("user_number");
       MUSCLE_INSERT_INT (key, sym->content->user_token_number);
 
       SET_KEY ("is_token");
-      MUSCLE_INSERT_INT (key,
-                         i < ntokens && sym != errtoken && sym != undeftoken);
+      MUSCLE_INSERT_INT (key, i < ntokens);
 
       SET_KEY ("number");
       MUSCLE_INSERT_INT (key, sym->content->number);
@@ -597,9 +630,7 @@ prepare_symbol_definitions (void)
 static void
 prepare_actions (void)
 {
-  /* Figure out the actions for the specified state, indexed by
-     lookahead token type.  */
-
+  /* Figure out the actions for the specified state.  */
   muscle_insert_rule_number_table ("defact", yydefact,
                                    yydefact[0], 1, nstates);
 

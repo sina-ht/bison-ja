@@ -141,7 +141,6 @@
 }
 
 %token
-  GRAM_EOF 0          _("end of file")
   STRING              _("string")
   TSTRING             _("translatable string")
 
@@ -799,20 +798,28 @@ epilogue.opt:
 %%
 
 int
-yyreport_syntax_error (const yyparse_context_t *ctx)
+yyreport_syntax_error (const yypcontext_t *ctx)
 {
-  enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
+  int res = 0;
   /* Arguments of format: reported tokens (one for the "unexpected",
      one per "expected"). */
-  int arg[YYERROR_VERBOSE_ARGS_MAXIMUM];
-  int n = yysyntax_error_arguments (ctx, arg, YYERROR_VERBOSE_ARGS_MAXIMUM);
-  if (n == -2)
-    return 2;
-  const char *argv[YYERROR_VERBOSE_ARGS_MAXIMUM];
-  for (int i = 0; i < n; ++i)
-    argv[i] = yysymbol_name (arg[i]);
-  syntax_error (*yyparse_context_location (ctx), n, argv);
-  return 0;
+  enum { ARGS_MAX = 5 };
+  const char *argv[ARGS_MAX];
+  int argc = 0;
+  yysymbol_kind_t unexpected = yypcontext_token (ctx);
+  if (unexpected != YYSYMBOL_YYEMPTY)
+    {
+      argv[argc++] = yysymbol_name (unexpected);
+      yysymbol_kind_t expected[ARGS_MAX - 1];
+      int nexpected = yypcontext_expected_tokens (ctx, expected, ARGS_MAX - 1);
+      if (nexpected < 0)
+        res = nexpected;
+      else
+        for (int i = 0; i < nexpected; ++i)
+          argv[argc++] = yysymbol_name (expected[i]);
+    }
+  syntax_error (*yypcontext_location (ctx), argc, argv);
+  return res;
 }
 
 

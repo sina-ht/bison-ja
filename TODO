@@ -1,97 +1,65 @@
 * Bison 3.6
-** Consistency
-YYUNDEFTOK is an internal symbol number, as YYTERROR.
-But YYERRCODE is an external token number.
+** Questions
+*** Java
+- Should i18n be part of the Lexer?  Currently it's a static method of
+  Lexer.
 
-** Java: EOF
-We should be able to redefine EOF like we do in C.
+- is there a migration path that would allow to use TokenKinds in
+  yylex?
 
-** Java: calc.at
+*** D
+- is there a way to attach yysymbol_name to the enum itself?  As we did
+  in Java.
+
+- It would be better to have TokenKind as return value.  Can we use
+  reflection to support both output types?
+
+** Documentation
+- YYERRCODE, YYUNDEF, YYEOF
+- YYERRCODE and translation
+
+** Java
+*** Examples
+Have an example with a push parser.  Use autocompletion in that case.
+
+*** calc.at
 Stop hard-coding "Calc".  Adjust local.at (look for FIXME).
-
-** Java: _
-We must not use _ in Java, it is becoming a keyword in Java 9.
-
-examples/java/calc/Calc.java:998: warning: '_' used as an identifier
-  "$end", "error", "$undefined", _("end of line"), _("number"), "'='",
-                                 ^
-  (use of '_' as an identifier might not be supported in releases after Java SE 8)
 
 ** doc
 I feel it's ugly to use the GNU style to declare functions in the doc.  It
 generates tons of white space in the page, and may contribute to bad page
 breaks.
 
-** Bad styling
-When the quoted line is shorter than expected, the styling is closed, so it
-"leaks" till the end of the diagnostics.
-
-    $ cat parser.yy
-    #line 1
-    // foo
-    %define parser_class_name {foo}
-    %language "C++"
-    %%
-    exp:
-    $ bison --color=debug /tmp/parser.yy
-    /tmp/parser.yy:2.1-31: <warning>avertissement:</warning> directive dépréciée: « %define parser_class_name {foo} », utilisez « %define api.parser.class {foo} » [<warning>-Wdeprecated</warning>]
-        2 | <warning>// foo
-          | <warning>^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~</warning>
-          | <fixit-insert>%define api.parser.class {foo}</fixit-insert>
-    /tmp/parser.yy: <warning>avertissement:</warning> des fix-its peuvent être appliqués. Exécutez à nouveau avec l'option « --update ». [<warning>-Wother</warning>]
-
-** improve syntax errors (UTF-8, internationalization)
-Bison depends on the current locale.  For instance:
-
-%define parse.error verbose
-%code top {
- #include <stdio.h>
- #include <stdlib.h>
- void yyerror(const char* msg) { fprintf(stderr, "%s\n", msg); }
- int yylex() { return 0; }
-}
-%%
-exp: "↦" | "🎅🐃" | '\n'
-%%
-int main() { return yyparse(); }
-
-gives different results with/without LC_ALL=C.
-
-$ LC_ALL=C /opt/local/bin/bison /tmp/mangle.y -o ascii.c
-$ /opt/local/bin/bison /tmp/mangle.y -o utf8.c
-$ diff -u ascii.c utf8.c -I#line
---- ascii.c     2019-01-12 08:15:35.878010093 +0100
-+++ utf8.c      2019-01-12 08:15:38.856495929 +0100
-@@ -415,9 +415,8 @@
-    First, the terminals, then, starting at YYNTOKENS, nonterminals.  */
- static const char *const yytname[] =
- {
--  "$end", "error", "$undefined", "\"\\342\\206\\246\"",
--  "\"\\360\\237\\216\\205\\360\\237\\220\\203\"", "'\\n'", "$accept",
--  "exp", YY_NULLPTR
-+  "$end", "error", "$undefined", "\"↦\"", "\"🎅🐃\"", "'\\n'",
-+  "$accept", "exp", YY_NULLPTR
- };
- #endif
-
-$ gcc ascii.c -o ascii && ./ascii
-syntax error, unexpected $end, expecting "\342\206\246" or "\360\237\216\205\360\237\220\203" or '\n'
-$ gcc utf8.c -o utf8 && ./utf8
-syntax error, unexpected $end, expecting ↦ or 🎅🐃 or '\n'
-
-
-While at it, we should stop using "$end" by default, in favor of "end of
-file", or "end of input", whatever.  See how lalr1.java does that.
-
 ** consistency
 token vs terminal, variable vs non terminal.
 
 ** api.token.raw
-Maybe we should exhibit the YYUNDEFTOK token.  It could also be assigned a
-semantic value so that yyerror could be used to report invalid lexemes.
-See also the item "$undefined" below.
+The YYUNDEFTOK could be assigned a semantic value so that yyerror could be
+used to report invalid lexemes.  See also the item "$undefined" below.
+
+** push parsers
+Consider deprecating impure push parsers.  They add a lot of complexity, for
+a bad feature.  On the other hand, that would make it much harder to sit
+push parsers on top of pull parser.  Which is currently not relevant, since
+push parsers are measurably slower.
 
 * Bison 3.7
+** Counter example generation
+See https://github.com/akimd/bison/pull/15.
+
+** Clean up
+Rename user_token_number for tokens as "code".  It's not a "user number",
+it's the token code, and the user can control it, but this code always
+exists.
+
+Rename endtoken as eoftoken.
+
+Also do it in data/skeletons.
+
+Don't rename in Bison 3.6 (it would be logical to do so) because that
+would probably create many conflicts in Vincent's work (see previous point).
+
+* Bison 3.8
 ** Unit rules / Injection rules (Akim Demaille)
 Maybe we could expand unit rules (or "injections", see
 https://homepages.cwi.nl/~daybuild/daily-books/syntax/2-sdf/sdf.html), i.e.,
@@ -184,8 +152,8 @@ $ ./tests/testsuite -l | grep errors | sed q
 Besides yytoknum is wrong when api.token.raw is defined.
 
 ** Better design for diagnostics
-The current implementation of diagnostics is adhoc, it grew organically.  It
-works as a series of calls to several functions, with dependency of the
+The current implementation of diagnostics is ad hoc, it grew organically.
+It works as a series of calls to several functions, with dependency of the
 latter calls on the former.  For instance:
 
       complain (&sym->location,
@@ -300,52 +268,7 @@ It would be a very nice source of inspiration for the other languages.
 
 Valentin Tolmer is working on this.
 
-** YYERRCODE
-Defined to 256, but not used, not documented.  Probably the token
-number for the error token, which POSIX wants to be 256, but which
-Bison might renumber if the user used number 256.  Keep fix and doc?
-Throw away?
-
-Also, why don't we output the token name of the error token in the
-output?  It is explicitly skipped:
-
-      /* Skip error token and tokens without identifier.  */
-      if (sym != errtoken && id)
-
-Of course there are issues with name spaces, but if we disable we have
-something which seems to be more simpler and more consistent instead
-of the special case YYERRCODE.
-
-   enum yytokentype {
-     error = 256,
-     // ...
-   };
-
-
-We could (should?) also treat the case of the undef_token, which is
-numbered 257 for yylex, and 2 internal.  Both appear for instance in
-toknum:
-
-  const unsigned short
-  parser::yytoken_number_[] =
-  {
-       0,   256,   257,   258,   259,   260,   261,   262,   263,   264,
-
-while here
-
-   enum yytokentype {
-     TOK_EOF = 0,
-     TOK_EQ = 258,
-
-so both 256 and 257 are "mysterious".
-
-  const char*
-  const parser::yytname_[] =
-  {
-  "\"end of command\"", "error", "$undefined", "\"=\"", "\"break\"",
-
-
-** yychar == yyempty_
+** yychar == YYEMPTY
 The code in yyerrlab reads:
 
       if (yychar <= YYEOF)

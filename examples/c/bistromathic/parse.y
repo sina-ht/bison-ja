@@ -63,7 +63,7 @@
 // with locations.
 %locations
 
-// and acurate list of expected tokens.
+// and accurate list of expected tokens.
 %define parse.lac full
 
 // Generate the parser description file (calc.output).
@@ -81,7 +81,6 @@
     RPAREN ")"
     EQUAL  "="
     EXIT   "exit"
-    EOF 0  _("end of file")
   <double>
     NUM _("double precision number")
   <symrec*>
@@ -138,11 +137,6 @@ exp:
 
 // End of grammar.
 %%
-
-#undef yyssp
-#undef yyesa
-#undef yyes
-#undef yyes_capacity
 
 /*------------.
 | Functions.  |
@@ -241,43 +235,49 @@ yylex (const char **line, YYSTYPE *yylval, YYLTYPE *yylloc)
     case '(': return TOK_LPAREN;
     case ')': return TOK_RPAREN;
 
-    case 0: return TOK_EOF;
+    case '\0': return TOK_YYEOF;
 
-    default:
       // Numbers.
-      if (c == '.' || isdigit (c))
-        {
-          int nchars = 0;
-          sscanf (*line - 1, "%lf%n", &yylval->TOK_NUM, &nchars);
+    case '.':
+    case '0': case '1': case '2': case '3': case '4':
+    case '5': case '6': case '7': case '8': case '9':
+      {
+        int nchars = 0;
+        sscanf (*line - 1, "%lf%n", &yylval->TOK_NUM, &nchars);
           *line += nchars - 1;
           yylloc->last_column += nchars - 1;
           return TOK_NUM;
-        }
+      }
+
       // Identifiers.
-      else if (islower (c))
-        {
-          int nchars = 0;
-          char buf[100];
-          sscanf (*line - 1, "%99[a-z]%n", buf, &nchars);
-          *line += nchars - 1;
-          yylloc->last_column += nchars - 1;
-          if (strcmp (buf, "exit") == 0)
-            return TOK_EXIT;
-          else
-            {
-              symrec *s = getsym (buf);
-              if (!s)
-                s = putsym (buf, TOK_VAR);
-              yylval->TOK_VAR = s;
-              return s->type;
-            }
-        }
+    case 'a': case 'b': case 'c': case 'd': case 'e':
+    case 'f': case 'g': case 'h': case 'i': case 'j':
+    case 'k': case 'l': case 'm': case 'n': case 'o':
+    case 'p': case 'q': case 'r': case 's': case 't':
+    case 'u': case 'v': case 'w': case 'x': case 'y':
+    case 'z':
+      {
+        int nchars = 0;
+        char buf[100];
+        sscanf (*line - 1, "%99[a-z]%n", buf, &nchars);
+        *line += nchars - 1;
+        yylloc->last_column += nchars - 1;
+        if (strcmp (buf, "exit") == 0)
+          return TOK_EXIT;
+        else
+          {
+            symrec *s = getsym (buf);
+            if (!s)
+              s = putsym (buf, TOK_VAR);
+            yylval->TOK_VAR = s;
+            return s->type;
+          }
+      }
+
       // Stray characters.
-      else
-        {
-          yyerror (yylloc, "error: invalid character");
-          return yylex (line, yylval, yylloc);
-        }
+    default:
+      yyerror (yylloc, "error: invalid character");
+      return yylex (line, yylval, yylloc);
     }
 }
 
@@ -287,22 +287,32 @@ yylex (const char **line, YYSTYPE *yylval, YYLTYPE *yylloc)
 `---------*/
 
 int
-yyreport_syntax_error (const yyparse_context_t *ctx)
+yyreport_syntax_error (const yypcontext_t *ctx)
 {
-  enum { ARGMAX = 10 };
-  int arg[ARGMAX];
-  int n = yysyntax_error_arguments (ctx, arg, ARGMAX);
-  if (n == -2)
-    return 2;
-  YY_LOCATION_PRINT (stderr, *yyparse_context_location (ctx));
+  int res = 0;
+  YY_LOCATION_PRINT (stderr, *yypcontext_location (ctx));
   fprintf (stderr, ": syntax error");
-  for (int i = 1; i < n; ++i)
-    fprintf (stderr, "%s %s",
-             i == 1 ? ": expected" : " or", yysymbol_name (arg[i]));
-  if (n)
-    fprintf (stderr, " before %s", yysymbol_name (arg[0]));
+  // Report the tokens expected at this point.
+  {
+    enum { TOKENMAX = 10 };
+    yysymbol_kind_t expected[TOKENMAX];
+    int n = yypcontext_expected_tokens (ctx, expected, TOKENMAX);
+    if (n < 0)
+      // Forward errors to yyparse.
+      res = n;
+    else
+      for (int i = 0; i < n; ++i)
+        fprintf (stderr, "%s %s",
+                 i == 0 ? ": expected" : " or", yysymbol_name (expected[i]));
+  }
+  // Report the unexpected token.
+  {
+    yysymbol_kind_t lookahead = yypcontext_token (ctx);
+    if (lookahead != YYSYMBOL_YYEMPTY)
+      fprintf (stderr, " before %s", yysymbol_name (lookahead));
+  }
   fprintf (stderr, "\n");
-  return 0;
+  return res;
 }
 
 // Called by yyparse on error.
@@ -337,26 +347,25 @@ int
 expected_tokens (const char *input,
                  int *tokens, int ntokens)
 {
-  YYDPRINTF ((stderr, "expected_tokens(\"%s\")", input));
+  YYDPRINTF ((stderr, "expected_tokens (\"%s\")", input));
 
   // Parse the current state of the line.
-  YYLTYPE lloc;
   yypstate *ps = yypstate_new ();
   int status = 0;
   do {
-    if (!*input)
-      break;
+    YYLTYPE lloc;
     YYSTYPE lval;
     int token = yylex (&input, &lval, &lloc);
+    // Don't let the parse know when we reach the end of input.
     if (!token)
       break;
     status = yypush_parse (ps, token, &lval, &lloc);
   } while (status == YYPUSH_MORE);
 
   // Then query for the accepted tokens at this point.
-  yyparse_context_t yyctx
-    = {ps->yyssp, YYEMPTY, &lloc, ps->yyesa, &ps->yyes, &ps->yyes_capacity};
-  return yyexpected_tokens (&yyctx, tokens, ntokens);
+  int res = yypstate_expected_tokens (ps, tokens, ntokens);
+  yypstate_delete (ps);
+  return res;
 }
 
 /* Attempt to complete on the contents of TEXT.  START and END bound the
@@ -367,7 +376,7 @@ expected_tokens (const char *input,
 char **
 completion (const char *text, int start, int end)
 {
-  YYDPRINTF ((stderr, "completion(\"%.*s[%.*s]%s\")\n",
+  YYDPRINTF ((stderr, "completion (\"%.*s[%.*s]%s\")\n",
               start, rl_line_buffer,
               end - start, rl_line_buffer + start,
               rl_line_buffer + end));
@@ -382,31 +391,46 @@ completion (const char *text, int start, int end)
   const int len = strlen (text);
   // Need initial prefix and final NULL.
   char **matches = calloc (ntokens + symbol_count () + 2, sizeof *matches);
-  int match = 0;
-  matches[match++] = strdup (text);
+  int match = 1;
   for (int i = 0; i < ntokens; ++i)
-    if (tokens[i] == YYTRANSLATE (TOK_VAR))
+    switch (tokens[i])
       {
-        for (symrec *s = sym_table; s; s = s->next)
-          if (s->type == TOK_VAR && strncmp (text, s->name, len) == 0)
-            matches[match++] = strdup (s->name);
-      }
-    else if (tokens[i] == YYTRANSLATE (TOK_FUN))
-      {
+      case YYSYMBOL_FUN:
         for (symrec *s = sym_table; s; s = s->next)
           if (s->type == TOK_FUN && strncmp (text, s->name, len) == 0)
             matches[match++] = strdup (s->name);
+        break;
+      case YYSYMBOL_VAR:
+        for (symrec *s = sym_table; s; s = s->next)
+          if (s->type == TOK_VAR && strncmp (text, s->name, len) == 0)
+            matches[match++] = strdup (s->name);
+        break;
+      default:
+        {
+          const char* token = yysymbol_name (tokens[i]);
+          if (strncmp (text, token, len) == 0)
+            matches[match++] = strdup (token);
+          break;
+        }
       }
-    else
-      {
-        const char* token = yysymbol_name (tokens[i]);
-        if (strncmp (token, text, strlen (text)) == 0)
-          matches[match++] = strdup (token);
-      }
+
+  // Find the longest common prefix, and install it in matches[0], as
+  // required by readline.
+  if (match == 1)
+    matches[0] = strdup (text);
+  else
+    {
+      int lcplen = strlen (matches[1]);
+      for (int i = 2; i < match && lcplen; ++i)
+        for (int j = 0; j < lcplen; ++j)
+          if (matches[1][j] != matches[i][j])
+            lcplen = j;
+      matches[0] = strndup (matches[1], lcplen);
+    }
 
   if (yydebug)
     {
-      fprintf (stderr, "completion(\"%.*s[%.*s]%s\") = ",
+      fprintf (stderr, "completion (\"%.*s[%.*s]%s\") = ",
                start, rl_line_buffer,
                end - start, rl_line_buffer + start,
                rl_line_buffer + end);
@@ -424,11 +448,15 @@ completion (const char *text, int start, int end)
 
 void init_readline (void)
 {
-  /* Allow conditional parsing of the ~/.inputrc file. */
-  rl_readline_name = "pushcalc";
+  // Allow conditional parsing of the ~/.inputrc file.
+  rl_readline_name = "bistromathic";
 
-  /* Tell the completer that we want a crack first. */
+  // Tell the completer that we want a crack first.
   rl_attempted_completion_function = completion;
+
+  // The basic list of characters that signal a break between words
+  // for the completer routine.
+  rl_basic_word_break_characters = " \t\n\"\\'`@$><=;|&{(+-*/^)";
 }
 
 
@@ -440,7 +468,7 @@ void init_readline (void)
 int main (int argc, char const* argv[])
 {
   // Enable parse traces on option -p.
-  if (argc == 2 && strcmp(argv[1], "-p") == 0)
+  if (argc == 2 && strcmp (argv[1], "-p") == 0)
     yydebug = 1;
   init_table ();
   init_readline ();

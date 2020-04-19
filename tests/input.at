@@ -269,10 +269,10 @@ AT_BISON_CHECK([-fcaret input.y], [1], [],
 [[input.y:1.13-24: error: nonterminals cannot be given a string alias
     1 | %nterm expr "expression";
       |             ^~~~~~~~~~~~
-input.y:2.13-15: error: nonterminals cannot be given an explicit number
+input.y:2.13-15: error: nonterminals cannot be given a token code
     2 | %nterm term 123;
       |             ^~~
-input.y:3.13-15: error: nonterminals cannot be given an explicit number
+input.y:3.13-15: error: nonterminals cannot be given a token code
     3 | %nterm fact 124 "factor";
       |             ^~~
 input.y:3.17-24: error: nonterminals cannot be given a string alias
@@ -295,6 +295,66 @@ input.y:8.14: error: unexpected integer literal
       |              ^
 ]])
 
+AT_CLEANUP
+
+
+## ---------------------------- ##
+## Redefining the error token.  ##
+## ---------------------------- ##
+
+AT_SETUP([Redefining the error token])
+
+# We used to crash when trying to display the original definition of
+# "error", which is a builtin without any location.
+AT_BISON_OPTION_PUSHDEFS
+
+AT_DATA([input.y],
+[[%token error 123
+%token error 124
+%%
+exp:
+]])
+
+AT_BISON_CHECK([-fcaret input.y], [1], [],
+[[input.y:2.8-12: warning: symbol error redeclared [-Wother]
+    2 | %token error 124
+      |        ^~~~~
+input.y:1.8-12: note: previous declaration
+    1 | %token error 123
+      |        ^~~~~
+input.y:2.14-16: error: redefining code of token error
+    2 | %token error 124
+      |              ^~~
+]])
+
+# While at it, make sure we properly used the user's number for
+# "error".  I don't see what it buys us, but...
+AT_DATA([input.y],
+[[%{
+#include <assert.h>
+#include <stdio.h>
+]AT_YYERROR_DEFINE[
+]AT_YYLEX_DEFINE[
+%}
+
+%token error 123
+%%
+exp:
+%%
+int main (void)
+{
+  assert (YYERRCODE == 123);
+  assert (YYTRANSLATE (YYEOF) == YYSYMBOL_YYEOF);
+  assert (YYTRANSLATE (YYERRCODE) == YYSYMBOL_YYERROR);
+  assert (YYTRANSLATE (YYUNDEF) == YYSYMBOL_YYUNDEF);
+  return 0;
+}
+]])
+
+AT_FULL_COMPILE([input])
+AT_PARSER_CHECK([input], 0)
+
+AT_BISON_OPTION_POPDEFS
 AT_CLEANUP
 
 
@@ -331,7 +391,9 @@ AT_CLEANUP
 AT_SETUP([Symbol declarations])
 
 AT_DATA([dump-symbols.m4],
-[[m4@&t@_define([b4_symbol_dump],
+[[m4@&t@_define([b4_api_PREFIX], [YY])
+
+m4@&t@_define([b4_symbol_dump],
 [$1, d@&t@nl
 b4_symbol_if([$1], [is_token], [Token], [Nonterminal]), d@&t@nl
 b4_symbol([$1], [tag]), d@&t@nl
@@ -369,9 +431,9 @@ exp:;
 AT_BISON_CHECK([-Wno-other -S./dump-symbols.m4 input.y])
 AT_CHECK([cat symbols.csv], [],
 [[number, class, tag, id, user_number, type,
-0, Token, $end, , 0, ,
-1, Nonterminal, error, error, 256, ,
-2, Nonterminal, $undefined, , 257, ,
+0, Token, "end of file", YYEOF, 0, ,
+1, Token, error, YYERRCODE, 256, ,
+2, Token, "invalid token", YYUNDEF, 257, ,
 3, Token, 'a', , 97, ,
 4, Token, "A1", A1, 1, ,
 5, Token, A2, A2, 258, ,
@@ -1132,7 +1194,7 @@ AT_BISON_CHECK([-fcaret input.y], [1], [],
 [[input.y:2.17-21: warning: symbol "foo" used more than once as a literal string [-Wother]
     2 |          BAR 42 "foo"
       |                 ^~~~~
-input.y:2.10-12: error: user token number 42 redeclaration for BAR
+input.y:2.10-12: error: code 42 reassigned to token BAR
     2 |          BAR 42 "foo"
       |          ^~~
 input.y:1.15-19: note: previous declaration for "foo"
@@ -1482,7 +1544,7 @@ AT_CHECK_REQUIRE(100.0, 63)
 AT_SETUP([String aliases for character tokens])
 
 # Bison once thought a character token and its alias were different
-# symbols with the same user token number.
+# symbols with the same code.
 
 AT_BISON_OPTION_PUSHDEFS
 AT_DATA_GRAMMAR([input.y],
@@ -1581,9 +1643,9 @@ start: DECIMAL_1 HEXADECIMAL_2;
 ]])
 
 AT_BISON_CHECK([redecl.y], [1], [],
-[[redecl.y:10.10-22: error: user token number 11259375 redeclaration for HEXADECIMAL_1
+[[redecl.y:10.10-22: error: code 11259375 reassigned to token HEXADECIMAL_1
 redecl.y:9.8-16: note: previous declaration for DECIMAL_1
-redecl.y:12.10-18: error: user token number 16702650 redeclaration for DECIMAL_2
+redecl.y:12.10-18: error: code 16702650 reassigned to token DECIMAL_2
 redecl.y:11.10-22: note: previous declaration for HEXADECIMAL_2
 ]])
 
@@ -1597,9 +1659,9 @@ start: TOO_LARGE_DEC TOO_LARGE_HEX
 
 AT_BISON_CHECK([too-large.y], [1], [],
 [[too-large.y:9.22-42: error: integer out of range: '999999999999999999999'
-too-large.y:9.22-42: error: user token number of TOO_LARGE_DEC too large
+too-large.y:9.22-42: error: code of token TOO_LARGE_DEC too large
 too-large.y:10.24-44: error: integer out of range: '0xFFFFFFFFFFFFFFFFFFF'
-too-large.y:10.24-44: error: user token number of TOO_LARGE_HEX too large
+too-large.y:10.24-44: error: code of token TOO_LARGE_HEX too large
 ]])
 
 AT_BISON_OPTION_POPDEFS
@@ -2068,6 +2130,25 @@ input.y:1.1-34: note: accepted value: 'most'
 input.y:1.1-34: note: accepted value: 'consistent'
 input.y:1.1-34: note: accepted value: 'accepting'
 ]])
+
+# Check escapes.
+AT_DATA([[input.y]],
+[[%define lr.default-reduction {[$@]}
+%%
+start: %empty;
+]])
+AT_BISON_CHECK([[-fcaret input.y]], [[1]], [[]],
+[[input.y:1.1-35: warning: %define variable 'lr.default-reduction' requires keyword values [-Wdeprecated]
+    1 | %define lr.default-reduction {[$@]}
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+input.y:1.1-35: error: invalid value for %define variable 'lr.default-reduction': '[$@]'
+    1 | %define lr.default-reduction {[$@]}
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+input.y:1.1-35: note: accepted value: 'most'
+input.y:1.1-35: note: accepted value: 'consistent'
+input.y:1.1-35: note: accepted value: 'accepting'
+]])
+
 
 # Back-end.
 AT_DATA([[input.y]],
@@ -2548,7 +2629,9 @@ AT_DATA_GRAMMAR([[input.y]],
 %printer        { $%; @%; } <*> exp TOK;
 %{ $ @ %} // Should not warn.
 %%
-exp: TOK        { $%; @%; $$ = $1; };
+exp: TOK        { $%; @%; $$ = $1; }
+   | 'a'        { $<->1; $$ = 1; }
+   | 'b'        { $<foo->bar>$; }
 %%
 $ @ // Should not warn.
 ]])
@@ -2562,6 +2645,7 @@ input.y:13.19: warning: stray '$' [-Wother]
 input.y:13.23: warning: stray '@' [-Wother]
 input.y:16.19: warning: stray '$' [-Wother]
 input.y:16.23: warning: stray '@' [-Wother]
+input.y:17.19: warning: stray '$' [-Wother]
 ]])
 
 AT_BISON_OPTION_POPDEFS

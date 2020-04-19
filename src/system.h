@@ -73,9 +73,14 @@ typedef size_t uintptr_t;
 # include <verify.h>
 # include <xalloc.h>
 
+// Clang and ICC like to pretend they are GCC.
+# if defined __GNUC__ && !defined __clang__ && !defined __ICC
+#  define GCC_VERSION (__GNUC__ * 100 + __GNUC_MINOR__)
+# endif
 
-/* See https://lists.gnu.org/archive/html/bug-bison/2019-10/msg00061.html. */
-# if defined __GNUC__ && ! defined __clang__ && ! defined __ICC && __GNUC__ < 5
+// See https://lists.gnu.org/archive/html/bug-bison/2019-10/msg00061.html
+// and https://trac.macports.org/ticket/59927.
+# if defined GCC_VERSION && 405 <= GCC_VERSION
 #  define IGNORE_TYPE_LIMITS_BEGIN \
      _Pragma ("GCC diagnostic push") \
      _Pragma ("GCC diagnostic ignored \"-Wtype-limits\"")
@@ -209,10 +214,10 @@ typedef size_t uintptr_t;
 
 /* Output Str both quoted for M4 (i.e., embed in [[...]]), and escaped
    for our postprocessing (i.e., escape M4 special characters).  If
-   Str is empty (or NULL), output "[]" instead of "[[]]" as it make M4
-   programming easier (m4_ifval can be used).
+   Str is empty (or NULL), output "[]" instead of "[[]]" as it makes
+   M4 programming easier (m4_ifval can be used).
 
-   For instance "[foo]" -> "[[@{foo@}]]", "$$" -> "[[$][$][]]". */
+   For instance "[foo]" -> "[[@{foo@}]]", "$$" -> "[[$][$][]]".  */
 
 # define obstack_quote(Obs, Str)                \
   do {                                          \

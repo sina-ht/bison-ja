@@ -46,16 +46,6 @@ m4_ifndef([b4_pure_flag],
  m4_define([b4_pure_flag],
            [b4_percent_define_flag_if([[api.pure]], [[1]], [[0]])])])
 
-# b4_user_formals
-# ---------------
-# The possible parse-params formal arguments preceded by a comma.
-#
-# This is not shared with yacc.c in c.m4 because  GLR relies on ISO C
-# formal argument declarations.
-m4_define([b4_user_formals],
-[m4_ifset([b4_parse_param], [, b4_formals(b4_parse_param)])])
-
-
 # b4_yyerror_args
 # ---------------
 # Optional effective arguments passed to yyerror: user args plus yylloc, and
@@ -169,7 +159,7 @@ m4_if(b4_skeleton, ["glr.c"],
 ]b4_percent_code_get([[requires]])[
 ]b4_token_enums[
 ]b4_declare_yylstype[
-]b4_function_declare(b4_prefix[parse], [int], b4_parse_param)[
+int ]b4_prefix[parse (]m4_ifset([b4_parse_param], [b4_formals(b4_parse_param)], [void])[);
 ]b4_percent_code_get([[provides]])[]dnl
 ])
 ])
@@ -187,7 +177,7 @@ m4_if(b4_skeleton, ["glr.c"],
 # members of this union.
 #
 # To avoid this issue, just generate the header before the
-# implementation file.  But we should also make them more independant.
+# implementation file.  But we should also make them more independent.
 
 # ----------------- #
 # The header file.  #
@@ -240,6 +230,7 @@ b4_copyright([Skeleton implementation for Bison GLR parsers in C],
 
 ]b4_defines_if([[#include "@basename(]b4_spec_header_file[@)"]],
                [b4_shared_declarations])[
+]b4_declare_symbol_enum[
 
 /* Default (constant) value used for initialization for null
    right-hand sides.  Unlike the standard yacc.c template, here we set
@@ -342,16 +333,15 @@ static YYLTYPE yyloc_default][]b4_yyloc_default;])[
 /* YYFAULTYTOK -- Token number (for yychar) that denotes a
    syntax_error thrown from the scanner.  */
 #define YYFAULTYTOK (YYMAXUTOK + 1)]])[
-/* YYUNDEFTOK -- Symbol number (for yytoken) that denotes an unknown
-   token.  */
-#define YYUNDEFTOK  ]b4_undef_token_number[
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
    as returned by yylex, with out-of-bounds checking.  */
 ]b4_api_token_raw_if(dnl
-[[#define YYTRANSLATE(YYX) (YYX)]],
-[[#define YYTRANSLATE(YYX)                         \
-  (0 <= (YYX) && (YYX) <= YYMAXUTOK ? yytranslate[YYX] : YYUNDEFTOK)
+[[#define YYTRANSLATE(YYX) YY_CAST (yysymbol_kind_t, YYX)]],
+[[#define YYTRANSLATE(YYX)                                \
+  (0 <= (YYX) && (YYX) <= YYMAXUTOK                     \
+   ? YY_CAST (yysymbol_kind_t, yytranslate[YYX])        \
+   : ]b4_symbol_prefix[YYUNDEF)
 
 /* YYTRANSLATE[TOKEN-NUM] -- Symbol number corresponding to TOKEN-NUM
    as returned by yylex.  */
@@ -411,9 +401,6 @@ dnl We probably ought to introduce a type for confl.
   ]b4_conflicting_rules[
 };
 
-/* Error token number */
-#define YYTERROR 1
-
 ]b4_locations_if([[
 ]b4_yylloc_default_define[
 # define YYRHSLOC(Rhs, K) ((Rhs)[K].yystate.yyloc)
@@ -440,8 +427,7 @@ YYLTYPE yylloc;]])[
 int yynerrs;
 int yychar;])[
 
-static const int YYEOF = 0;
-static const int YYEMPTY = -2;
+enum { YYENOMEM = -2 };
 
 typedef enum { yyok, yyaccept, yyabort, yyerr } YYRESULTTAG;
 
@@ -499,9 +485,6 @@ typedef int yy_state_t;
 /** Rule numbers. */
 typedef int yyRuleNum;
 
-/** Grammar symbol. */
-typedef int yySymbol;
-
 /** Item references. */
 typedef short yyItemNum;
 
@@ -540,7 +523,7 @@ struct yyGLRStateSet {
   /** During nondeterministic operation, yylookaheadNeeds tracks which
    *  stacks have actually needed the current lookahead.  During deterministic
    *  operation, yylookaheadNeeds[0] is not maintained since it would merely
-   *  duplicate yychar != YYEMPTY.  */
+   *  duplicate yychar != ]b4_symbol(-2, id)[.  */
   yybool* yylookaheadNeeds;
   ptrdiff_t yysize;
   ptrdiff_t yycapacity;
@@ -607,10 +590,17 @@ yyMemoryExhausted (yyGLRStack* yystackp)
   YYLONGJMP (yystackp->yyexception_buffer, 2);
 }
 
+/** Accessing symbol of state YYSTATE.  */
+static inline yysymbol_kind_t
+yy_accessing_symbol (yy_state_t yystate)
+{
+  return YY_CAST (yysymbol_kind_t, yystos[yystate]);
+}
+
 #if ]b4_parse_error_case([simple], [b4_api_PREFIX[DEBUG || ]b4_token_table_flag], [[1]])[
 /* The user-facing name of the symbol whose (internal) number is
    YYSYMBOL.  No bounds checking.  */
-static const char *yysymbol_name (yySymbol yysymbol) YY_ATTRIBUTE_UNUSED;
+static const char *yysymbol_name (yysymbol_kind_t yysymbol) YY_ATTRIBUTE_UNUSED;
 
 ]b4_parse_error_bmatch([simple\|verbose],
 [[/* YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
@@ -621,12 +611,12 @@ static const char *const yytname[] =
 };
 
 static const char *
-yysymbol_name (yySymbol yysymbol)
+yysymbol_name (yysymbol_kind_t yysymbol)
 {
   return yytname[yysymbol];
 }]],
 [[static const char *
-yysymbol_name (yySymbol yysymbol)
+yysymbol_name (yysymbol_kind_t yysymbol)
 {
   static const char *const yy_sname[] =
   {
@@ -634,7 +624,7 @@ yysymbol_name (yySymbol yysymbol)
   };]m4_ifdef([b4_translatable], [[
   /* YYTRANSLATABLE[SYMBOL-NUM] -- Whether YYTNAME[SYMBOL-NUM] is
      internationalizable.  */
-  static ]b4_int_type_for([b4_translate])[ yytranslatable[] =
+  static ]b4_int_type_for([b4_translatable])[ yytranslatable[] =
   {
   ]b4_translatable[
   };
@@ -812,12 +802,12 @@ yyfillin (yyGLRStackItem *yyvsp, int yylow0, int yylow1)
 ]m4_define([b4_yygetToken_call],
            [[yygetToken (&yychar][]b4_pure_if([, yystackp])[]b4_user_args[)]])[
 /** If yychar is empty, fetch the next token.  */
-static inline yySymbol
+static inline yysymbol_kind_t
 yygetToken (int *yycharp][]b4_pure_if([, yyGLRStack* yystackp])[]b4_user_formals[)
 {
-  yySymbol yytoken;
+  yysymbol_kind_t yytoken;
 ]b4_parse_param_use()dnl
-[  if (*yycharp == YYEMPTY)
+[  if (*yycharp == ]b4_symbol(-2, id)[)
     {
       YY_DPRINTF ((stderr, "Reading a token\n"));]b4_glr_cc_if([[
 #if YY_EXCEPTIONS
@@ -832,17 +822,18 @@ yygetToken (int *yycharp][]b4_pure_if([, yyGLRStack* yystackp])[]b4_user_formals
           YY_DPRINTF ((stderr, "Caught exception: %s\n", yyexc.what()));]b4_locations_if([
           yylloc = yyexc.location;])[
           yyerror (]b4_lyyerror_args[yyexc.what ());
-          // Map errors caught in the scanner to the undefined token
-          // (YYUNDEFTOK), so that error handling is started.
-          // However, record this with this special value of yychar.
+          // Map errors caught in the scanner to the undefined token,
+          // so that error handling is started.  However, record this
+          // with this special value of yychar.
           *yycharp = YYFAULTYTOK;
         }
 #endif // YY_EXCEPTIONS]], [[
       *yycharp = ]b4_lex[;]])[
     }
-  if (*yycharp <= YYEOF)
+  if (*yycharp <= ]b4_symbol(0, [id])[)
     {
-      *yycharp = yytoken = YYEOF;
+      *yycharp = ]b4_symbol(0, [id])[;
+      yytoken = ]b4_symbol_prefix[YYEOF;
       YY_DPRINTF ((stderr, "Now at end of input.\n"));
     }
   else
@@ -894,7 +885,7 @@ yyuserAction (yyRuleNum yyn, int yyrhslen, yyGLRStackItem* yyvsp,
 # undef YYRECOVERING
 # define YYRECOVERING() (yystackp->yyerrState != 0)
 # undef yyclearin
-# define yyclearin (yychar = YYEMPTY)
+# define yyclearin (yychar = ]b4_symbol(-2, id)[)
 # undef YYFILL
 # define YYFILL(N) yyfill (yyvsp, &yylow, (N), yynormal)
 # undef YYBACKUP
@@ -971,7 +962,7 @@ static void
 yydestroyGLRState (char const *yymsg, yyGLRState *yys]b4_user_formals[)
 {
   if (yys->yyresolved)
-    yydestruct (yymsg, yystos[yys->yylrState],
+    yydestruct (yymsg, yy_accessing_symbol (yys->yylrState),
                 &yys->yysemantics.yysval]b4_locuser_args([&yys->yyloc])[);
   else
     {
@@ -982,7 +973,7 @@ yydestroyGLRState (char const *yymsg, yyGLRState *yys]b4_user_formals[)
             YY_FPRINTF ((stderr, "%s unresolved", yymsg));
           else
             YY_FPRINTF ((stderr, "%s incomplete", yymsg));
-          YY_SYMBOL_PRINT ("", yystos[yys->yylrState], YY_NULLPTR, &yys->yyloc);
+          YY_SYMBOL_PRINT ("", yy_accessing_symbol (yys->yylrState), YY_NULLPTR, &yys->yyloc);
         }
 #endif
 
@@ -1000,10 +991,10 @@ yydestroyGLRState (char const *yymsg, yyGLRState *yys]b4_user_formals[)
 }
 
 /** Left-hand-side symbol for rule #YYRULE.  */
-static inline yySymbol
+static inline yysymbol_kind_t
 yylhsNonterm (yyRuleNum yyrule)
 {
-  return yyr1[yyrule];
+  return YY_CAST (yysymbol_kind_t, yyr1[yyrule]);
 }
 
 #define yypact_value_is_default(Yyn) \
@@ -1036,7 +1027,7 @@ yydefaultAction (yy_state_t yystate)
  *  of conflicting reductions.
  */
 static inline int
-yygetLRActions (yy_state_t yystate, yySymbol yytoken, const short** yyconflicts)
+yygetLRActions (yy_state_t yystate, yysymbol_kind_t yytoken, const short** yyconflicts)
 {
   int yyindex = yypact[yystate] + yytoken;
   if (yyisDefaultedState (yystate)
@@ -1062,7 +1053,7 @@ yygetLRActions (yy_state_t yystate, yySymbol yytoken, const short** yyconflicts)
  * \param yysym     the nonterminal to push on the stack
  */
 static inline yy_state_t
-yyLRgotoState (yy_state_t yystate, yySymbol yysym)
+yyLRgotoState (yy_state_t yystate, yysymbol_kind_t yysym)
 {
   int yyr = yypgoto[yysym - YYNTOKENS] + yystate;
   if (0 <= yyr && yyr <= YYLAST && yycheck[yyr] == yystate)
@@ -1120,7 +1111,7 @@ yyaddDeferredAction (yyGLRStack* yystackp, ptrdiff_t yyk, yyGLRState* yystate,
       yynewOption->yyloc = yylloc;])[
     }
   else
-    yynewOption->yyrawchar = YYEMPTY;
+    yynewOption->yyrawchar = ]b4_symbol(-2, id)[;
   yynewOption->yynext = yystate->yysemantics.yyfirstVal;
   yystate->yysemantics.yyfirstVal = yynewOption;
 
@@ -1398,7 +1389,7 @@ yy_reduce_print (yybool yynormal, yyGLRStackItem* yyvsp, ptrdiff_t yyk,
     {
       YY_FPRINTF ((stderr, "   $%d = ", yyi + 1));
       yy_symbol_print (stderr,
-                       yystos[yyvsp[yyi - yynrhs + 1].yystate.yylrState],
+                       yy_accessing_symbol (yyvsp[yyi - yynrhs + 1].yystate.yylrState),
                        &yyvsp[yyi - yynrhs + 1].yystate.yysemantics.yysval]b4_locations_if([,
                        &]b4_rhs_location(yynrhs, yyi + 1))[]dnl
                        b4_user_args[);
@@ -1485,7 +1476,7 @@ yyglrReduce (yyGLRStack* yystackp, ptrdiff_t yyk, yyRuleNum yyrule,
                      YY_CAST (long, yyk), yyrule - 1, yyrline[yyrule - 1]));
       if (yyflag != yyok)
         return yyflag;
-      YY_SYMBOL_PRINT ("-> $$ =", yyr1[yyrule], &yysval, &yyloc);
+      YY_SYMBOL_PRINT ("-> $$ =", yylhsNonterm (yyrule), &yysval, &yyloc);
       yyglrShift (yystackp, yyk,
                   yyLRgotoState (yystackp->yytops.yystates[yyk]->yylrState,
                                  yylhsNonterm (yyrule)),
@@ -1779,10 +1770,10 @@ yyreportTree (yySemanticOption* yyx, int yyindent)
         {
           if (yystates[yyi-1]->yyposn+1 > yystates[yyi]->yyposn)
             YY_FPRINTF ((stderr, "%*s%s <empty>\n", yyindent+2, "",
-                         yysymbol_name (yystos[yystates[yyi]->yylrState])));
+                         yysymbol_name (yy_accessing_symbol (yystates[yyi]->yylrState))));
           else
             YY_FPRINTF ((stderr, "%*s%s <tokens %ld .. %ld>\n", yyindent+2, "",
-                         yysymbol_name (yystos[yystates[yyi]->yylrState]),
+                         yysymbol_name (yy_accessing_symbol (yystates[yyi]->yylrState)),
                          YY_CAST (long, yystates[yyi-1]->yyposn + 1),
                          YY_CAST (long, yystates[yyi]->yyposn)));
         }
@@ -1927,7 +1918,7 @@ yyresolveValue (yyGLRState* yys, yyGLRStack* yystackp]b4_user_formals[)
                 if (yyflag != yyok)
                   {
                     yydestruct ("Cleanup: discarding incompletely merged value for",
-                                yystos[yys->yylrState],
+                                yy_accessing_symbol (yys->yylrState),
                                 &yysval]b4_locuser_args[);
                     break;
                   }
@@ -2033,7 +2024,7 @@ yyprocessOneStack (yyGLRStack* yystackp, ptrdiff_t yyk,
         }
       else
         {
-          yySymbol yytoken = ]b4_yygetToken_call[;
+          yysymbol_kind_t yytoken = ]b4_yygetToken_call[;
           const short* yyconflicts;
           const int yyaction = yygetLRActions (yystate, yytoken, &yyconflicts);
           yystackp->yytops.yylookaheadNeeds[yyk] = yytrue;
@@ -2095,8 +2086,8 @@ yyprocessOneStack (yyGLRStack* yystackp, ptrdiff_t yyk,
    YYARG is null, return the number of expected tokens (guaranteed to
    be less than YYNTOKENS).  */
 static int
-yyexpected_tokens (const yyGLRStack* yystackp,
-                   int yyarg[], int yyargn)
+yypcontext_expected_tokens (const yyGLRStack* yystackp,
+                            yysymbol_kind_t yyarg[], int yyargn)
 {
   /* Actual size of YYARG. */
   int yycount = 0;
@@ -2112,7 +2103,7 @@ yyexpected_tokens (const yyGLRStack* yystackp,
       int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
       int yyx;
       for (yyx = yyxbegin; yyx < yyxend; ++yyx)
-        if (yycheck[yyx + yyn] == yyx && yyx != YYTERROR
+        if (yycheck[yyx + yyn] == yyx && yyx != ]b4_symbol_prefix[YYERROR
             && !yytable_value_is_error (yytable[yyx + yyn]))
           {
             if (!yyarg)
@@ -2120,17 +2111,47 @@ yyexpected_tokens (const yyGLRStack* yystackp,
             else if (yycount == yyargn)
               return 0;
             else
-              yyarg[yycount++] = yyx;
+              yyarg[yycount++] = YY_CAST (yysymbol_kind_t, yyx);
           }
     }
   return yycount;
+}]])[
+
+]b4_parse_error_bmatch(
+         [custom],
+[[/* User defined function to report a syntax error.  */
+typedef yyGLRStack yypcontext_t;
+static int
+yyreport_syntax_error (const yyGLRStack* yystackp]b4_user_formals[);
+
+/* The kind of the lookahead of this context.  */
+static yysymbol_kind_t
+yypcontext_token (const yyGLRStack *yystackp) YY_ATTRIBUTE_UNUSED;
+
+static yysymbol_kind_t
+yypcontext_token (const yyGLRStack *yystackp)
+{
+  YYUSE (yystackp);
+  yysymbol_kind_t yytoken = yychar == ]b4_symbol(-2, id)[ ? ]b4_symbol(-2, kind)[ : YYTRANSLATE (yychar);
+  return yytoken;
 }
 
-static int
-yysyntax_error_arguments (const yyGLRStack* yystackp,
-                          int yyarg[], int yyargn)
+]b4_locations_if([[/* The location of the lookahead of this context.  */
+static YYLTYPE *
+yypcontext_location (const yyGLRStack *yystackp) YY_ATTRIBUTE_UNUSED;
+
+static YYLTYPE *
+yypcontext_location (const yyGLRStack *yystackp)
 {
-  yySymbol yytoken = yychar == YYEMPTY ? YYEMPTY : YYTRANSLATE (yychar);
+  YYUSE (yystackp);
+  return &yylloc;
+}]])],
+         [detailed\|verbose],
+[[static int
+yy_syntax_error_arguments (const yyGLRStack* yystackp,
+                           yysymbol_kind_t yyarg[], int yyargn)
+{
+  yysymbol_kind_t yytoken = yychar == ]b4_symbol(-2, id)[ ? ]b4_symbol(-2, kind)[ : YYTRANSLATE (yychar);
   /* Actual size of YYARG. */
   int yycount = 0;
   /* There are many possibilities here to consider:
@@ -2161,37 +2182,22 @@ yysyntax_error_arguments (const yyGLRStack* yystackp,
        one exception: it will still contain any token that will not be
        accepted due to an error action in a later state.]])[
   */
-  if (yytoken != YYEMPTY)
+  if (yytoken != ]b4_symbol(-2, kind)[)
     {
       int yyn;
-      yyarg[yycount++] = yytoken;
-      yyn = yyexpected_tokens (yystackp, yyarg ? yyarg + 1 : yyarg, yyargn - 1);
-      if (yyn == -2)
-        return -2;
+      if (yyarg)
+        yyarg[yycount] = yytoken;
+      ++yycount;
+      yyn = yypcontext_expected_tokens (yystackp,
+                                        yyarg ? yyarg + 1 : yyarg, yyargn - 1);
+      if (yyn == YYENOMEM)
+        return YYENOMEM;
       else
         yycount += yyn;
     }
   return yycount;
 }
 ]])[
-
-]b4_parse_error_case(
-         [custom],
-[[/* User defined function to report a syntax error.  */
-typedef yyGLRStack yyparse_context_t;
-static int
-yyreport_syntax_error (const yyGLRStack* yystackp]b4_user_formals[);
-
-]b4_locations_if([[/*  The location of this context.  */
-static YYLTYPE *
-yyparse_context_location (const yyGLRStack *yystackp) YY_ATTRIBUTE_UNUSED;
-
-static YYLTYPE *
-yyparse_context_location (const yyGLRStack *yystackp)
-{
-  YYUSE (yystackp);
-  return &yylloc;
-}]])])[
 
 
 static void
@@ -2208,19 +2214,19 @@ yyreportSyntaxError (yyGLRStack* yystackp]b4_user_formals[)
 [[  {
   yybool yysize_overflow = yyfalse;
   char* yymsg = YY_NULLPTR;
-  enum { YYERROR_VERBOSE_ARGS_MAXIMUM = 5 };
+  enum { YYARGS_MAX = 5 };
   /* Internationalized format string. */
   const char *yyformat = YY_NULLPTR;
   /* Arguments of yyformat: reported tokens (one for the "unexpected",
      one per "expected"). */
-  yySymbol yyarg[YYERROR_VERBOSE_ARGS_MAXIMUM];
+  yysymbol_kind_t yyarg[YYARGS_MAX];
   /* Cumulated lengths of YYARG.  */
   ptrdiff_t yysize = 0;
 
   /* Actual size of YYARG. */
   int yycount
-    = yysyntax_error_arguments (yystackp, yyarg, YYERROR_VERBOSE_ARGS_MAXIMUM);
-  if (yycount == -2)
+    = yy_syntax_error_arguments (yystackp, yyarg, YYARGS_MAX);
+  if (yycount == YYENOMEM)
     yyMemoryExhausted (yystackp);
 
   switch (yycount)
@@ -2301,11 +2307,11 @@ yyrecoverSyntaxError (yyGLRStack* yystackp]b4_user_formals[)
        reductions.  Skip tokens until we can proceed.  */
     while (yytrue)
       {
-        yySymbol yytoken;
+        yysymbol_kind_t yytoken;
         int yyj;
-        if (yychar == YYEOF)
+        if (yychar == ]b4_symbol(0, [id])[)
           yyFail (yystackp][]b4_lpure_args[, YY_NULLPTR);
-        if (yychar != YYEMPTY)
+        if (yychar != ]b4_symbol(-2, id)[)
           {]b4_locations_if([[
             /* We throw away the lookahead, but the error range
                of the shifted error token must take it into account.  */
@@ -2317,7 +2323,7 @@ yyrecoverSyntaxError (yyGLRStack* yystackp]b4_user_formals[)
             yytoken = YYTRANSLATE (yychar);
             yydestruct ("Error: discarding",
                         yytoken, &yylval]b4_locuser_args([&yylloc])[);
-            yychar = YYEMPTY;
+            yychar = ]b4_symbol(-2, id)[;
           }
         yytoken = ]b4_yygetToken_call[;
         yyj = yypact[yystackp->yytops.yystates[0]->yylrState];
@@ -2347,7 +2353,7 @@ yyrecoverSyntaxError (yyGLRStack* yystackp]b4_user_formals[)
     yycompressStack (yystackp);
   }
 
-  /* Now pop stack until we find a state that shifts the error token.  */
+  /* Pop stack until we find a state that shifts the error token.  */
   yystackp->yyerrState = 3;
   while (yystackp->yytops.yystates[0] != YY_NULLPTR)
     {
@@ -2355,8 +2361,8 @@ yyrecoverSyntaxError (yyGLRStack* yystackp]b4_user_formals[)
       int yyj = yypact[yys->yylrState];
       if (! yypact_value_is_default (yyj))
         {
-          yyj += YYTERROR;
-          if (0 <= yyj && yyj <= YYLAST && yycheck[yyj] == YYTERROR
+          yyj += ]b4_symbol_prefix[YYERROR;
+          if (0 <= yyj && yyj <= YYLAST && yycheck[yyj] == ]b4_symbol_prefix[YYERROR
               && yyisShiftAction (yytable[yyj]))
             {
               /* Shift the error token.  */
@@ -2365,7 +2371,7 @@ yyrecoverSyntaxError (yyGLRStack* yystackp]b4_user_formals[)
               YYLTYPE yyerrloc;
               yystackp->yyerror_range[2].yystate.yyloc = yylloc;
               YYLLOC_DEFAULT (yyerrloc, (yystackp->yyerror_range), 2);]])[
-              YY_SYMBOL_PRINT ("Shifting", yystos[yyaction],
+              YY_SYMBOL_PRINT ("Shifting", yy_accessing_symbol (yyaction),
                                &yylval, &yyerrloc);
               yyglrShift (yystackp, 0, yyaction,
                           yys->yyposn, &yylval]b4_locations_if([, &yyerrloc])[);
@@ -2404,7 +2410,8 @@ yyrecoverSyntaxError (yyGLRStack* yystackp]b4_user_formals[)
 | yyparse.  |
 `----------*/
 
-]b4_function_define([yyparse], [int], b4_parse_param)[
+int
+yyparse (]m4_ifset([b4_parse_param], [b4_formals(b4_parse_param)], [void])[)
 {
   int yyresult;
   yyGLRStack yystack;
@@ -2413,7 +2420,7 @@ yyrecoverSyntaxError (yyGLRStack* yystackp]b4_user_formals[)
 
   YY_DPRINTF ((stderr, "Starting parse\n"));
 
-  yychar = YYEMPTY;
+  yychar = ]b4_symbol(-2, id)[;
   yylval = yyval_default;]b4_locations_if([
   yylloc = yyloc_default;])[
 ]m4_ifdef([b4_initial_action], [
@@ -2458,7 +2465,7 @@ b4_dollar_popdef])[]dnl
             }
           else
             {
-              yySymbol yytoken = ]b4_yygetToken_call;[
+              yysymbol_kind_t yytoken = ]b4_yygetToken_call;[
               const short* yyconflicts;
               int yyaction = yygetLRActions (yystate, yytoken, &yyconflicts);
               if (*yyconflicts != 0)
@@ -2466,7 +2473,7 @@ b4_dollar_popdef])[]dnl
               if (yyisShiftAction (yyaction))
                 {
                   YY_SYMBOL_PRINT ("Shifting", yytoken, &yylval, &yylloc);
-                  yychar = YYEMPTY;
+                  yychar = ]b4_symbol(-2, id)[;
                   yyposn += 1;
                   yyglrShift (&yystack, 0, yyaction, yyposn, &yylval]b4_locations_if([, &yylloc])[);
                   if (0 < yystack.yyerrState)
@@ -2488,11 +2495,11 @@ b4_dollar_popdef])[]dnl
 
       while (yytrue)
         {
-          yySymbol yytoken_to_shift;
+          yysymbol_kind_t yytoken_to_shift;
           ptrdiff_t yys;
 
           for (yys = 0; yys < yystack.yytops.yysize; yys += 1)
-            yystackp->yytops.yylookaheadNeeds[yys] = yychar != YYEMPTY;
+            yystackp->yytops.yylookaheadNeeds[yys] = yychar != ]b4_symbol(-2, id)[;
 
           /* yyprocessOneStack returns one of three things:
 
@@ -2530,11 +2537,11 @@ b4_dollar_popdef])[]dnl
 
           /* If any yyglrShift call fails, it will fail after shifting.  Thus,
              a copy of yylval will already be on stack 0 in the event of a
-             failure in the following loop.  Thus, yychar is set to YYEMPTY
+             failure in the following loop.  Thus, yychar is set to ]b4_symbol(-2, id)[
              before the loop to make sure the user destructor for yylval isn't
              called twice.  */
           yytoken_to_shift = YYTRANSLATE (yychar);
-          yychar = YYEMPTY;
+          yychar = ]b4_symbol(-2, id)[;
           yyposn += 1;
           for (yys = 0; yys < yystack.yytops.yysize; yys += 1)
             {
@@ -2584,7 +2591,7 @@ b4_dollar_popdef])[]dnl
   goto yyreturn;
 
  yyreturn:
-  if (yychar != YYEMPTY)
+  if (yychar != ]b4_symbol(-2, id)[)
     yydestruct ("Cleanup: discarding lookahead",
                 YYTRANSLATE (yychar), &yylval]b4_locuser_args([&yylloc])[);
 
@@ -2715,6 +2722,7 @@ m4_if(b4_prefix, [yy], [],
 #define yynerrs ]b4_prefix[nerrs]b4_locations_if([[
 #define yylloc  ]b4_prefix[lloc]])])[
 
-]b4_percent_code_get([[epilogue]])[]dnl
+]m4_ifdef([b4_pre_epilogue], [b4_pre_epilogue])[]dnl This is a hack for glr.cc.  To remove when we have a better glr.cc.
+b4_percent_code_get([[epilogue]])[]dnl
 b4_epilogue[]dnl
 b4_output_end

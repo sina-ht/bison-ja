@@ -101,6 +101,7 @@ m4_define_default([b4_prefix], [b4_api_prefix])
 b4_percent_define_default([[api.value.union.name]],
                           [b4_api_PREFIX[][STYPE]])
 
+b4_percent_define_default([[api.symbol.prefix]], [[YYSYMBOL_]])
 
 ## ------------------------ ##
 ## Pure/impure interfaces.  ##
@@ -127,6 +128,13 @@ m4_define([b4_lex],
 # ------------
 m4_define([b4_user_args],
 [m4_ifset([b4_parse_param], [, b4_args(b4_parse_param)])])
+
+
+# b4_user_formals
+# ---------------
+# The possible parse-params formal arguments preceded by a comma.
+m4_define([b4_user_formals],
+[m4_ifset([b4_parse_param], [, b4_formals(b4_parse_param)])])
 
 
 # b4_parse_param
@@ -418,9 +426,22 @@ static const b4_int_type_for([$2]) yy$1[[]] =
 ])
 
 
-## ------------------------- ##
-## Assigning token numbers.  ##
-## ------------------------- ##
+## ------------- ##
+## Token kinds.  ##
+## ------------- ##
+
+# Because C enums are not scoped, because tokens are exposed in the
+# header, and because these tokens are common to all the parsers, we
+# need to make sure their names don't collide: use the api.prefix.
+# YYEOF is special, since the user may give it a different name.
+m4_define([b4_symbol(-2, id)],  [b4_api_PREFIX[][EMPTY]])
+m4_define([b4_symbol(-2, tag)], [[No symbol.]])
+
+m4_if(b4_symbol(0, id), [YYEOF],
+     [m4_define([b4_symbol(0, id)],  [b4_api_PREFIX[][EOF]])])
+m4_define([b4_symbol(1, id)],  [b4_api_PREFIX[][ERRCODE]])
+m4_define([b4_symbol(2, id)],  [b4_api_PREFIX[][UNDEF]])
+
 
 # b4_token_define(TOKEN-NUM)
 # --------------------------
@@ -432,7 +453,7 @@ m4_define([b4_token_define],
 # ----------------
 # Output the definition of the tokens.
 m4_define([b4_token_defines],
-[b4_any_token_visible_if([/* Tokens.  */
+[b4_any_token_visible_if([/* Token kinds.  */
 m4_join([
 ], b4_symbol_map([b4_token_define]))
 ])])
@@ -442,29 +463,35 @@ m4_join([
 # ------------------------
 # Output the definition of this token as an enum.
 m4_define([b4_token_enum],
-[b4_token_format([%s = %s], [$1])])
+[b4_token_visible_if([$1],
+    [m4_format([    %-30s %s],
+               m4_format([[%s = %s%s%s]],
+                         b4_symbol([$1], [id]),
+                         b4_symbol([$1], b4_api_token_raw_if([[number]], [[user_number]])),
+                         m4_if([$1], b4_last_enum_token, [], [[,]])),
+               [b4_symbol_tag_comment([$1])])])])
 
 
 # b4_token_enums
 # --------------
-# Output the definition of the tokens (if there are) as enums.
+# The definition of the token kinds.
 m4_define([b4_token_enums],
-[b4_any_token_visible_if([[/* Token type.  */
+[b4_any_token_visible_if([[/* Token kinds.  */
 #ifndef ]b4_api_PREFIX[TOKENTYPE
 # define ]b4_api_PREFIX[TOKENTYPE
   enum ]b4_api_prefix[tokentype
   {
-    ]m4_join([,
-    ],
-             b4_symbol_map([b4_token_enum]))[
-  };
+    ]b4_symbol([-2], [id])[ = -2,
+]b4_symbol_foreach([b4_token_enum])dnl
+[  };
+  typedef enum ]b4_api_prefix[tokentype ]b4_api_prefix[token_kind_t;
 #endif
 ]])])
 
 
 # b4_token_enums_defines
 # ----------------------
-# Output the definition of the tokens (if there are any) as enums and,
+# The definition of the tokens (if there are any) as enums and,
 # if POSIX Yacc is enabled, as #defines.
 m4_define([b4_token_enums_defines],
 [b4_token_enums[]b4_yacc_if([b4_token_defines])])
@@ -472,9 +499,43 @@ m4_define([b4_token_enums_defines],
 
 # b4_symbol_translate(STRING)
 # ---------------------------
+# Used by "bison" in the array of symbol names to mark those that
+# require translation.
 m4_define([b4_symbol_translate],
 [[N_($1)]])
 
+
+
+## -------------- ##
+## Symbol kinds.  ##
+## -------------- ##
+
+# b4_symbol_enum(SYMBOL-NUM)
+# --------------------------
+# Output the definition of this symbol as an enum.
+m4_define([b4_symbol_enum],
+[m4_format([  %-40s %s],
+           m4_format([[%s = %s%s%s]],
+                     b4_symbol([$1], [kind]),
+                     [$1],
+                     m4_if([$1], b4_last_symbol, [], [[,]])),
+           [b4_symbol_tag_comment([$1])])])
+
+
+# b4_declare_symbol_enum
+# ----------------------
+# The definition of the symbol internal numbers as an enum.
+# Defining YYEMPTY here is important: it forces the compiler
+# to use a signed type, which matters for yytoken.
+m4_define([b4_declare_symbol_enum],
+[[/* Symbol kind.  */
+enum yysymbol_kind_t
+{
+  ]b4_symbol_kind([-2])[ = -2,
+]b4_symbol_foreach([b4_symbol_enum])dnl
+[};
+typedef enum yysymbol_kind_t yysymbol_kind_t;
+]])])
 
 
 ## ----------------- ##
@@ -500,15 +561,6 @@ m4_define([b4_symbol_value],
 ## ---------------------- ##
 
 
-# b4_function_define(NAME, RETURN-VALUE, [DECL1, NAME1], ...)
-# -----------------------------------------------------------
-# Declare the function NAME in C.
-m4_define([b4_function_define],
-[$2
-$1 (b4_formals(m4_shift2($@)))[]dnl
-])
-
-
 # b4_formals([DECL1, NAME1], ...)
 # -------------------------------
 # The formal arguments of a C function definition.
@@ -519,21 +571,6 @@ m4_define([b4_formals],
 
 m4_define([b4_formal],
 [$1])
-
-
-
-## ----------------------- ##
-## Declaring C functions.  ##
-## ----------------------- ##
-
-
-# b4_function_declare(NAME, RETURN-VALUE, [DECL1, NAME1], ...)
-# ------------------------------------------------------------
-# Declare the function NAME.
-m4_define([b4_function_declare],
-[$2 $1 (b4_formals(m4_shift2($@)));[]dnl
-])
-
 
 
 
@@ -600,18 +637,15 @@ m4_define_default([b4_yydestruct_define],
 | Release the memory associated to this symbol.  |
 `-----------------------------------------------*/
 
-]b4_function_define([yydestruct],
-    [static void],
-    [[const char *yymsg],    [yymsg]],
-    [[int yytype],           [yytype]],
-    [[YYSTYPE *yyvaluep],    [yyvaluep]][]dnl
-b4_locations_if(            [, [[YYLTYPE *yylocationp], [yylocationp]]])[]dnl
-m4_ifset([b4_parse_param], [, b4_parse_param]))[
+static void
+yydestruct (const char *yymsg,
+            yysymbol_kind_t yykind, YYSTYPE *yyvaluep]b4_locations_if(dnl
+[[, YYLTYPE *yylocationp]])[]b4_user_formals[)
 {
 ]b4_parse_param_use([yyvaluep], [yylocationp])dnl
 [  if (!yymsg)
     yymsg = "Deleting";
-  YY_SYMBOL_PRINT (yymsg, yytype, yyvaluep, yylocationp);
+  YY_SYMBOL_PRINT (yymsg, yykind, yyvaluep, yylocationp);
 
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   ]b4_symbol_actions([destructor])[
@@ -629,13 +663,10 @@ m4_define_default([b4_yy_symbol_print_define],
 | Print this symbol's value on YYO.  |
 `-----------------------------------*/
 
-]b4_function_define([yy_symbol_value_print],
-    [static void],
-               [[FILE *yyo],                            [yyo]],
-               [[int yytype],                           [yytype]],
-               [[YYSTYPE const * const yyvaluep],       [yyvaluep]][]dnl
-b4_locations_if([, [[YYLTYPE const * const yylocationp], [yylocationp]]])[]dnl
-m4_ifset([b4_parse_param], [, b4_parse_param]))[
+static void
+yy_symbol_value_print (FILE *yyo,
+                       yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep]b4_locations_if(dnl
+[[, YYLTYPE const * const yylocationp]])[]b4_user_formals[)
 {
   FILE *yyoutput = yyo;
 ]b4_parse_param_use([yyoutput], [yylocationp])dnl
@@ -644,8 +675,8 @@ m4_ifset([b4_parse_param], [, b4_parse_param]))[
 dnl glr.c does not feature yytoknum.
 m4_if(b4_skeleton, ["yacc.c"],
 [[# ifdef YYPRINT
-  if (yytype < YYNTOKENS)
-    YYPRINT (yyo, yytoknum[yytype], *yyvaluep);
+  if (yykind < YYNTOKENS)
+    YYPRINT (yyo, yytoknum[yykind], *yyvaluep);
 # endif
 ]])dnl
 b4_percent_code_get([[pre-printer]])dnl
@@ -660,21 +691,18 @@ b4_percent_code_get([[post-printer]])dnl
 | Print this symbol on YYO.  |
 `---------------------------*/
 
-]b4_function_define([yy_symbol_print],
-    [static void],
-               [[FILE *yyo],                            [yyo]],
-               [[int yytype],                           [yytype]],
-               [[YYSTYPE const * const yyvaluep],       [yyvaluep]][]dnl
-b4_locations_if([, [[YYLTYPE const * const yylocationp], [yylocationp]]])[]dnl
-m4_ifset([b4_parse_param], [, b4_parse_param]))[
+static void
+yy_symbol_print (FILE *yyo,
+                 yysymbol_kind_t yykind, YYSTYPE const * const yyvaluep]b4_locations_if(dnl
+[[, YYLTYPE const * const yylocationp]])[]b4_user_formals[)
 {
   YYFPRINTF (yyo, "%s %s (",
-             yytype < YYNTOKENS ? "token" : "nterm", yysymbol_name (yytype));
+             yykind < YYNTOKENS ? "token" : "nterm", yysymbol_name (yykind));
 
 ]b4_locations_if([  YY_LOCATION_PRINT (yyo, *yylocationp);
   YYFPRINTF (yyo, ": ");
 ])dnl
-[  yy_symbol_value_print (yyo, yytype, yyvaluep]dnl
+[  yy_symbol_value_print (yyo, yykind, yyvaluep]dnl
 b4_locations_if([, yylocationp])[]b4_user_args[);
   YYFPRINTF (yyo, ")");
 }]dnl
@@ -700,11 +728,11 @@ m4_define([b4_symbol_type_register],
 [m4_define([b4_symbol($1, type_tag)],
            [b4_symbol_if([$1], [has_id],
                          [b4_symbol([$1], [id])],
-                         [yytype_[]b4_symbol([$1], [number])])])dnl
+                         [yykind_[]b4_symbol([$1], [number])])])dnl
 m4_append([b4_union_members],
-m4_expand([
-  b4_symbol_tag_comment([$1])dnl
-  b4_symbol([$1], [type]) b4_symbol([$1], [type_tag]);]))
+m4_expand([m4_format([  %-40s %s],
+                     m4_expand([b4_symbol([$1], [type]) b4_symbol([$1], [type_tag]);]),
+                     [b4_symbol_tag_comment([$1])])]))
 ])
 
 
@@ -943,10 +971,8 @@ m4_define([b4_yy_location_print_define],
 /* Print *YYLOCP on YYO.  Private, do not rely on its existence. */
 
 YY_ATTRIBUTE_UNUSED
-]b4_function_define([yy_location_print_],
-    [static int],
-               [[FILE *yyo],                    [yyo]],
-               [[YYLTYPE const * const yylocp], [yylocp]])[
+static int
+yy_location_print_ (FILE *yyo, YYLTYPE const * const yylocp)
 {
   int res = 0;
   int end_col = 0 != yylocp->last_column ? yylocp->last_column - 1 : 0;

@@ -2,6 +2,9 @@ GNU Bison NEWS
 
 * Noteworthy changes in release ?.? (????-??-??) [?]
 
+
+* Noteworthy changes in release 3.5.90 (2020-04-18) [beta]
+
 ** Backward incompatible changes
 
   TL;DR: replace "#define YYERROR_VERBOSE 1" by "%define parse.error verbose".
@@ -19,7 +22,7 @@ GNU Bison NEWS
 *** Improved syntax error messages
 
   Two new values for the %define parse.error variable offer more control to
-  the user.
+  the user.  Available in all the skeletons (C, C++, Java).
 
 **** %define parse.error detailed
 
@@ -34,37 +37,51 @@ GNU Bison NEWS
 **** %define parse.error custom
 
   With this directive, the user forges and emits the syntax error message
-  herself by defining a function such as:
+  herself by defining the yyreport_syntax_error function.  A new type,
+  yypcontext_t, captures the circumstances of the error, and provides the
+  user with functions to get details, such as yypcontext_expected_tokens to
+  get the list of expected token kinds.
+
+  A possible implementation of yyreport_syntax_error is:
 
     int
-    yyreport_syntax_error (const yyparse_context_t *ctx)
+    yyreport_syntax_error (const yypcontext_t *ctx)
     {
-      enum { ARGMAX = 10 };
-      int arg[ARGMAX];
-      int n = yysyntax_error_arguments (ctx, arg, ARGMAX);
-      if (n == -2)
-        return 2; // Memory exhausted.
-      YY_LOCATION_PRINT (stderr, *yyparse_context_location (ctx));
+      int res = 0;
+      YY_LOCATION_PRINT (stderr, *yypcontext_location (ctx));
       fprintf (stderr, ": syntax error");
-      for (int i = 1; i < n; ++i)
-        fprintf (stderr, " %s %s",
-                 i == 1 ? "expected" : "or", yysymbol_name (arg[i]));
-      if (n)
-        fprintf (stderr, " before %s", yysymbol_name (arg[0]));
+      // Report the tokens expected at this point.
+      {
+        enum { TOKENMAX = 10 };
+        yysymbol_kind_t expected[TOKENMAX];
+        int n = yypcontext_expected_tokens (ctx, expected, TOKENMAX);
+        if (n < 0)
+          // Forward errors to yyparse.
+          res = n;
+        else
+          for (int i = 0; i < n; ++i)
+            fprintf (stderr, "%s %s",
+                     i == 0 ? ": expected" : " or", yysymbol_name (expected[i]));
+      }
+      // Report the unexpected token.
+      {
+        yysymbol_kind_t lookahead = yypcontext_token (ctx);
+        if (lookahead != YYSYMBOL_YYEMPTY)
+          fprintf (stderr, " before %s", yysymbol_name (lookahead));
+      }
       fprintf (stderr, "\n");
-      return 0;
+      return res;
     }
 
 **** Token aliases internationalization
 
   When the %define variable parse.error is set to `custom` or `detailed`,
-  one may use the _() annotation to specify which token aliases are to be
-  translated.  For instance
+  one may specify which token aliases are to be translated using _().  For
+  instance
 
     %token
         PLUS   "+"
         MINUS  "-"
-        EOF 0  _("end of file")
       <double>
         NUM _("double precision number")
       <symrec*>
@@ -73,7 +90,60 @@ GNU Bison NEWS
 
   In that case the user must define _() and N_(), and yysymbol_name returns
   the translated symbol (i.e., it returns '_("variable")' rather that
-  '"variable"').
+  '"variable"').  In Java, the user must provide an i18n() function.
+
+*** List of expected tokens (yacc.c)
+
+  Push parsers may invoke yypstate_expected_tokens at any point during
+  parsing (including even before submitting the first token) to get the list
+  of possible tokens.  This feature can be used to propose autocompletion
+  (see below the "bistromathic" example).
+
+  It makes little sense to use this feature without enabling LAC (lookahead
+  correction).
+
+*** Deep overhaul of the symbol and token kinds
+
+  To avoid the confusion with types in programming languages, we now refer
+  to token and symbol "kinds" instead of token and symbol "types".  The
+  documentation and error messages have been revised.
+
+  All the skeletons have been updated to use dedicated enum types rather
+  than integral types.  Special symbols are now regular citizens, instead of
+  being declared in ad hoc ways.
+
+**** Token kinds
+
+  The "token kind" is what is returned by the scanner, e.g., PLUS, NUMBER,
+  LPAREN, etc.  While backward compatibility is of course ensured, users are
+  nonetheless invited to replace their uses of "enum yytokentype" by
+  "yytoken_kind_t".
+
+  This type now also includes tokens that were previously hidden: YYEOF (end
+  of input), YYUNDEF (undefined token), and YYERRCODE (error token).  They
+  now have string aliases, internationalized when internationalization is
+  enabled.  Therefore, by default, error messages now refer to "end of file"
+  (internationalized) rather than the cryptic "$end", or to "invalid token"
+  rather than "$undefined".
+
+  Therefore in most cases it is now useless to define the end-of-line token
+  as follows:
+
+    %token T_EOF 0 "end of file"
+
+  Rather simply use "YYEOF" in your scanner.
+
+**** Symbol kinds
+
+  The "symbol kinds" is what the parser actually uses.  (Unless the
+  api.token.raw %define variable is used, the symbol kind of a terminal
+  differs from the corresponding token kind.)
+
+  They are now exposed as a enum, "yysymbol_kind_t".
+
+  This allows users to tailor the error messages the way they want, or to
+  process some symbols in a specific way in autocompletion (see the
+  bistromathic example below).
 
 *** Modernize display of explanatory statements in diagnostics
 
@@ -96,19 +166,76 @@ GNU Bison NEWS
 
   Contributed by Victor Morales Cayuela.
 
+*** C++
+
+  The token and symbol kinds are yy::parser::token_kind_type and
+  yy::parser::symbol_kind_type.
+
+  The symbol_type::kind() member function allows to get the kind of a
+  symbol.  This can be used to write unit tests for scanners, e.g.,
+
+    yy::parser::symbol_type t = make_NUMBER ("123");
+    assert (t.kind () == yy::parser::symbol_kind::S_NUMBER);
+    assert (t.value.as<int> () == 123);
+
 ** Documentation
 
+*** User Manual
+
+  In order to avoid ambiguities with "type" as in "typing", we now refer to
+  the "token kind" (e.g., `PLUS`, `NUMBER`, etc.) rather than the "token
+  type".  We now also refer to the "symbol type" (e.g., `PLUS`, `expr`,
+  etc.).
+
+*** Examples
+
   There are now two examples in examples/java: a very simple calculator, and
-  one that tracks locations to provide acurate error messages.
+  one that tracks locations to provide accurate error messages.
 
   The lexcalc example (a simple example in C based on Flex and Bison) now
   also demonstrates location tracking.
 
+
   A new C example, bistromathic, is a fully featured interactive calculator
   using many Bison features: pure interface, push parser, autocompletion
-  based on the current parser state (using yyexpected_tokens), location
-  tracking, internationalized custom error messages, lookahead-correction,
-  rich debug traces, etc.
+  based on the current parser state (using yypstate_expected_tokens),
+  location tracking, internationalized custom error messages, lookahead
+  correction, rich debug traces, etc.
+
+  It shows how to depend on the symbol kinds to tailor autocompletion.  For
+  instance it recognizes the symbol kind "VARIABLE" to propose
+  autocompletion on the existing variables, rather than of the word
+  "variable".
+
+* Noteworthy changes in release 3.5.4 (2020-04-05) [stable]
+
+** WARNING: Future backward-incompatibilities!
+
+  TL;DR: replace "#define YYERROR_VERBOSE 1" by "%define parse.error verbose".
+
+  Bison 3.6 will no longer support the YYERROR_VERBOSE macro; the parsers
+  that still depend on it will produce Yacc-like error messages (just
+  "syntax error").  It was superseded by the "%error-verbose" directive in
+  Bison 1.875 (2003-01-01).  Bison 2.6 (2012-07-19) clearly announced that
+  support for YYERROR_VERBOSE would be removed.  Note that since Bison 3.0
+  (2013-07-25), "%error-verbose" is deprecated in favor of "%define
+  parse.error verbose".
+
+** Bug fixes
+
+  Fix portability issues of the package itself on old compilers.
+
+  Fix api.token.raw support in Java.
+
+* Noteworthy changes in release 3.5.3 (2020-03-08) [stable]
+
+** Bug fixes
+
+  Error messages could quote lines containing zero-width characters (such as
+  \005) with incorrect styling.  Fixes for similar issues with unexpectedly
+  short lines (e.g., the file was changed between parsing and diagnosing).
+
+  Several unlikely crashes found by fuzzing have been fixed.
 
 * Noteworthy changes in release 3.5.2 (2020-02-13) [stable]
 
@@ -3987,8 +4114,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  LocalWords:  noexcept constexpr ispell american deprecations backend Teoh
  LocalWords:  YYPRINT Mangold Bonzini's Wdangling exVal baz checkable gcc
  LocalWords:  fsanitize Vogelsgesang lis redeclared stdint automata yytname
- LocalWords:  yysymbol yytnamerr yyreport ctx ARGMAX yysyntax stderr
- LocalWords:  symrec
+ LocalWords:  yysymbol yytnamerr yyreport ctx ARGMAX yysyntax stderr LPAREN
+ LocalWords:  symrec yypcontext TOKENMAX yyexpected YYEMPTY yypstate YYEOF
+ LocalWords:  autocompletion bistromathic submessages Cayuela lexcalc hoc
+ LocalWords:  yytoken YYUNDEF YYERRCODE
 
 Local Variables:
 ispell-dictionary: "american"

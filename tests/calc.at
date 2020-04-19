@@ -306,13 +306,13 @@ class CalcLexer(R) : Lexer
 
     // Handle EOF.
     if (input.empty)
-      return YYTokenType.EOF;
+      return TokenKind.CALC_EOF;
 
     // Numbers.
     if (input.front.isNumber)
       {
         semanticVal_.ival = parseInt;
-        return YYTokenType.NUM;
+        return TokenKind.NUM;
       }
 
     // Individual characters
@@ -669,7 +669,7 @@ m4_define([_AT_DATA_CALC_Y(java)],
   ]AT_CALC_MAIN[
 
   ]AT_TOKEN_TRANSLATE_IF([[
-    static String _ (String s)
+    static String i18n(String s)
     {
       if (s.equals ("end of input"))
         return "end of file";
@@ -763,8 +763,8 @@ AT_JAVA_IF(
   [AT_PARSER_CHECK([calc input],        0, [AT_PARAM_IF([m4_n([$3])])], [stderr])])
 AT_LANG_MATCH([c\|c++\|java],
   [AT_GLR_IF([],
-    [AT_CHECK([grep -v 'Return for a new token:' stderr | wc -l],
-              [0],
+    [AT_CHECK([grep -c -v 'Return for a new token:' stderr],
+              [ignore],
               [m4_n([AT_DEBUG_IF([$4], [0])])])])])
 ])
 
@@ -857,7 +857,7 @@ AT_CHECK([cat stderr], 0, [expout])
 # AT_CHECK_SPACES([FILES])
 # ------------------------
 # Make sure we did not introduce bad spaces.  Checked here because all
-# the skeletons are (or should be) exercized here.
+# the skeletons are (or should be) exercised here.
 m4_define([AT_CHECK_SPACES],
 [AT_PERL_CHECK([-ne '
   chomp;
@@ -935,7 +935,7 @@ _AT_CHECK_CALC_ERROR([$1], [1], [1//2],
 _AT_CHECK_CALC_ERROR([$1], [1], [error],
                      [[final: 0 0 1]],
                      [5],
-                     [AT_JAVA_IF([1.1-1.2], [1.1])[: syntax error on token [$undefined] (expected: [number] ['-'] ['\n'] ['('] ['!'])]])
+                     [AT_JAVA_IF([1.1-1.2], [1.1])[: syntax error on token [invalid token] (expected: [number] ['-'] ['\n'] ['('] ['!'])]])
 _AT_CHECK_CALC_ERROR([$1], [1], [1 = 2 = 3],
                      [[final: 0 0 1]],
                      [30],

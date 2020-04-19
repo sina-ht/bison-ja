@@ -314,7 +314,7 @@ Parser C-Language Interface
 The Lexical Analyzer Function @code{yylex}
 
 * Calling Convention::  How @code{yyparse} calls @code{yylex}.
-* Tokens from Literals:: Finding token types from string aliases.
+* Tokens from Literals:: Finding token kinds from string aliases.
 * Token Values::        How @code{yylex} must return the semantic value
                           of the token it has read.
 * Token Locations::     How @code{yylex} must return the text location
@@ -325,8 +325,8 @@ The Lexical Analyzer Function @code{yylex}
 
 Error Reporting
 
-* Error Reporting Function::         You must supply a function @code{yyerror}.
-* Syntax Error Reporting Function::  You can supply a function @code{yyreport_syntax_error}.
+* Error Reporting Function::         You must supply a @code{yyerror} function.
+* Syntax Error Reporting Function::  You can supply a @code{yyreport_syntax_error} function.
 
 Parser Internationalization
 
@@ -408,6 +408,7 @@ C++ Parsers
 * C++ Parser Interface::        Instantiating and running the parser
 * C++ Semantic Values::         %union vs. C++
 * C++ Location Values::         The position and location classes
+* C++ Parser Context::          You can supply a @code{report_syntax_error} function.
 * C++ Scanner Interface::       Exchanges between yylex and parse
 * A Complete C++ Example::      Demonstrating their use
 
@@ -433,6 +434,7 @@ Java Parsers
 * Java Semantic Values::        %token and %nterm vs. Java
 * Java Location Values::        The position and location classes
 * Java Parser Interface::       Instantiating and running the parser
+* Java Parser Context Interface:: Circumstances of a syntax error
 * Java Scanner Interface::      Specifying the scanner for the parser
 * Java Action Features::        Special features for use in actions
 * Java Push Parser Interface::  Instantiating and running the a push parser
@@ -623,11 +625,11 @@ possible parses of any given string is finite.
 @cindex token
 @cindex syntactic grouping
 @cindex grouping, syntactic
-In the formal grammatical rules for a language, each kind of syntactic
-unit or grouping is named by a @dfn{symbol}.  Those which are built by
-grouping smaller constructs according to grammatical rules are called
+In the formal grammatical rules for a language, each kind of syntactic unit
+or grouping is named by a @dfn{symbol}.  Those which are built by grouping
+smaller constructs according to grammatical rules are called
 @dfn{nonterminal symbols}; those which can't be subdivided are called
-@dfn{terminal symbols} or @dfn{token types}.  We call a piece of input
+@dfn{terminal symbols} or @dfn{token kinds}.  We call a piece of input
 corresponding to a single terminal symbol a @dfn{token}, and a piece
 corresponding to a single nonterminal symbol a @dfn{grouping}.
 
@@ -710,7 +712,7 @@ as an identifier, like an identifier in C@.  By convention, it should be
 in lower case, such as @code{expr}, @code{stmt} or @code{declaration}.
 
 The Bison representation for a terminal symbol is also called a @dfn{token
-type}.  Token types as well can be represented as C-like identifiers.  By
+kind}.  Token kinds as well can be represented as C-like identifiers.  By
 convention, these identifiers should be upper case to distinguish them from
 nonterminals: for example, @code{INTEGER}, @code{IDENTIFIER}, @code{IF} or
 @code{RETURN}.  A terminal symbol that stands for a particular keyword in
@@ -754,26 +756,26 @@ grammatical.
 But the precise value is very important for what the input means once it is
 parsed.  A compiler is useless if it fails to distinguish between 4, 1 and
 3989 as constants in the program!  Therefore, each token in a Bison grammar
-has both a token type and a @dfn{semantic value}.  @xref{Semantics},
-for details.
+has both a token kind and a @dfn{semantic value}.  @xref{Semantics}, for
+details.
 
-The token type is a terminal symbol defined in the grammar, such as
-@code{INTEGER}, @code{IDENTIFIER} or @code{','}.  It tells everything
-you need to know to decide where the token may validly appear and how to
-group it with other tokens.  The grammar rules know nothing about tokens
-except their types.
+The token kind is a terminal symbol defined in the grammar, such as
+@code{INTEGER}, @code{IDENTIFIER} or @code{','}.  It tells everything you
+need to know to decide where the token may validly appear and how to group
+it with other tokens.  The grammar rules know nothing about tokens except
+their kinds.
 
 The semantic value has all the rest of the information about the
 meaning of the token, such as the value of an integer, or the name of an
 identifier.  (A token such as @code{','} which is just punctuation doesn't
 need to have any semantic value.)
 
-For example, an input token might be classified as token type
-@code{INTEGER} and have the semantic value 4.  Another input token might
-have the same token type @code{INTEGER} but value 3989.  When a grammar
-rule says that @code{INTEGER} is allowed, either of these tokens is
-acceptable because each is an @code{INTEGER}.  When the parser accepts the
-token, it keeps track of the token's semantic value.
+For example, an input token might be classified as token kind @code{INTEGER}
+and have the semantic value 4.  Another input token might have the same
+token kind @code{INTEGER} but value 3989.  When a grammar rule says that
+@code{INTEGER} is allowed, either of these tokens is acceptable because each
+is an @code{INTEGER}.  When the parser accepts the token, it keeps track of
+the token's semantic value.
 
 Each grouping can also have a semantic value as well as its nonterminal
 symbol.  For example, in a calculator, an expression typically has a
@@ -1230,7 +1232,7 @@ action in a GLR parser.
 @cindex GLR parsers and @code{yylval}
 @vindex yylloc
 @cindex GLR parsers and @code{yylloc}
-In any semantic action, you can examine @code{yychar} to determine the type
+In any semantic action, you can examine @code{yychar} to determine the kind
 of the lookahead token present at the time of the associated reduction.
 After checking that @code{yychar} is not set to @code{YYEMPTY} or
 @code{YYEOF}, you can then examine @code{yylval} and @code{yylloc} to
@@ -1428,7 +1430,7 @@ In addition, a complete C program must start with a function called
 @code{main}; you have to provide this, and arrange for it to call
 @code{yyparse} or the parser will never run.  @xref{Interface}.
 
-Aside from the token type names and the symbols in the actions you
+Aside from the token kind names and the symbols in the actions you
 write, all symbols defined in the Bison parser implementation file
 itself begin with @samp{yy} or @samp{YY}.  This includes interface
 functions such as the lexical analyzer function @code{yylex}, the
@@ -1643,7 +1645,7 @@ Each terminal symbol that is not a single-character literal must be
 declared.  (Single-character literals normally don't need to be declared.)
 In this example, all the arithmetic operators are designated by
 single-character literals, so the only terminal symbol that needs to be
-declared is @code{NUM}, the token type for numeric constants.
+declared is @code{NUM}, the token kind for numeric constants.
 
 @node Rpcalc Rules
 @subsection Grammar Rules for @code{rpcalc}
@@ -1850,14 +1852,14 @@ that isn't part of a number is a separate token.  Note that the token-code
 for such a single-character token is the character itself.
 
 The return value of the lexical analyzer function is a numeric code which
-represents a token type.  The same text used in Bison rules to stand for
-this token type is also a C expression for the numeric code for the type.
-This works in two ways.  If the token type is a character literal, then its
-numeric code is that of the character; you can use the same
-character literal in the lexical analyzer to express the number.  If the
-token type is an identifier, that identifier is defined by Bison as a C
-macro whose definition is the appropriate number.  In this example,
-therefore, @code{NUM} becomes a macro for @code{yylex} to use.
+represents a token kind.  The same text used in Bison rules to stand for
+this token kind is also a C expression for the numeric code of the kind.
+This works in two ways.  If the token kind is a character literal, then its
+numeric code is that of the character; you can use the same character
+literal in the lexical analyzer to express the number.  If the token kind is
+an identifier, that identifier is defined by Bison as a C enum whose
+definition is the appropriate code.  In this example, therefore, @code{NUM}
+becomes an enum for @code{yylex} to use.
 
 The semantic value of the token (if it has one) is stored into the global
 variable @code{yylval}, which is where the Bison parser will look for it.
@@ -1865,7 +1867,7 @@ variable @code{yylval}, which is where the Bison parser will look for it.
 at the beginning of the grammar via @samp{%define api.value.type
 @{double@}}; @pxref{Rpcalc Declarations}.)
 
-A token type code of zero is returned if the end-of-input is encountered.
+A token kind code of zero is returned if the end-of-input is encountered.
 (Bison recognizes any nonpositive value as indicating end-of-input.)
 
 Here is the code for the lexical analyzer:
@@ -1902,7 +1904,7 @@ yylex (void)
 @group
   /* Return end-of-input. */
   else if (c == EOF)
-    return 0;
+    return YYEOF;
   /* Return a single char. */
   else
     return c;
@@ -2106,11 +2108,11 @@ same as before.
 There are two important new features shown in this code.
 
 In the second section (Bison declarations), @code{%left} declares token
-types and says they are left-associative operators.  The declarations
+kinds and says they are left-associative operators.  The declarations
 @code{%left} and @code{%right} (right associativity) take the place of
-@code{%token} which is used to declare a token type name without
-associativity/precedence.  (These tokens are single-character literals, which
-ordinarily don't need to be declared.  We declare them here to specify
+@code{%token} which is used to declare a token kind name without
+associativity/precedence.  (These tokens are single-character literals,
+which ordinarily don't need to be declared.  We declare them here to specify
 the associativity/precedence.)
 
 Operator precedence is determined by the line ordering of the
@@ -2228,14 +2230,13 @@ the same as the declarations for the infix notation calculator.
 @end example
 
 @noindent
-Note there are no declarations specific to locations.  Defining a data
-type for storing locations is not needed: we will use the type provided
-by default (@pxref{Location Type}), which is a
-four member structure with the following integer fields:
-@code{first_line}, @code{first_column}, @code{last_line} and
-@code{last_column}.  By conventions, and in accordance with the GNU
-Coding Standards and common practice, the line and column count both
-start at 1.
+Note there are no declarations specific to locations.  Defining a data type
+for storing locations is not needed: we will use the type provided by
+default (@pxref{Location Type}), which is a four member structure with the
+following integer fields: @code{first_line}, @code{first_column},
+@code{last_line} and @code{last_column}.  By conventions, and in accordance
+with the GNU Coding Standards and common practice, the line and column count
+both start at 1.
 
 @node Ltcalc Rules
 @subsection Grammar Rules for @code{ltcalc}
@@ -2351,7 +2352,7 @@ yylex (void)
 
   /* Return end-of-input. */
   if (c == EOF)
-    return 0;
+    return YYEOF;
 
 @group
   /* Return a single char, and update location. */
@@ -2372,10 +2373,10 @@ it skips blanks and tabs, and reads numbers or single-character tokens.
 In addition, it updates @code{yylloc}, the global variable (of type
 @code{YYLTYPE}) containing the token's location.
 
-Now, each time this function returns a token, the parser has its number
-as well as its semantic value, and its location in the text.  The last
-needed change is to initialize @code{yylloc}, for example in the
-controlling function:
+Now, each time this function returns a token, the parser has its kind as
+well as its semantic value, and its location in the text.  The last needed
+change is to initialize @code{yylloc}, for example in the controlling
+function:
 
 @example
 @group
@@ -2498,7 +2499,7 @@ augmented with their data type (placed between angle brackets).  For
 instance, values of @code{NUM} are stored in @code{double}.
 
 The Bison construct @code{%nterm} is used for declaring nonterminal symbols,
-just as @code{%token} is used for declaring token types.  Previously we did
+just as @code{%token} is used for declaring token kinds.  Previously we did
 not use @code{%nterm} before because nonterminal symbols are normally
 declared implicitly by the rules that define them.  But @code{exp} must be
 declared explicitly so we can specify its value type.  @xref{Type Decl}.
@@ -2644,7 +2645,7 @@ By simply editing the initialization list and adding the necessary include
 files, you can add additional functions to the calculator.
 
 Two important functions allow look-up and installation of symbols in the
-symbol table.  The function @code{putsym} is passed a name and the type
+symbol table.  The function @code{putsym} is passed a name and the kind
 (@code{VAR} or @code{FUN}) of the object to be installed.  The object is
 linked to the front of the list, and a pointer to the object is returned.
 The function @code{getsym} is passed the name of the symbol to look up.  If
@@ -2721,7 +2722,7 @@ yylex (void)
     c = getchar ();
 
   if (c == EOF)
-    return 0;
+    return YYEOF;
 @end group
 
 @group
@@ -2939,7 +2940,7 @@ declaration.
 
 @group
 %@{
-  static void print_token (enum yytokentype token, YYSTYPE val);
+  static void print_token (yytoken_kind_t token, YYSTYPE val);
 %@}
 @end group
 
@@ -2988,7 +2989,7 @@ Look again at the example of the previous section:
 
 @group
 %@{
-  static void print_token (enum yytokentype token, YYSTYPE val);
+  static void print_token (yytoken_kind_t token, YYSTYPE val);
 %@}
 @end group
 
@@ -3003,16 +3004,16 @@ override Bison's default definition for @code{YYLTYPE}, in which
 write it in the first since Bison will insert that code into the parser
 implementation file @emph{before} the default @code{YYLTYPE} definition.  In
 which @var{Prologue} section should you prototype an internal function,
-@code{trace_token}, that accepts @code{YYLTYPE} and @code{yytokentype} as
+@code{trace_token}, that accepts @code{YYLTYPE} and @code{yytoken_kind_t} as
 arguments?  You should prototype it in the second since Bison will insert
-that code @emph{after} the @code{YYLTYPE} and @code{yytokentype}
+that code @emph{after} the @code{YYLTYPE} and @code{yytoken_kind_t}
 definitions.
 
 This distinction in functionality between the two @var{Prologue} sections is
 established by the appearance of the @code{%union} between them.  This
 behavior raises a few questions.  First, why should the position of a
 @code{%union} affect definitions related to @code{YYLTYPE} and
-@code{yytokentype}?  Second, what if there is no @code{%union}?  In that
+@code{yytoken_kind_t}?  Second, what if there is no @code{%union}?  In that
 case, the second kind of @var{Prologue} section is not available.  This
 behavior is not intuitive.
 
@@ -3050,8 +3051,8 @@ the same time:
 
 @group
 %code @{
-  static void print_token (enum yytokentype token, YYSTYPE val);
-  static void trace_token (enum yytokentype token, YYLTYPE loc);
+  static void print_token (yytoken_kind_t token, YYSTYPE val);
+  static void trace_token (yytoken_kind_t token, YYLTYPE loc);
 @}
 @end group
 
@@ -3115,8 +3116,8 @@ Thus, they belong in one or more @code{%code requires}:
 
 @group
 %code @{
-  static void print_token (enum yytokentype token, YYSTYPE val);
-  static void trace_token (enum yytokentype token, YYLTYPE loc);
+  static void print_token (yytoken_kind_t token, YYSTYPE val);
+  static void trace_token (yytoken_kind_t token, YYLTYPE loc);
 @}
 @end group
 
@@ -3148,7 +3149,7 @@ might wish for Bison to insert the prototype into both the parser header
 file and the parser implementation file.  Since this function is not a
 dependency required by @code{YYSTYPE} or @code{YYLTYPE}, it doesn't make
 sense to move its prototype to a @code{%code requires}.  More importantly,
-since it depends upon @code{YYLTYPE} and @code{yytokentype}, @code{%code
+since it depends upon @code{YYLTYPE} and @code{yytoken_kind_t}, @code{%code
 requires} is not sufficient.  Instead, move its prototype from the
 unqualified @code{%code} to a @code{%code provides}:
 
@@ -3188,7 +3189,7 @@ unqualified @code{%code} to a @code{%code provides}:
 
 @group
 %code provides @{
-  void trace_token (enum yytokentype token, YYLTYPE loc);
+  void trace_token (yytoken_kind_t token, YYLTYPE loc);
 @}
 @end group
 
@@ -3204,7 +3205,7 @@ unqualified @code{%code} to a @code{%code provides}:
 @noindent
 Bison will insert the @code{trace_token} prototype into both the parser
 header file and the parser implementation file after the definitions for
-@code{yytokentype}, @code{YYLTYPE}, and @code{YYSTYPE}.
+@code{yytoken_kind_t}, @code{YYLTYPE}, and @code{YYSTYPE}.
 
 The above examples are careful to write directives in an order that reflects
 the layout of the generated parser implementation and header files:
@@ -3310,19 +3311,19 @@ of the grammar file.
 @section Symbols, Terminal and Nonterminal
 @cindex nonterminal symbol
 @cindex terminal symbol
-@cindex token type
+@cindex token kind
 @cindex symbol
 
 @dfn{Symbols} in Bison grammars represent the grammatical classifications
 of the language.
 
-A @dfn{terminal symbol} (also known as a @dfn{token type}) represents a
+A @dfn{terminal symbol} (also known as a @dfn{token kind}) represents a
 class of syntactically equivalent tokens.  You use the symbol in grammar
 rules to mean that a token in that class is allowed.  The symbol is
 represented in the Bison parser by a numeric code, and the @code{yylex}
-function returns a token type code to indicate what kind of token has
-been read.  You don't need to know what the code value is; you can use
-the symbol to stand for it.
+function returns a token kind code to indicate what kind of token has been
+read.  You don't need to know what the code value is; you can use the symbol
+to stand for it.
 
 A @dfn{nonterminal symbol} stands for a class of syntactically
 equivalent groupings.  The symbol name is used in writing grammar rules.
@@ -3340,27 +3341,26 @@ There are three ways of writing terminal symbols in the grammar:
 
 @itemize @bullet
 @item
-A @dfn{named token type} is written with an identifier, like an
-identifier in C@.  By convention, it should be all upper case.  Each
-such name must be defined with a Bison declaration such as
-@code{%token}.  @xref{Token Decl}.
+A @dfn{named token kind} is written with an identifier, like an identifier
+in C@.  By convention, it should be all upper case.  Each such name must be
+defined with a Bison declaration such as @code{%token}.  @xref{Token Decl}.
 
 @item
 @cindex character token
 @cindex literal token
 @cindex single-character literal
-A @dfn{character token type} (or @dfn{literal character token}) is written
+A @dfn{character token kind} (or @dfn{literal character token}) is written
 in the grammar using the same syntax used in C for character constants; for
-example, @code{'+'} is a character token type.  A character token type
+example, @code{'+'} is a character token kind.  A character token kind
 doesn't need to be declared unless you need to specify its semantic value
 data type (@pxref{Value Type}), associativity, or precedence
 (@pxref{Precedence}).
 
-By convention, a character token type is used only to represent a
-token that consists of that particular character.  Thus, the token
-type @code{'+'} is used to represent the character @samp{+} as a
-token.  Nothing enforces this convention, but if you depart from it,
-your program will confuse other readers.
+By convention, a character token kind is used only to represent a token that
+consists of that particular character.  Thus, the token kind @code{'+'} is
+used to represent the character @samp{+} as a token.  Nothing enforces this
+convention, but if you depart from it, your program will confuse other
+readers.
 
 All the usual escape sequences used in character literals in C can be used
 in Bison as well, but you must not use the null character as a character
@@ -3381,14 +3381,14 @@ value data type (@pxref{Value Type}), associativity, or precedence
 
 You can associate the literal string token with a symbolic name as an alias,
 using the @code{%token} declaration (@pxref{Token Decl}).  If you don't do
-that, the lexical analyzer has to retrieve the token number for the literal
+that, the lexical analyzer has to retrieve the token code for the literal
 string token from the @code{yytname} table (@pxref{Calling Convention}).
 
 @strong{Warning}: literal string tokens do not work in Yacc.
 
 By convention, a literal string token is used only to represent a token
 that consists of that particular string.  Thus, you should use the token
-type @code{"<="} to represent the string @samp{<=} as a token.  Bison
+kind @code{"<="} to represent the string @samp{<=} as a token.  Bison
 does not enforce this convention, but if you depart from it, people who
 read your program will be confused.
 
@@ -3406,22 +3406,22 @@ on when the parser function returns that symbol.
 
 The value returned by @code{yylex} is always one of the terminal
 symbols, except that a zero or negative value signifies end-of-input.
-Whichever way you write the token type in the grammar rules, you write
+Whichever way you write the token kind in the grammar rules, you write
 it the same way in the definition of @code{yylex}.  The numeric code
-for a character token type is simply the positive numeric code of the
+for a character token kind is simply the positive numeric code of the
 character, so @code{yylex} can use the identical value to generate the
 requisite code, though you may need to convert it to @code{unsigned
 char} to avoid sign-extension on hosts where @code{char} is signed.
-Each named token type becomes a C macro in the parser implementation
+Each named token kind becomes a C macro in the parser implementation
 file, so @code{yylex} can use the name to stand for the code.  (This
 is why periods don't make sense in terminal symbols.)  @xref{Calling
 Convention}.
 
 If @code{yylex} is defined in a separate file, you need to arrange for the
-token-type macro definitions to be available there.  Use the @samp{-d}
-option when you run Bison, so that it will write these macro definitions
-into a separate header file @file{@var{name}.tab.h} which you can include
-in the other source files that need it.  @xref{Invocation}.
+token-kind definitions to be available there.  Use the @samp{-d} option when
+you run Bison, so that it will write these definitions into a separate
+header file @file{@var{name}.tab.h} which you can include in the other
+source files that need it.  @xref{Invocation}.
 
 If you want to write a grammar that is portable to any Standard C
 host, you must use only nonnull character tokens taken from the basic
@@ -3697,10 +3697,9 @@ In a simple program it may be sufficient to use the same data type for
 the semantic values of all language constructs.  This was true in the
 RPN and infix calculator examples (@pxref{RPN Calc}).
 
-Bison normally uses the type @code{int} for semantic values if your
-program uses the same data type for all language constructs.  To
-specify some other type, define the @code{%define} variable
-@code{api.value.type} like this:
+Bison normally uses the type @code{int} for semantic values if your program
+uses the same data type for all language constructs.  To specify some other
+type, define the @code{%define} variable @code{api.value.type} like this:
 
 @example
 %define api.value.type @{double@}
@@ -3726,11 +3725,10 @@ this:
 
 @noindent
 This macro definition must go in the prologue of the grammar file
-(@pxref{Grammar Outline}).  If compatibility
-with POSIX Yacc matters to you, use this.  Note however that Bison cannot
-know @code{YYSTYPE}'s value, not even whether it is defined, so there are
-services it cannot provide.  Besides this works only for languages that have
-a preprocessor.
+(@pxref{Grammar Outline}).  If compatibility with POSIX Yacc matters to you,
+use this.  Note however that Bison cannot know @code{YYSTYPE}'s value, not
+even whether it is defined, so there are services it cannot provide.
+Besides this works only for languages that have a preprocessor.
 
 @node Multiple Types
 @subsection More Than One Value Type
@@ -4492,10 +4490,9 @@ Defining a data type for locations is much simpler than for semantic values,
 since all tokens and groupings always use the same type.
 
 You can specify the type of locations by defining a macro called
-@code{YYLTYPE}, just as you can specify the semantic value type by
-defining a @code{YYSTYPE} macro (@pxref{Value Type}).
-When @code{YYLTYPE} is not defined, Bison uses a default structure type with
-four members:
+@code{YYLTYPE}, just as you can specify the semantic value type by defining
+a @code{YYSTYPE} macro (@pxref{Value Type}).  When @code{YYLTYPE} is not
+defined, Bison uses a default structure type with four members:
 
 @example
 typedef struct YYLTYPE
@@ -4772,7 +4769,7 @@ The @dfn{Bison declarations} section of a Bison grammar defines the symbols
 used in formulating the grammar and the data types of semantic values.
 @xref{Symbols}.
 
-All token type names (but not single-character literal tokens such as
+All token kind names (but not single-character literal tokens such as
 @code{'+'} and @code{'*'}) must be declared.  Nonterminal symbols must be
 declared if you need to specify which data type to use for the semantic
 value (@pxref{Multiple Types}).
@@ -4828,21 +4825,21 @@ for the name of the generated DOT file.  @xref{Graphviz}.
 
 
 @node Token Decl
-@subsection Token Type Names
-@cindex declaring token type names
-@cindex token type names, declaring
+@subsection Token Kind Names
+@cindex declaring token kind names
+@cindex token kind names, declaring
 @cindex declaring literal string tokens
 @findex %token
 
-The basic way to declare a token type name (terminal symbol) is as follows:
+The basic way to declare a token kind name (terminal symbol) is as follows:
 
 @example
 %token @var{name}
 @end example
 
-Bison will convert this into a definition in the parser, so
-that the function @code{yylex} (if it is in this file) can use the name
-@var{name} to stand for this token type's code.
+Bison will convert this into a definition in the parser, so that the
+function @code{yylex} (if it is in this file) can use the name @var{name} to
+stand for this token kind's code.
 
 Alternatively, you can use @code{%left}, @code{%right}, @code{%precedence},
 or @code{%nonassoc} instead of @code{%token}, if you wish to specify
@@ -4850,7 +4847,7 @@ associativity and precedence.  @xref{Precedence Decl}.  However, for
 clarity, we recommend to use these directives only to declare associativity
 and precedence, and not to add string aliases, semantic types, etc.
 
-You can explicitly specify the numeric code for a token type by appending a
+You can explicitly specify the numeric code for a token kind by appending a
 nonnegative decimal or hexadecimal integer value in the field immediately
 following the token name:
 
@@ -4861,7 +4858,7 @@ following the token name:
 
 @noindent
 It is generally best, however, to let Bison choose the numeric codes for all
-token types.  Bison will automatically select codes that don't conflict with
+token kinds.  Bison will automatically select codes that don't conflict with
 each other or with normal characters.
 
 In the event that the stack type is a union, you must augment the
@@ -4880,7 +4877,7 @@ For example:
 @end group
 @end example
 
-You can associate a literal string token with a token type name by writing
+You can associate a literal string token with a token kind name by writing
 the literal string at the end of a @code{%token} declaration which declares
 the name.  For example:
 
@@ -4899,10 +4896,10 @@ equivalent literal string tokens:
 @end example
 
 @noindent
-Once you equate the literal string and the token name, you can use them
+Once you equate the literal string and the token kind name, you can use them
 interchangeably in further declarations or the grammar rules.  The
 @code{yylex} function can use the token name or the literal string to obtain
-the token type code number (@pxref{Calling Convention}).
+the token kind code (@pxref{Calling Convention}).
 
 String aliases allow for better error messages using the literal strings
 instead of the token names, such as @samp{syntax error, unexpected ||,
@@ -4926,14 +4923,6 @@ I18n}):
 would produce in French @samp{erreur de syntaxe, || inattendu, attendait
 nombre ou (} rather than @samp{erreur de syntaxe, || inattendu, attendait
 number ou (}.
-
-The token numbered as 0 corresponds to the end of file; the following line
-allows for nicer error messages referring to ``end of file''
-(internationalized) instead of ``$end'':
-
-@example
-%token END 0 _("end of file")
-@end example
 
 @node Precedence Decl
 @subsection Operator Precedence
@@ -4990,7 +4979,7 @@ declared later has the higher precedence and is grouped first.
 
 For backward compatibility, there is a confusing difference between the
 argument lists of @code{%token} and precedence declarations.  Only a
-@code{%token} can associate a literal string with a token type name.  A
+@code{%token} can associate a literal string with a token kind name.  A
 precedence declaration always interprets a literal string as a reference to
 a separate token.  For example:
 
@@ -5018,9 +5007,9 @@ used.  This is done with a @code{%type} declaration, like this:
 @noindent
 Here @var{nonterminal} is the name of a nonterminal symbol, and @var{type}
 is the name given in the @code{%union} to the alternative that you want
-(@pxref{Union Decl}).  You can give any number of
-nonterminal symbols in the same @code{%type} declaration, if they have the
-same value type.  Use spaces to separate the symbol names.
+(@pxref{Union Decl}).  You can give any number of nonterminal symbols in the
+same @code{%type} declaration, if they have the same value type.  Use spaces
+to separate the symbol names.
 
 While POSIX Yacc allows @code{%type} only for nonterminals, Bison accepts
 that this directive be also applied to terminal symbols.  To declare
@@ -5581,22 +5570,22 @@ Declare the collection of data types that semantic values may have
 @end deffn
 
 @deffn {Directive} %token
-Declare a terminal symbol (token type name) with no precedence
+Declare a terminal symbol (token kind name) with no precedence
 or associativity specified (@pxref{Token Decl}).
 @end deffn
 
 @deffn {Directive} %right
-Declare a terminal symbol (token type name) that is right-associative
+Declare a terminal symbol (token kind name) that is right-associative
 (@pxref{Precedence Decl}).
 @end deffn
 
 @deffn {Directive} %left
-Declare a terminal symbol (token type name) that is left-associative
+Declare a terminal symbol (token kind name) that is left-associative
 (@pxref{Precedence Decl}).
 @end deffn
 
 @deffn {Directive} %nonassoc
-Declare a terminal symbol (token type name) that is nonassociative
+Declare a terminal symbol (token kind name) that is nonassociative
 (@pxref{Precedence Decl}).
 Using it in a way that would be associative is a syntax error.
 @end deffn
@@ -5661,10 +5650,10 @@ Define a variable to adjust Bison's behavior.  @xref{%define Summary}.
 @end deffn
 
 @deffn {Directive} %defines
-Write a parser header file containing macro definitions for the token
-type names defined in the grammar as well as a few other declarations.
-If the parser implementation file is named @file{@var{name}.c} then
-the parser header file is named @file{@var{name}.h}.
+Write a parser header file containing definitions for the token kind names
+defined in the grammar as well as a few other declarations.  If the parser
+implementation file is named @file{@var{name}.c} then the parser header file
+is named @file{@var{name}.h}.
 
 For C parsers, the parser header file declares @code{YYSTYPE} unless
 @code{YYSTYPE} is already defined as a macro or you have used a
@@ -5686,7 +5675,7 @@ If you have also used locations, the parser header file declares
 This parser header file is normally essential if you wish to put the
 definition of @code{yylex} in a separate source file, because
 @code{yylex} typically needs to be able to refer to the
-above-mentioned declarations and to the token type codes.  @xref{Token
+above-mentioned declarations and to the token kind codes.  @xref{Token
 Values}.
 
 @findex %code requires
@@ -5756,7 +5745,7 @@ so on.
 
 Contrary to defining @code{api.prefix}, some symbols are @emph{not} renamed
 by @code{%name-prefix}, for instance @code{YYDEBUG}, @code{YYTOKENTYPE},
-@code{yytokentype}, @code{YYSTYPE}, @code{YYLTYPE}.
+@code{yytoken_kind_t}, @code{YYSTYPE}, @code{YYLTYPE}.
 @end deffn
 
 @ifset defaultprec
@@ -5809,8 +5798,8 @@ This feature is obsolescent, avoid it in new projects.
 
 Generate an array of token names in the parser implementation file.  The
 name of the array is @code{yytname}; @code{yytname[@var{i}]} is the name of
-the token whose internal Bison token code number is @var{i}.  The first
-three elements of @code{yytname} correspond to the predefined tokens
+the token whose internal Bison token code is @var{i}.  The first three
+elements of @code{yytname} correspond to the predefined tokens
 @code{"$end"}, @code{"error"}, and @code{"$undefined"}; after these come the
 symbols defined in the grammar file.
 
@@ -5828,7 +5817,7 @@ for macros @code{YYNTOKENS}, @code{YYNNTS}, and @code{YYNRULES}, and
 
 @table @code
 @item YYNTOKENS
-The highest token number, plus one.
+The number of terminal symbols, i.e., the highest token code, plus one.
 @item YYNNTS
 The number of nonterminal symbols.
 @item YYNRULES
@@ -5855,7 +5844,7 @@ for (int i = 0; i < YYNTOKENS; i++)
 
 This method is discouraged: the primary purpose of string aliases is forging
 good error messages, not describing the spelling of keywords.  In addition,
-looking for the token type at runtime incurs a (small but noticeable) cost.
+looking for the token kind at runtime incurs a (small but noticeable) cost.
 
 Finally, @code{%token-table} is incompatible with the @code{custom} and
 @code{detailed} values of the @code{parse.error} @code{%define} variable.
@@ -6156,6 +6145,70 @@ the @code{full} value was introduced in Bison 2.7
 
 
 
+@c ================================================== api.symbol.prefix
+@deffn Directive {%define api.symbol.prefix} @{@var{prefix}@}
+
+@itemize
+@item Languages(s): all
+
+@item Purpose:
+Add a prefix to the name of the symbol kinds.  For instance
+
+@example
+%define api.symbol.prefix @{S_@}
+%token FILE for ERROR
+%%
+start: FILE for ERROR;
+@end example
+
+@noindent
+generates this definition in C:
+
+@example
+/* Symbol kind.  */
+enum yysymbol_kind_t
+@{
+  S_YYEMPTY = -2,   /* No symbol.  */
+  S_YYEOF = 0,      /* $end  */
+  S_YYERROR = 1,    /* error  */
+  S_YYUNDEF = 2,    /* $undefined  */
+  S_FILE = 3,       /* FILE  */
+  S_for = 4,        /* for  */
+  S_ERROR = 5,      /* ERROR  */
+  S_YYACCEPT = 6,   /* $accept  */
+  S_start = 7       /* start  */
+@};
+@end example
+
+@item Accepted Values:
+Any non empty string.  Must be a valid identifier in the target language
+(typically a non empty sequence of letters, underscores, and ---not at the
+beginning--- digits).
+
+The empty prefix is invalid:
+@itemize
+@item
+in C it would create collision with the @code{YYERROR} macro, and
+potentially token kind definitions and symbol kind definitions would
+collide;
+@item
+unnamed symbols (such as @samp{'+'}) have a name which starts with a digit;
+@item
+even in languages with scoped enumerations such as Java, an empty prefix is
+dangerous: symbol names may collide with the target language keywords, or
+with other members of the @code{SymbolKind} class.
+@end itemize
+
+
+@item Default Value:
+@code{YYSYMBOL_} in C.  @code{S_} in C++, D and Java.
+@item History:
+introduced in Bison 3.6.
+@end itemize
+@end deffn
+@c api.symbol.prefix
+
+
 @c ================================================== api.token.constructor
 @deffn Directive {%define api.token.constructor}
 
@@ -6174,15 +6227,15 @@ Boolean.
 @item Default Value:
 @code{false}
 @item History:
-introduced in Bison 3.0
+introduced in Bison 3.0.
 @end itemize
 @end deffn
 @c api.token.constructor
 
 
 @c ================================================== api.token.prefix
+@anchor{api-token-prefix}
 @deffn Directive {%define api.token.prefix} @{@var{prefix}@}
-
 @itemize
 @item Languages(s): all
 
@@ -6191,8 +6244,8 @@ Add a prefix to the token names when generating their definition in the
 target language.  For instance
 
 @example
-%token FILE for ERROR
 %define api.token.prefix @{TOK_@}
+%token FILE for ERROR
 %%
 start: FILE for ERROR;
 @end example
@@ -6212,14 +6265,14 @@ details.
 See @ref{Calc++ Parser} and @ref{Calc++ Scanner}, for a complete example.
 
 @item Accepted Values:
-Any string.  Should be a valid identifier prefix in the target language,
-in other words, it should typically be an identifier itself (sequence of
-letters, underscores, and ---not at the beginning--- digits).
+Any string.  Must be a valid identifier prefix in the target language
+(typically, a possibly empty sequence of letters, underscores, and ---not at
+the beginning--- digits).
 
 @item Default Value:
 empty
 @item History:
-introduced in Bison 3.0
+introduced in Bison 3.0.
 @end itemize
 @end deffn
 @c api.token.prefix
@@ -6233,18 +6286,19 @@ introduced in Bison 3.0
 all
 
 @item Purpose:
-The output files normally define the tokens with Yacc-compatible token
-numbers: sequential numbers starting at 257 except for single character
-tokens which stand for themselves (e.g., in ASCII, @samp{'a'} is numbered
-65).  The parser however uses symbol numbers assigned sequentially starting
-at 3.  Therefore each time the scanner returns an (external) token number,
-it must be mapped to the (internal) symbol number.
+The output files normally define the enumeration of the @emph{token kinds}
+with Yacc-compatible token codes: sequential numbers starting at 257 except
+for single character tokens which stand for themselves (e.g., in ASCII,
+@samp{'a'} is numbered 65).  The parser however uses @emph{symbol kinds}
+which are assigned numbers sequentially starting at 0.  Therefore each time
+the scanner returns an (external) token kind, it must be mapped to the
+(internal) symbol kind.
 
-When @code{api.token.raw} is set, tokens are assigned their internal number,
-which saves one table lookup per token to map them from the external to the
-internal number, and also saves the generation of the mapping table.  The
-gain is typically moderate, but in extreme cases (very simple user actions),
-a 10% improvement can be observed.
+When @code{api.token.raw} is set, the code of the token kinds are forced to
+coincide with the symbol kind.  This saves one table lookup per token to map
+them from the token kind to the symbol kind, and also saves the generation
+of the mapping table.  The gain is typically moderate, but in extreme cases
+(very simple user actions), a 10% improvement can be observed.
 
 When @code{api.token.raw} is set, the grammar cannot use character literals
 (such as @samp{'a'}).
@@ -7051,17 +7105,17 @@ the input stream and returns them to the parser.  Bison does not create
 this function automatically; you must write it so that @code{yyparse} can
 call it.  The function is sometimes referred to as a lexical scanner.
 
-In simple programs, @code{yylex} is often defined at the end of the
-Bison grammar file.  If @code{yylex} is defined in a separate source
-file, you need to arrange for the token-type macro definitions to be
-available there.  To do this, use the @samp{-d} option when you run
-Bison, so that it will write these macro definitions into the separate
-parser header file, @file{@var{name}.tab.h}, which you can include in
-the other source files that need it.  @xref{Invocation}.
+In simple programs, @code{yylex} is often defined at the end of the Bison
+grammar file.  If @code{yylex} is defined in a separate source file, you
+need to arrange for the token-kind definitions to be available there.  To do
+this, use the @samp{-d} option when you run Bison, so that it will write
+these definitions into the separate parser header file,
+@file{@var{name}.tab.h}, which you can include in the other source files
+that need it.  @xref{Invocation}.
 
 @menu
 * Calling Convention::  How @code{yyparse} calls @code{yylex}.
-* Tokens from Literals:: Finding token types from string aliases.
+* Tokens from Literals:: Finding token kinds from string aliases.
 * Token Values::        How @code{yylex} must return the semantic value
                           of the token it has read.
 * Token Locations::     How @code{yylex} must return the text location
@@ -7075,16 +7129,17 @@ the other source files that need it.  @xref{Invocation}.
 @subsection Calling Convention for @code{yylex}
 
 The value that @code{yylex} returns must be the positive numeric code for
-the type of token it has just found; a zero or negative value signifies
+the kind of token it has just found; a zero or negative value signifies
 end-of-input.
 
-When a token is referred to in the grammar rules by a name, that name in the
-parser implementation file becomes a C macro whose definition is the proper
-numeric code for that token type.  So @code{yylex} can use the name to
-indicate that type.  @xref{Symbols}.
+When a token kind is referred to in the grammar rules by a name, that name
+in the parser implementation file becomes an enumerator of the enum
+@code{yytoken_kind_t} whose definition is the proper numeric code for that
+token kind.  So @code{yylex} should use the name to indicate that type.
+@xref{Symbols}.
 
 When a token is referred to in the grammar rules by a character literal, the
-numeric code for that character is also the code for the token type.  So
+numeric code for that character is also the code for the token kind.  So
 @code{yylex} can simply return that character code, possibly converted to
 @code{unsigned char} to avoid sign-extension.  The null character must not
 be used this way, because its code is zero and that signifies end-of-input.
@@ -7097,12 +7152,13 @@ yylex (void)
 @{
   @dots{}
   if (c == EOF)    /* Detect end-of-input. */
-    return 0;
+    return YYEOF;
   @dots{}
-  if (c == '+' || c == '-')
-    return c;      /* Assume token type for '+' is '+'. */
+  else if (c == '+' || c == '-')
+    return c;      /* Assume token kind for '+' is '+'. */
   @dots{}
-  return INT;      /* Return the type of the token. */
+  else
+    return INT;    /* Return the kind of the token. */
   @dots{}
 @}
 @end example
@@ -7116,7 +7172,7 @@ utility can be used without change as the definition of @code{yylex}.
 @subsection Finding Tokens by String Literals
 
 If the grammar uses literal string tokens, there are two ways that
-@code{yylex} can determine the token type codes for them:
+@code{yylex} can determine the token kind codes for them:
 
 @itemize @bullet
 @item
@@ -7131,7 +7187,7 @@ This is the preferred approach.
 @code{yylex} can search for the multicharacter token in the @code{yytname}
 table.  This method is discouraged: the primary purpose of string aliases is
 forging good error messages, not describing the spelling of keywords.  In
-addition, looking for the token type at runtime incurs a (small but
+addition, looking for the token kind at runtime incurs a (small but
 noticeable) cost.
 
 The @code{yytname} table is generated only if you use the
@@ -7144,16 +7200,15 @@ The @code{yytname} table is generated only if you use the
 
 @vindex yylval
 In an ordinary (nonreentrant) parser, the semantic value of the token must
-be stored into the global variable @code{yylval}.  When you are using
-just one data type for semantic values, @code{yylval} has that type.
-Thus, if the type is @code{int} (the default), you might write this in
-@code{yylex}:
+be stored into the global variable @code{yylval}.  When you are using just
+one data type for semantic values, @code{yylval} has that type.  Thus, if
+the type is @code{int} (the default), you might write this in @code{yylex}:
 
 @example
 @group
   @dots{}
   yylval = value;  /* Put value onto Bison stack. */
-  return INT;      /* Return the type of the token. */
+  return INT;      /* Return the kind of the token. */
   @dots{}
 @end group
 @end example
@@ -7180,7 +7235,7 @@ then the code in @code{yylex} might look like this:
 @group
   @dots{}
   yylval.intval = value; /* Put value onto Bison stack. */
-  return INT;            /* Return the type of the token. */
+  return INT;            /* Return the kind of the token. */
   @dots{}
 @end group
 @end example
@@ -7221,7 +7276,7 @@ yylex (YYSTYPE *lvalp, YYLTYPE *llocp)
 @{
   @dots{}
   *lvalp = value;  /* Put value onto Bison stack. */
-  return INT;      /* Return the type of the token. */
+  return INT;      /* Return the kind of the token. */
   @dots{}
 @}
 @end example
@@ -7295,8 +7350,8 @@ such as syntax error, or memory exhaustion.  How this message is delivered
 to the user must be specified by the developer.
 
 @menu
-* Error Reporting Function::         You must supply a function @code{yyerror}.
-* Syntax Error Reporting Function::  You can supply a function @code{yyreport_syntax_error}.
+* Error Reporting Function::         You must supply a @code{yyerror} function.
+* Syntax Error Reporting Function::  You can supply a @code{yyreport_syntax_error} function.
 @end menu
 
 @node Error Reporting Function
@@ -7393,56 +7448,102 @@ then it is a local variable which only the actions can access.
 @findex %define parse.error custom
 If you invoke @samp{%define parse.error custom} (@pxref{Bison
 Declarations}), then the parser no longer passes syntax error messages to
-@code{yyerror}, rather it leaves that task to the user by calling the
+@code{yyerror}, rather it delegates that task to the user by calling the
 @code{yyreport_syntax_error} function.
 
-@deftypefun int yyreport_syntax_error (@code{const yyparse_context_t *}@var{ctx})
-Report a syntax error to the user.  Return 0 on success, 2 on memory
-exhaustion.  Whether it uses @code{yyerror} is up to the user.
+@deftypefun int yyreport_syntax_error (@code{const yypcontext_t *}@var{ctx})
+Report a syntax error to the user.  Return 0 on success, @code{YYENOMEM} on
+memory exhaustion.  Whether it uses @code{yyerror} is up to the user.
 @end deftypefun
 
-Use the following functions to build the error message.
+Use the following types and functions to build the error message.
 
-@deftypefun {YYLTYPE *} yyparse_context_location (@code{const yyparse_context_t *}@var{ctx})
-The location of the syntax error.
+@deffn {Type} yypcontext_t
+An opaque type that captures the circumstances of the syntax error.
+@end deffn
+
+@deffn {Type} yysymbol_kind_t
+An enum of all the grammar symbols, tokens and nonterminals.  Its
+enumerators are forged from the symbol names:
+
+@example
+enum yysymbol_kind_t
+@{
+  YYSYMBOL_YYEMPTY = -2,      /* No symbol.  */
+  YYSYMBOL_YYEOF = 0,         /* "end of file"  */
+  YYSYMBOL_YYERROR = 1,       /* error  */
+  YYSYMBOL_YYUNDEF = 2,       /* "invalid token"  */
+  YYSYMBOL_PLUS = 3,          /* "+"  */
+  YYSYMBOL_MINUS = 4,         /* "-"  */
+  [...]
+  YYSYMBOL_VAR = 14,          /* "variable"  */
+  YYSYMBOL_NEG = 15,          /* NEG  */
+  YYSYMBOL_YYACCEPT = 16,     /* $accept  */
+  YYSYMBOL_exp = 17,          /* exp  */
+  YYSYMBOL_input = 18         /* input  */
+@};
+typedef enum yysymbol_kind_t yysymbol_kind_t;
+@end example
+@end deffn
+
+@deftypefun {yysymbol_kind_t} yypcontext_token (@code{const yypcontext_t *}@var{ctx})
+The ``unexpected'' token: the symbol kind of the lookahead token that caused
+the syntax error.  Return @code{YYSYMBOL_YYEMPTY} if there is no lookahead.
 @end deftypefun
 
+@deftypefun {YYLTYPE *} yypcontext_location (@code{const yypcontext_t *}@var{ctx})
+The location of the syntax error (that of the unexpected token).
+@end deftypefun
 
-@deftypefun int yysyntax_error_arguments (@code{const yyparse_context_t *}ctx, @code{int} @var{argv}@code{[]}, @code{int} @var{argc})
-Fill @var{argv} with first the internal number of the token that caused the
-error, then the internal numbers of the expected tokens.  Never put more
-than @var{argc} elements into @var{argv}, and on success return the
-effective number of numbers stored in @var{argv}, which can be 0.
+@deftypefun int yypcontext_expected_tokens (@code{const yypcontext_t *}ctx, @code{yysymbol_kind_t} @var{argv}@code{[]}, @code{int} @var{argc})
+Fill @var{argv} with the expected tokens, which never includes
+@code{YYSYMBOL_YYEMPTY}, @code{YYSYMBOL_YYERROR}, or
+@code{YYSYMBOL_YYUNDEF}.
+
+Never put more than @var{argc} elements into @var{argv}, and on success
+return the effective number of tokens stored in @var{argv}.  Return 0 if
+there are more than @var{argc} expected tokens, yet fill @var{argv} up to
+@var{argc}.  When LAC is enabled, may return a negative number on errors,
+such as @code{YYENOMEM} on memory exhaustion.
 
 If @var{argv} is null, return the size needed to store all the possible
-values, which is always less than @code{YYNTOKENS}.  When LAC is enabled,
-may return -2 on memory exhaustion.
+values, which is always less than @code{YYNTOKENS}.
 @end deftypefun
 
-@deftypefun {const char *} yysymbol_name (@code{int} @var{symbol})
-The name of the symbol whose internal number is @var{symbol}, possibly
-translated.  Must be called with valid symbol numbers.
+@deftypefun {const char *} yysymbol_name (@code{symbol_kind_t} @var{symbol})
+The name of the symbol whose kind is @var{symbol}, possibly translated.
 @end deftypefun
 
 A custom syntax error function looks as follows.
 
 @example
 int
-yyreport_syntax_error (const yyparse_context_t *ctx)
+yyreport_syntax_error (const yypcontext_t *ctx)
 @{
-  enum @{ ARGMAX = 10 @};
-  int arg[ARGMAX];
-  int n = yysyntax_error_arguments (ctx, arg, ARGMAX);
-  if (n == -2)
-    return 2;
-  fprintf (stderr, "syntax error");
-  for (int i = 1; i < n; ++i)
-    fprintf (stderr, " %s %s",
-             i == 1 ? "expected" : "or", yysymbol_name (arg[i]));
-  if (n)
-    fprintf (stderr, " before %s", yysymbol_name (arg[0]));
+  int res = 0;
+  YY_LOCATION_PRINT (stderr, *yypcontext_location (ctx));
+  fprintf (stderr, ": syntax error");
+  // Report the tokens expected at this point.
+  @{
+    enum @{ TOKENMAX = 5 @};
+    yysymbol_kind_t expected[TOKENMAX];
+    int n = yypcontext_expected_tokens (ctx, expected, TOKENMAX);
+    if (n < 0)
+      // Forward errors to yyparse.
+      res = n;
+    else
+      for (int i = 0; i < n; ++i)
+        fprintf (stderr, "%s %s",
+                 i == 0 ? ": expected" : " or", yysymbol_name (expected[i]));
+  @}
+  // Report the unexpected token.
+  @{
+    yysymbol_kind_t lookahead = yypcontext_token (ctx);
+    if (lookahead != YYSYMBOL_YYEMPTY)
+      fprintf (stderr, " before %s", yysymbol_name (lookahead));
+  @}
   fprintf (stderr, "\n");
-  return 0;
+  return res;
 @}
 @end example
 
@@ -7493,7 +7594,7 @@ Return immediately from @code{yyparse}, indicating success.
 Unshift a token.  This macro is allowed only for rules that reduce
 a single value, and only when there is no lookahead token.
 It is also disallowed in GLR parsers.
-It installs a lookahead token with token type @var{token} and
+It installs a lookahead token with token kind @var{token} and
 semantic value @var{value}; then it discards the value that was
 going to be reduced by this rule.
 
@@ -7700,7 +7801,6 @@ or @code{detailed}, token aliases can be internationalized:
 @example
 %token
     '\n'   _("end of line")
-    EOF 0  _("end of file")
   <double>
     NUM    _("double precision number")
   <symrec*>
@@ -7716,17 +7816,26 @@ If at least one token alias is internationalized, then the generated parser
 will use both @code{N_} and @code{_}, that must be defined
 (@pxref{Programmers, , The Programmer’s View, gettext, GNU @code{gettext}
 utilities}).  They are used only on string aliases marked for translation.
-In other words, even if your catalog features a translation for ``end of
-line'', then with
+In other words, even if your catalog features a translation for
+``function'', then with
 
 @example
 %token
-    '\n'     "end of line"
-    EOF 0  _("end of file")
+  <symrec*>
+    FUN      "function"
+    VAR    _("variable")
 @end example
 
 @noindent
-``end of line'' will appear untranslated in debug traces and error messages.
+``function'' will appear untranslated in debug traces and error messages.
+
+Unless defined by the user, the end-of-file token, @code{YYEOF}, is provided
+``end of file'' as an alias.  It is also internationalized if the user
+internationalized tokens.  To map it to another string, use:
+
+@example
+%token END 0 _("end of input")
+@end example
 
 
 @node Algorithm
@@ -7814,7 +7923,7 @@ perform one or more reductions of tokens and groupings on the stack, while
 the lookahead token remains off to the side.  When no more reductions
 should take place, the lookahead token is shifted onto the stack.  This
 does not mean that all possible reductions have been done; depending on the
-token type of the lookahead token, some rules may choose to delay their
+token kind of the lookahead token, some rules may choose to delay their
 application.
 
 Here is a simple case where lookahead is needed.  These three rules define
@@ -8266,20 +8375,19 @@ The effect of @code{%no-default-prec;} can be reversed by giving
 @cindex state (of parser)
 
 The function @code{yyparse} is implemented using a finite-state machine.
-The values pushed on the parser stack are not simply token type codes; they
+The values pushed on the parser stack are not simply token kind codes; they
 represent the entire sequence of terminal and nonterminal symbols at or
 near the top of the stack.  The current state collects all the information
 about previous input which is relevant to deciding what to do next.
 
-Each time a lookahead token is read, the current parser state together
-with the type of lookahead token are looked up in a table.  This table
-entry can say, ``Shift the lookahead token.''  In this case, it also
-specifies the new parser state, which is pushed onto the top of the
-parser stack.  Or it can say, ``Reduce using rule number @var{n}.''
-This means that a certain number of tokens or groupings are taken off
-the top of the stack, and replaced by one grouping.  In other words,
-that number of states are popped from the stack, and one new state is
-pushed.
+Each time a lookahead token is read, the current parser state together with
+the kind of lookahead token are looked up in a table.  This table entry can
+say, ``Shift the lookahead token.''  In this case, it also specifies the new
+parser state, which is pushed onto the top of the parser stack.  Or it can
+say, ``Reduce using rule number @var{n}.''  This means that a certain number
+of tokens or groupings are taken off the top of the stack, and replaced by
+one grouping.  In other words, that number of states are popped from the
+stack, and one new state is pushed.
 
 There is one other alternative: the table can say that the lookahead token
 is erroneous in the current state.  This causes error processing to begin
@@ -9262,7 +9370,7 @@ languages.
 neither clean nor robust.)
 
 @node Semantic Tokens
-@section Semantic Info in Token Types
+@section Semantic Info in Token Kinds
 
 The C language has a context dependency: the way an identifier is used
 depends on what its current meaning is.  For example, consider this:
@@ -9275,19 +9383,19 @@ This looks like a function call statement, but if @code{foo} is a typedef
 name, then this is actually a declaration of @code{x}.  How can a Bison
 parser for C decide how to parse this input?
 
-The method used in GNU C is to have two different token types,
+The method used in GNU C is to have two different token kinds,
 @code{IDENTIFIER} and @code{TYPENAME}.  When @code{yylex} finds an
 identifier, it looks up the current declaration of the identifier in order
-to decide which token type to return: @code{TYPENAME} if the identifier is
+to decide which token kind to return: @code{TYPENAME} if the identifier is
 declared as a typedef, @code{IDENTIFIER} otherwise.
 
 The grammar rules can then express the context dependency by the choice of
-token type to recognize.  @code{IDENTIFIER} is accepted as an expression,
+token kind to recognize.  @code{IDENTIFIER} is accepted as an expression,
 but @code{TYPENAME} is not.  @code{TYPENAME} can start a declaration, but
 @code{IDENTIFIER} cannot.  In contexts where the meaning of the identifier
 is @emph{not} significant, such as in declarations that can shadow a
 typedef name, either @code{TYPENAME} or @code{IDENTIFIER} is
-accepted---there is one rule for each of the two token types.
+accepted---there is one rule for each of the two token kinds.
 
 This technique is simple to use if the decision of which kinds of
 identifiers to allow is made at a place close to where the identifier is
@@ -10190,7 +10298,7 @@ variables show where in the grammar it is working.
 @node Mfcalc Traces
 @subsection Enabling Debug Traces for @code{mfcalc}
 
-The debugging information normally gives the token type of each token read,
+The debugging information normally gives the token kind of each token read,
 but not its semantic value.  The @code{%printer} directive allows specify
 how semantic values are reported, see @ref{Printer Decl}.
 
@@ -10374,7 +10482,7 @@ terminal symbols and only with the @file{yacc.c} skeleton.
 Deprecated, will be removed eventually.
 
 If you define @code{YYPRINT}, it should take three arguments.  The parser
-will pass a standard I/O stream, the numeric code for the token type, and
+will pass a standard I/O stream, the numeric code for the token kind, and
 the token value (from @code{yylval}).
 
 For @file{yacc.c} only.  Obsoleted by @code{%printer}.
@@ -10393,17 +10501,16 @@ calculator (@pxref{Mfcalc Declarations}):
 @dots{} %% @dots{} %% @dots{}
 
 static void
-print_token_value (FILE *file, int type, YYSTYPE value)
+print_token_value (FILE *file, yytoken_kind_t kind, YYSTYPE value)
 @{
-  if (type == VAR)
+  if (kind == VAR)
     fprintf (file, "%s", value.tptr->name);
-  else if (type == NUM)
+  else if (kind == NUM)
     fprintf (file, "%d", value.val);
 @}
 @end example
 
-@xref{Mfcalc Traces}, for the
-proper use of @code{%printer}.
+@xref{Mfcalc Traces}, for the proper use of @code{%printer}.
 
 @c ================================================= Invoking Bison
 
@@ -10994,7 +11101,7 @@ change behavior in other minor ways.  Most importantly, imitate Yacc's
 output file name conventions, so that the parser implementation file is
 called @file{y.tab.c}, and the other outputs are called @file{y.output} and
 @file{y.tab.h}.  Also, generate @code{#define} statements in addition to an
-@code{enum} to associate token numbers with token names.  Thus, the
+@code{enum} to associate token codes with token kind names.  Thus, the
 following shell script can substitute for Yacc, and the Bison distribution
 contains such a script for compatibility with POSIX:
 
@@ -11017,9 +11124,9 @@ Options controlling the output.
 @c Please, keep this ordered as in 'bison --help'.
 @table @option
 @item --defines[=@var{file}]
-Pretend that @code{%defines} was specified, i.e., write an extra output
-file containing macro definitions for the token type names defined in
-the grammar, as well as a few other declarations.  @xref{Decl Summary}.
+Pretend that @code{%defines} was specified, i.e., write an extra output file
+containing definitions for the token kind names defined in the grammar, as
+well as a few other declarations.  @xref{Decl Summary}.
 
 @item -d
 This is the same as @option{--defines} except @option{-d} does not accept a
@@ -11169,6 +11276,7 @@ The Bison parser in C++ is an object, an instance of the class
 * C++ Parser Interface::        Instantiating and running the parser
 * C++ Semantic Values::         %union vs. C++
 * C++ Location Values::         The position and location classes
+* C++ Parser Context::          You can supply a @code{report_syntax_error} function.
 * C++ Scanner Interface::       Exchanges between yylex and parse
 * A Complete C++ Example::      Demonstrating their use
 @end menu
@@ -11278,7 +11386,7 @@ In the case of @code{TEXT}, the implicit default action applies: @w{@code{$$
 @sp 1
 
 Our scanner deserves some attention.  The traditional interface of
-@code{yylex} is not type safe: since the token type and the token value are
+@code{yylex} is not type safe: since the token kind and the token value are
 not correlated, you may return a @code{NUMBER} with a string as semantic
 value.  To avoid this, we use @emph{token constructors} (@pxref{Complete
 Symbols}).  This directive:
@@ -11290,17 +11398,7 @@ Symbols}).  This directive:
 
 @noindent
 requests that Bison generates the functions @code{make_TEXT} and
-@code{make_NUMBER}.  As a matter of fact, it is convenient to have also a
-symbol to mark the end of input, say @code{END_OF_FILE}:
-
-@comment file: c++/simple.yy: 1
-@example
-%token END_OF_FILE 0
-@end example
-
-@noindent
-The @code{0} tells Bison this token is special: when it is reached, parsing
-finishes.
+@code{make_NUMBER}, but also @code{make_YYEOF}, for the end of input.
 
 Everything is in place for our scanner:
 
@@ -11330,7 +11428,7 @@ Everything is in place for our scanner:
 @end group
 @group
         default:
-          return parser::make_END_OF_FILE ();
+          return parser::make_YYEOF ();
 @end group
         @}
     @}
@@ -11425,6 +11523,43 @@ extended using the @code{%parse-param} feature: its semantics is slightly
 changed since it describes an additional member of the parser class, and an
 additional argument for its constructor.
 
+
+@defcv {Type} {parser} {token}
+A structure that contains (only) the @code{token_kind_type} enumeration,
+which defines the tokens.  To refer to the token @code{FOO}, use
+@code{yy::parser::token::FOO}.  The scanner can use @samp{typedef
+yy::parser::token token;} to ``import'' the token enumeration (@pxref{Calc++
+Scanner}).
+@end defcv
+
+@defcv {Type} {parser} {token_kind_type}
+An enumeration of the token kinds.  Its enumerators are forged from the
+token names, with a possible token prefix
+(@pxref{api-token-prefix,,@code{api.token.prefix}}):
+
+@example
+/// Token kinds.
+struct token
+@{
+  enum token_kind_type
+  @{
+    YYEMPTY = -2,              // No token.
+    YYEOF = 0,                 // "end of file"
+    YYERRCODE = 256,           // error
+    YYUNDEF = 257,             // "invalid token"
+    PLUS = 258,                // "+"
+    MINUS = 259,               // "-"
+    [...]
+    VAR = 271,                 // "variable"
+    NEG = 272                  // NEG
+  @};
+@};
+
+/// Token kind, as returned by yylex.
+typedef token::token_kind_type token_kind_type;
+@end example
+@end defcv
+
 @defcv {Type} {parser} {semantic_type}
 The types for semantic values. @xref{C++ Semantic Values}.
 @end defcv
@@ -11432,14 +11567,6 @@ The types for semantic values. @xref{C++ Semantic Values}.
 @defcv {Type} {parser} {location_type}
 The type of locations, if location tracking is enabled.  @xref{C++ Location
 Values}.
-@end defcv
-
-@defcv {Type} {parser} {token}
-A structure that contains (only) the @code{yytokentype} enumeration, which
-defines the tokens.  To refer to the token @code{FOO}, use
-@code{yy::parser::token::FOO}.  The scanner can use @samp{typedef
-yy::parser::token token;} to ``import'' the token enumeration (@pxref{Calc++
-Scanner}).
 @end defcv
 
 @defcv {Type} {parser} {syntax_error}
@@ -11522,8 +11649,8 @@ particular it produces a genuine @code{union}, which have a few specific
 features in C++.
 @itemize @minus
 @item
-The type @code{YYSTYPE} is defined but its use is discouraged: rather
-you should refer to the parser's encapsulated type
+The type @code{YYSTYPE} is defined but its use is discouraged: rather you
+should refer to the parser's encapsulated type
 @code{yy::parser::semantic_type}.
 @item
 Non POD (Plain Old Data) types cannot be used.  C++98 forbids any instance
@@ -11872,6 +11999,112 @@ files, reused by other parsers as follows:
 @end example
 
 
+@node C++ Parser Context
+@subsection C++ Parser Context
+
+When @samp{%define parse.error custom} is used (@pxref{Syntax Error
+Reporting Function}), the user must define the following function.
+
+@deftypemethod {parser} {void} report_syntax_error (@code{const context_type&}@var{ctx}) @code{const}
+Report a syntax error to the user.  Whether it uses @code{yyerror} is up to
+the user.
+@end deftypemethod
+
+Use the following types and functions to build the error message.
+
+@defcv {Type} {parser} {context}
+A type that captures the circumstances of the syntax error.
+@end defcv
+
+@defcv {Type} {parser} {symbol_kind_type}
+An enum of all the grammar symbols, tokens and nonterminals.  Its
+enumerators are forged from the symbol names:
+
+@example
+struct symbol_kind
+@{
+  enum symbol_kind_type
+  @{
+    S_YYEMPTY = -2,      // No symbol.
+    S_YYEOF = 0,         // "end of file"
+    S_YYERROR = 1,       // error
+    S_YYUNDEF = 2,       // "invalid token"
+    S_PLUS = 3,          // "+"
+    S_MINUS = 4,         // "-"
+    [...]
+    S_VAR = 14,          // "variable"
+    S_NEG = 15,          // NEG
+    S_YYACCEPT = 16,     // $accept
+    S_exp = 17,          // exp
+    S_input = 18         // input
+  @};
+@};
+typedef symbol_kind::symbol_kind_t symbol_kind_type;
+@end example
+@end defcv
+
+@deftypemethod {context} {const symbol_type&} lookahead () @code{const}
+The ``unexpected'' token: the lookahead that caused the syntax error.
+@end deftypemethod
+
+@deftypemethod {context} {symbol_kind_type} token () @code{const}
+The symbol kind of the lookahead token that caused the syntax error.  Return
+@code{symbol_kind::S_YYEMPTY} if there is no lookahead.
+@end deftypemethod
+
+@deftypemethod {context} {const location&} location () @code{const}
+The location of the syntax error (that of the lookahead).
+@end deftypemethod
+
+@deftypemethod {context} int expected_tokens (@code{symbol_kind_type} @var{argv}@code{[]}, @code{int} @var{argc}) @code{const}
+Fill @var{argv} with the expected tokens, which never includes
+@code{symbol_kind::S_YYEMPTY}, @code{symbol_kind::S_YYERROR}, or
+@code{symbol_kind::S_YYUNDEF}.
+
+Never put more than @var{argc} elements into @var{argv}, and on success
+return the effective number of tokens stored in @var{argv}.  Return 0 if
+there are more than @var{argc} expected tokens, yet fill @var{argv} up to
+@var{argc}.
+
+If @var{argv} is null, return the size needed to store all the possible
+values, which is always less than @code{YYNTOKENS}.
+@end deftypemethod
+
+@deftypemethod {parser} {const char *} symbol_name (@code{symbol_kind_t} @var{symbol}) @code{const}
+The name of the symbol whose kind is @var{symbol}, possibly translated.
+@end deftypemethod
+
+A custom syntax error function looks as follows.
+
+@example
+void
+yy::parser::report_syntax_error (const context& ctx)
+@{
+  int res = 0;
+  std::cerr << ctx.location () << ": syntax error";
+  // Report the tokens expected at this point.
+  @{
+    enum @{ TOKENMAX = 5 @};
+    symbol_kind_type expected[TOKENMAX];
+    int n = ctx.expected_tokens (ctx, expected, TOKENMAX);
+    for (int i = 0; i < n; ++i)
+      std::cerr << i == 0 ? ": expected " : " or "
+                << symbol_name (expected[i]);
+  @}
+  // Report the unexpected token.
+  @{
+    symbol_kind_type lookahead = ctx.token ();
+    if (lookahead != symbol_kind::S_YYEMPTY)
+      std::cerr << " before " << symbol_name (lookahead));
+  @}
+  std::cerr << '\n';
+@}
+@end example
+
+You still must provide a @code{yyerror} function, used for instance to
+report memory exhaustion.
+
+
 @node C++ Scanner Interface
 @subsection C++ Scanner Interface
 @c - prefix for yylex.
@@ -11895,7 +12128,7 @@ The generated parser expects @code{yylex} to have the following prototype.
 
 @deftypefun {int} yylex (@code{semantic_type*} @var{yylval}, @code{location_type*} @var{yylloc}, @var{type1} @var{arg1}, @dots{})
 @deftypefunx {int} yylex (@code{semantic_type*} @var{yylval}, @var{type1} @var{arg1}, @dots{})
-Return the next token.  Its type is the return value, its semantic value and
+Return the next token.  Its kind is the return value, its semantic value and
 location (if enabled) being @var{yylval} and @var{yylloc}.  Invocations of
 @samp{%lex-param @{@var{type1} @var{arg1}@}} yield additional arguments.
 @end deftypefun
@@ -11960,13 +12193,24 @@ location.  Invocations of @samp{%lex-param @{@var{type1} @var{arg1}@}} yield
 additional arguments.
 @end deftypefun
 
-For each token type, Bison generates named constructors as follows.
+@defcv {Type} {parser} {symbol_type}
+A ``complete symbol'', that binds together its kind, value and (when
+applicable) location.
+@end defcv
+
+@deftypemethod {symbol_type} {symbol_kind_type} kind () @code{const}
+The kind of this symbol.
+@end deftypemethod
+
+@sp 1
+
+For each token kind, Bison generates named constructors as follows.
 
 @deftypeop  {Constructor} {parser::symbol_type} {} {symbol_type} (@code{int} @var{token}, @code{const @var{value_type}&} @var{value}, @code{const location_type&} @var{location})
 @deftypeopx {Constructor} {parser::symbol_type} {} {symbol_type} (@code{int} @var{token}, @code{const location_type&} @var{location})
 @deftypeopx {Constructor} {parser::symbol_type} {} {symbol_type} (@code{int} @var{token}, @code{const @var{value_type}&} @var{value})
 @deftypeopx {Constructor} {parser::symbol_type} {} {symbol_type} (@code{int} @var{token})
-Build a complete terminal symbol for the token type @var{token} (including
+Build a complete terminal symbol for the token kind @var{token} (including
 the @code{api.token.prefix}), whose semantic value, if it has one, is
 @var{value} of adequate @var{value_type}.  Pass the @var{location} iff
 location tracking is enabled.
@@ -11993,11 +12237,11 @@ symbol_type (int token, const int&, const location_type&);
 symbol_type (int token, const location_type&);
 @end example
 
-Correct matching between token types and value types is checked via
+Correct matching between token kinds and value types is checked via
 @code{assert}; for instance, @samp{symbol_type (ID, 42)} would abort.  Named
 constructors are preferable (see below), as they offer better type safety
 (for instance @samp{make_ID (42)} would not even compile), but symbol_type
-constructors may help when token types are discovered at run-time, e.g.,
+constructors may help when token kinds are discovered at run-time, e.g.,
 
 @example
 @group
@@ -12023,7 +12267,7 @@ constructors} as follows.
 @deftypemethodx {parser} {symbol_type} {make_@var{token}} (@code{const location_type&} @var{location})
 @deftypemethodx {parser} {symbol_type} {make_@var{token}} (@code{const @var{value_type}&} @var{value})
 @deftypemethodx {parser} {symbol_type} {make_@var{token}} ()
-Build a complete terminal symbol for the token type @var{token} (not
+Build a complete terminal symbol for the token kind @var{token} (not
 including the @code{api.token.prefix}), whose semantic value, if it has one,
 is @var{value} of adequate @var{value_type}.  Pass the @var{location} iff
 location tracking is enabled.
@@ -12231,18 +12475,29 @@ designed the grammar for.
 
 @comment file: calc++/parser.yy
 @example
-%skeleton "lalr1.cc" /* -*- C++ -*- */
+%skeleton "lalr1.cc" // -*- C++ -*-
 %require "@value{VERSION}"
 %defines
 @end example
 
 @noindent
+@findex %define api.token.raw
+Because our scanner returns only genuine tokens and never simple characters
+(i.e., it returns @samp{PLUS}, not @samp{'+'}), we can avoid conversions.
+
+@comment file: calc++/parser.yy
+@example
+%define api.token.raw
+@end example
+
+@noindent
 @findex %define api.token.constructor
 @findex %define api.value.type variant
-This example will use genuine C++ objects as semantic values, therefore, we
-require the variant-based interface.  To make sure we properly use it, we
-enable assertions.  To fully benefit from type-safety and more natural
-definition of ``symbol'', we enable @code{api.token.constructor}.
+This example uses genuine C++ objects as semantic values, therefore, we
+require the variant-based storage of semantic values.  To make sure we
+properly use it, we enable assertions.  To fully benefit from type-safety
+and more natural definition of ``symbol'', we enable
+@code{api.token.constructor}.
 
 @comment file: calc++/parser.yy
 @example
@@ -12291,14 +12546,15 @@ Then we request location tracking.
 @end example
 
 @noindent
-Use the following two directives to enable parser tracing and verbose error
-messages.  However, verbose error messages can contain incorrect information
-(@pxref{LAC}).
+Use the following two directives to enable parser tracing and detailed error
+messages.  However, detailed error messages can contain incorrect
+information if lookahead correction is not enabled (@pxref{LAC}).
 
 @comment file: calc++/parser.yy
 @example
 %define parse.trace
-%define parse.error verbose
+%define parse.error detailed
+%define parse.lac full
 @end example
 
 @noindent
@@ -12317,17 +12573,14 @@ file; it needs detailed knowledge about the driver.
 
 
 @noindent
-The token numbered as 0 corresponds to end of file; the following line
-allows for nicer error messages referring to ``end of file'' instead of
-``$end''.  Similarly user friendly names are provided for each symbol.  To
-avoid name clashes in the generated files (@pxref{Calc++ Scanner}), prefix
-tokens with @code{TOK_} (@pxref{%define Summary}).
+User friendly names are provided for each symbol.  To avoid name clashes in
+the generated files (@pxref{Calc++ Scanner}), prefix tokens with @code{TOK_}
+(@pxref{%define Summary}).
 
 @comment file: calc++/parser.yy
 @example
 %define api.token.prefix @{TOK_@}
 %token
-  END  0  "end of file"
   ASSIGN  ":="
   MINUS   "-"
   PLUS    "+"
@@ -12440,7 +12693,7 @@ then the parser's to get the set of defined tokens.
 # pragma GCC diagnostic ignored "-Wnull-dereference"
 #endif
 
-// This example uses Flex's C backend, yet compiles it as C++.
+// This example uses Flex's C back end, yet compiles it as C++.
 // So expect warnings about C style casts and NULL.
 #if defined CLANG_VERSION && 500 <= CLANG_VERSION
 # pragma clang diagnostic ignored "-Wold-style-cast"
@@ -12502,7 +12755,7 @@ the user.  Finally, we enable scanner tracing.
 
 @noindent
 The following function will be handy to convert a string denoting a number
-into a number token.
+into a @code{NUMBER} token.
 
 @comment file: calc++/scanner.ll
 @example
@@ -12573,7 +12826,7 @@ The rules are simple.  The driver is used to report errors.
                (loc, "invalid character: " + std::string(yytext));
 @}
 @end group
-<<EOF>>    return yy::parser::make_END (loc);
+<<EOF>>    return yy::parser::make_YYEOF (loc);
 %%
 @end example
 
@@ -12611,7 +12864,7 @@ driver::scan_begin ()
     yyin = stdin;
   else if (!(yyin = fopen (file.c_str (), "r")))
     @{
-      std::cerr << "cannot open " << file << ": " << strerror(errno) << '\n';
+      std::cerr << "cannot open " << file << ": " << strerror (errno) << '\n';
       exit (EXIT_FAILURE);
     @}
 @}
@@ -12664,6 +12917,7 @@ main (int argc, char *argv[])
 * Java Semantic Values::        %token and %nterm vs. Java
 * Java Location Values::        The position and location classes
 * Java Parser Interface::       Instantiating and running the parser
+* Java Parser Context Interface:: Circumstances of a syntax error
 * Java Scanner Interface::      Specifying the scanner for the parser
 * Java Action Features::        Special features for use in actions
 * Java Push Parser Interface::  Instantiating and running the a push parser
@@ -12907,6 +13161,77 @@ or nonzero, full tracing.
 Identify the Bison version and skeleton used to generate this parser.
 @end deftypecv
 
+If you enabled token internationalization (@pxref{Token I18n}), you must
+provide the parser with the following function:
+
+@deftypecv {Static Method} {YYParser} {String} {i18n} (@code{string} @var{s})
+Return the translation of @var{s} in the user's language.  As an example:
+
+@example
+%code @{
+  static ResourceBundle myResources
+    = ResourceBundle.getBundle("domain-name");
+  static final String i18n(String s) @{
+    return myResources.getString(s);
+  @}
+@}
+@end example
+@end deftypecv
+
+@node Java Parser Context Interface
+@subsection Java Parser Context Interface
+
+The parser context provides information to build error reports when you
+invoke @samp{%define parse.error custom}.
+
+@defcv {Type} {YYParser} {SymbolKind}
+An enum of all the grammar symbols, tokens and nonterminals.  Its
+enumerators are forged from the symbol names:
+
+@example
+public enum SymbolKind
+@{
+  S_YYEOF(0),          /* "end of file"  */
+  S_YYERROR(1),        /* error  */
+  S_YYUNDEF(2),        /* "invalid token"  */
+  S_BANG(3),           /* "!"  */
+  S_PLUS(4),           /* "+"  */
+  S_MINUS(5),          /* "-"  */
+  [...]
+  S_NUM(13),           /* "number"  */
+  S_NEG(14),           /* NEG  */
+  S_YYACCEPT(15),      /* $accept  */
+  S_input(16),         /* input  */
+  S_line(17);          /* line  */
+@};
+@end example
+@end defcv
+
+@deftypemethod {YYParser.SymbolKind} {String} getName ()
+The name of this symbol, possibly translated.
+@end deftypemethod
+
+@deftypemethod {YYParser.Context} {YYParser.SymbolKind} getToken ()
+The kind of the lookahead.  Return @code{null} iff there is no lookahead.
+@end deftypemethod
+
+@deftypemethod {YYParser.Context} {YYParser.Location} getLocation ()
+The location of the lookahead.
+@end deftypemethod
+
+@deftypemethod {YYParser.Context} {int} getExpectedTokens (@code{YYParser.SymbolKind[]} @var{argv}, @code{int} @var{argc})
+Fill @var{argv} with the expected tokens, which never includes
+@code{SymbolKind.S_YYERROR}, or @code{SymbolKind.S_YYUNDEF}.
+
+Never put more than @var{argc} elements into @var{argv}, and on success
+return the effective number of tokens stored in @var{argv}.  Return 0 if
+there are more than @var{argc} expected tokens, yet fill @var{argv} up to
+@var{argc}.
+
+If @var{argv} is null, return the size needed to store all the possible
+values, which is always less than @code{YYNTOKENS}.
+@end deftypemethod
+
 
 @node Java Scanner Interface
 @subsection Java Scanner Interface
@@ -12919,7 +13244,7 @@ with a scanner: the scanner may be defined by @code{%code lexer}, or
 defined elsewhere.  In either case, the scanner has to implement the
 @code{Lexer} inner interface of the parser class.  This interface also
 contain constants for all user-defined token names and the predefined
-@code{EOF} token.
+@code{YYEOF} token.
 
 In the first case, the body of the scanner class is placed in
 @code{%code lexer} blocks.  If you want to pass parameters from the
@@ -12968,6 +13293,40 @@ Return the semantic value of the last token that yylex returned.
 
 The return type can be changed using @samp{%define api.value.type
 @{@var{class-name}@}}.
+@end deftypemethod
+
+@deftypemethod {Lexer} {void} reportSyntaxError (@code{YYParser.Context} @var{ctx})
+If you invoke @samp{%define parse.error custom} (@pxref{Bison
+Declarations}), then the parser no longer passes syntax error messages to
+@code{yyerror}, rather it delegates that task to the user by calling the
+@code{reportSyntaxError} function.
+
+Whether it uses @code{yyerror} is up to the user.
+
+Here is an example of a reporting function (@pxref{Java Parser Context
+Interface}).
+
+@example
+public void reportSyntaxError(YYParser.Context ctx) @{
+  System.err.print(ctx.getLocation() + ": syntax error");
+  // Report the expected tokens.
+  @{
+    final int TOKENMAX = 5;
+    YYParser.SymbolKind[] arg = new YYParser.SymbolKind[TOKENMAX];
+    int n = ctx.getExpectedTokens(arg, TOKENMAX);
+    for (int i = 0; i < n; ++i)
+      System.err.print((i == 0 ? ": expected " : " or ")
+                       + arg[i].getName());
+  @}
+  // Report the unexpected token which triggered the error.
+  @{
+    YYParser.SymbolKind lookahead = ctx.getToken();
+    if (lookahead != null)
+      System.err.print(" before " + lookahead.getName());
+  @}
+  System.err.println("");
+@}
+@end example
 @end deftypemethod
 
 @node Java Action Features
@@ -14393,6 +14752,22 @@ Data type of semantic values; @code{int} by default.
 @xref{Value Type}.
 @end deffn
 
+@deffn {Type} yysymbol_kind_t
+An enum of all the symbols, tokens and nonterminals, of the grammar.
+@xref{Syntax Error Reporting Function}.  The symbol kinds are used
+internally by the parser, and should not be confused with the token kinds:
+the symbol kind of a terminal symbol is not equal to its token kind! (Unless
+@samp{%define api.token.raw} was used.)
+@end deffn
+
+@deffn {Type} yytoken_kind_t
+An enum of all the @dfn{token kinds} declared with @code{%token}
+(@pxref{Token Decl}).  These are the return values for @code{yylex}.  They
+should not be confused with the @emph{symbol kinds}, used internally by the
+parser.
+@end deffn
+
+
 @node Glossary
 @appendix Glossary
 @cindex glossary
@@ -14474,6 +14849,21 @@ performs some operation.
 
 @item Input stream
 A continuous flow of data between devices or programs.
+
+@item Kind
+``Token'' and ``symbol'' are each overloaded to mean either a grammar symbol
+(kind) or all parse info (kind, value, location) associated with occurrences
+of that grammar symbol from the input.  To disambiguate, we use ``token
+kind'' and ``symbol kind'' to mean both grammar symbols and the types that
+represent them in a base programming language (C, C++, etc.). However, we
+use ``token'' and ``symbol'' without the word ``kind'' to mean parsed
+occurrences, and we append the word ``type'' to refer to the types that
+represent them in a base programming language.
+
+In summary: When you see ``kind'', interpret ``symbol'' or ``token'' to mean
+a @emph{grammar symbol}.  When you don't see ``kind'' (including when you
+see ``type''), interpret ``symbol'' or ``token'' to mean a @emph{parsed
+symbol}.
 
 @item LAC (Lookahead Correction)
 A parsing mechanism that fixes the problem of delayed syntax error
@@ -14574,25 +14964,33 @@ the language being parsed.  The start symbol is usually listed as the
 first nonterminal symbol in a language specification.
 @xref{Start Decl}.
 
+@item Symbol kind
+A (finite) enumeration of the grammar symbols, as processed by the parser.
+@xref{Symbols}.
+
 @item Symbol table
-A data structure where symbol names and associated data are stored
-during parsing to allow for recognition and use of existing
-information in repeated uses of a symbol.  @xref{Multi-function Calc}.
+A data structure where symbol names and associated data are stored during
+parsing to allow for recognition and use of existing information in repeated
+uses of a symbol.  @xref{Multi-function Calc}.
 
 @item Syntax error
 An error encountered during parsing of an input stream due to invalid
 syntax.  @xref{Error Recovery}.
 
-@item Token
-A basic, grammatically indivisible unit of a language.  The symbol
-that describes a token in the grammar is a terminal symbol.
-The input of the Bison parser is a stream of tokens which comes from
-the lexical analyzer.  @xref{Symbols}.
-
 @item Terminal symbol
 A grammar symbol that has no rules in the grammar and therefore is
 grammatically indivisible.  The piece of text it represents is a token.
 @xref{Language and Grammar}.
+
+@item Token
+A basic, grammatically indivisible unit of a language.  The symbol that
+describes a token in the grammar is a terminal symbol.  The input of the
+Bison parser is a stream of tokens which comes from the lexical analyzer.
+@xref{Symbols}.
+
+@item Token kind
+A (finite) enumeration of the grammar terminals, as discriminated by the
+scanner.  @xref{Symbols}.
 
 @item Unreachable state
 A parser state to which there does not exist a sequence of transitions from
@@ -14716,7 +15114,7 @@ London, Department of Computer Science, TR-00-12 (December 2000).
 @c LocalWords: YYENABLE bindtextdomain Makefile DEFS CPPFLAGS DBISON DeRemer
 @c LocalWords: autoreconf Pennello multisets nondeterminism Generalised baz ACM
 @c LocalWords: redeclare automata Dparse localedir datadir XSLT midrule Wno
-@c LocalWords: multitable headitem hh basename Doxygen fno filename gdef
+@c LocalWords: multitable headitem hh basename Doxygen fno filename gdef de
 @c LocalWords: doxygen ival sval deftypemethod deallocate pos deftypemethodx
 @c LocalWords: Ctor defcv defcvx arg accessors arithmetics CPP ifndef CALCXX
 @c LocalWords: lexer's calcxx bool LPAREN RPAREN deallocation cerrno climits
@@ -14740,7 +15138,7 @@ London, Department of Computer Science, TR-00-12 (December 2000).
 @c LocalWords: fdiagnostics setlocale nullptr ast srcdir iff drv rgbWarning
 @c LocalWords: deftypefunx pragma Wnull dereference Wdocumentation elif ish
 @c LocalWords: Wdeprecated Wregister noinput yyloc yypos PODs sstream Wsign
-@c LocalWords: typename emplace Wconversion Wshorten yacchack reentrancy
+@c LocalWords: typename emplace Wconversion Wshorten yacchack reentrancy ou
 @c LocalWords: Relocatability exprs fixit Wyacc parseable fixits ffixit svg
 @c LocalWords: DNDEBUG cstring Wzero workalike POPL workalikes byacc UCB
 @c LocalWords: Penello's Penello Byson Byson's Corbett's CSD TOPLAS PDP
@@ -14749,7 +15147,10 @@ London, Department of Computer Science, TR-00-12 (December 2000).
 @c LocalWords: colorOff maincolor inlineraw darkviolet darkcyan dwarning
 @c LocalWords: dnotice copyable stdint ptrdiff bufsize yyreport invariants
 @c LocalWords: xrefautomaticsectiontitle yysyntax yysymbol ARGMAX cond
-@c LocalWords: Wdangling
+@c LocalWords: Wdangling yytoken erreur syntaxe inattendu attendait nombre
+@c LocalWords: YYUNDEF SymbolKind yypcontext YYENOMEM TOKENMAX getBundle
+@c LocalWords: ResourceBundle myResources getString getName getToken
+@c LocalWords: getLocation getExpectedTokens reportSyntaxError
 
 @c Local Variables:
 @c ispell-dictionary: "american"

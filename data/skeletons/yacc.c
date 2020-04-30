@@ -358,6 +358,7 @@ b4_output_begin([b4_parser_file_name])[
 /* C LALR(1) parser skeleton written by Richard Stallman, by
    simplifying the original so-called "semantic" parser.  */
 
+]b4_disclaimer[
 /* All symbols defined below should begin with yy or YY, to avoid
    infringing on user name space.  This should be done even for local
    variables, as they might otherwise be expanded by user macros.
@@ -365,7 +366,6 @@ b4_output_begin([b4_parser_file_name])[
    define necessary library symbols; they are noted "INFRINGES ON
    USER NAME SPACE" below.  */
 
-]b4_disclaimer[
 ]b4_identification[
 ]b4_percent_code_get([[top]])[]dnl
 m4_if(b4_api_prefix, [yy], [],
@@ -463,6 +463,11 @@ typedef int yy_state_fast_t;
 #  define YY_(Msgid) Msgid
 # endif
 #endif
+]b4_has_translations_if([
+#ifndef N_
+# define N_(Msgid) Msgid
+#endif
+])[
 
 ]b4_attribute_define[
 
@@ -542,7 +547,7 @@ void free (void *); /* INFRINGES ON USER NAME SPACE */
 #  endif
 # endif]b4_lac_if([[
 # define YYCOPY_NEEDED 1]])[
-#endif]b4_lac_if([], [b4_parse_error_case([simple], [[/* !defined yyoverflow */]])])[
+#endif /* ]b4_lac_if([[1]], [b4_parse_error_case([simple], [[!defined yyoverflow]], [[1]])])[ */
 
 #if (! defined yyoverflow \
      && (! defined __cplusplus \
@@ -676,8 +681,8 @@ yysymbol_name (yysymbol_kind_t yysymbol)
   static const char *const yy_sname[] =
   {
   ]b4_symbol_names[
-  };]m4_ifdef([b4_translatable], [[
-  /* YYTRANSLATABLE[SYMBOL-NUM] -- Whether YYTNAME[SYMBOL-NUM] is
+  };]b4_has_translations_if([[
+  /* YYTRANSLATABLE[SYMBOL-NUM] -- Whether YY_SNAME[SYMBOL-NUM] is
      internationalizable.  */
   static ]b4_int_type_for([b4_translatable])[ yytranslatable[] =
   {
@@ -690,14 +695,14 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 }]])[
 #endif
 
-# ifdef YYPRINT
+#ifdef YYPRINT
 /* YYTOKNUM[NUM] -- (External) token number corresponding to the
    (internal) symbol number NUM (which must be that of a token).  */
 static const ]b4_int_type_for([b4_toknum])[ yytoknum[] =
 {
   ]b4_toknum[
 };
-# endif
+#endif
 
 #define YYPACT_NINF (]b4_pact_ninf[)
 
@@ -741,6 +746,9 @@ enum { YYENOMEM = -2 };
       }                                                           \
   while (0)
 
+/* Backward compatibility with an undocumented macro.
+   Use ]b4_symbol(1, id)[ or ]b4_symbol(2, id)[. */
+#define YYERRCODE ]b4_symbol(2, id)[
 ]b4_locations_if([[
 ]b4_yylloc_default_define[
 #define YYRHSLOC(Rhs, K) ((Rhs)[K])
@@ -762,13 +770,13 @@ do {                                            \
 
 ]b4_yy_location_print_define[
 
-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)                    \
+# define YY_SYMBOL_PRINT(Title, Kind, Value, Location)                    \
 do {                                                                      \
   if (yydebug)                                                            \
     {                                                                     \
       YYFPRINTF (stderr, "%s ", Title);                                   \
       yy_symbol_print (stderr,                                            \
-                  Type, Value]b4_locations_if([, Location])[]b4_user_args[); \
+                  Kind, Value]b4_locations_if([, Location])[]b4_user_args[); \
       YYFPRINTF (stderr, "\n");                                           \
     }                                                                     \
 } while (0)
@@ -836,7 +844,7 @@ do {                                    \
 int yydebug;
 #else /* !]b4_api_PREFIX[DEBUG */
 # define YYDPRINTF(Args) ((void) 0)
-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)
+# define YY_SYMBOL_PRINT(Title, Kind, Value, Location)
 # define YY_STACK_PRINT(Bottom, Top)
 # define YY_REDUCE_PRINT(Rule)
 #endif /* !]b4_api_PREFIX[DEBUG */
@@ -1149,7 +1157,7 @@ yypcontext_expected_tokens (const yypcontext_t *yyctx,
   for (yyx = 0; yyx < YYNTOKENS; ++yyx)
     {
       yysymbol_kind_t yysym = YY_CAST (yysymbol_kind_t, yyx);
-      if (yysym != ]b4_symbol_prefix[YYERROR && yysym != ]b4_symbol_prefix[YYUNDEF)
+      if (yysym != ]b4_symbol(1, kind)[ && yysym != ]b4_symbol_prefix[YYUNDEF)
         switch (yy_lac (]b4_push_if([[yyps->yyesa, &yyps->yyes, &yyps->yyes_capacity, yyps->yyssp, yysym]],
                                     [[yyctx->yyesa, yyctx->yyes, yyctx->yyes_capacity, yyctx->yyssp, yysym]])[))
           {
@@ -1178,7 +1186,7 @@ yypcontext_expected_tokens (const yypcontext_t *yyctx,
       int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
       int yyx;
       for (yyx = yyxbegin; yyx < yyxend; ++yyx)
-        if (yycheck[yyx + yyn] == yyx && yyx != ]b4_symbol_prefix[YYERROR
+        if (yycheck[yyx + yyn] == yyx && yyx != ]b4_symbol(1, kind)[
             && !yytable_value_is_error (yytable[yyx + yyn]))
           {
             if (!yyarg)
@@ -1400,10 +1408,10 @@ yysyntax_error (YYPTRDIFF_T *yymsg_alloc, char **yymsg,
 
   switch (yycount)
     {
-# define YYCASE_(N, S)                      \
+#define YYCASE_(N, S)                       \
       case N:                               \
         yyformat = S;                       \
-      break
+        break
     default: /* Avoid compiler warnings. */
       YYCASE_(0, YY_("syntax error"));
       YYCASE_(1, YY_("syntax error, unexpected %s"));
@@ -1411,7 +1419,7 @@ yysyntax_error (YYPTRDIFF_T *yymsg_alloc, char **yymsg,
       YYCASE_(3, YY_("syntax error, unexpected %s, expecting %s or %s"));
       YYCASE_(4, YY_("syntax error, unexpected %s, expecting %s or %s or %s"));
       YYCASE_(5, YY_("syntax error, unexpected %s, expecting %s or %s or %s or %s"));
-# undef YYCASE_
+#undef YYCASE_
     }
 
   /* Compute error message size.  Don't count the "%s"s, but reserve
@@ -1693,7 +1701,7 @@ yysetstate:
         YYSTACK_RELOCATE (yyss_alloc, yyss);
         YYSTACK_RELOCATE (yyvs_alloc, yyvs);]b4_locations_if([
         YYSTACK_RELOCATE (yyls_alloc, yyls);])[
-# undef YYSTACK_RELOCATE
+#  undef YYSTACK_RELOCATE
         if (yyss1 != yyssa)
           YYSTACK_FREE (yyss1);
       }
@@ -1764,6 +1772,17 @@ yyread_pushed_token:]])[
       yychar = ]b4_symbol(0, [id])[;
       yytoken = ]b4_symbol(0, [kind])[;
       YYDPRINTF ((stderr, "Now at end of input.\n"));
+    }
+  else if (yychar == ]b4_symbol(1, [id])[)
+    {
+      /* The scanner already issued an error message, process directly
+         to error recovery.  But do not keep the error token as
+         lookahead, it is too special and may lead us to an endless
+         loop in error recovery. */
+      yychar = ]b4_symbol(2, [id])[;
+      yytoken = ]b4_symbol(1, [kind])[;]b4_locations_if([[
+      yyerror_range[1] = yylloc;]])[
+      goto yyerrlab1;
     }
   else
     {
@@ -1947,9 +1966,8 @@ yyerrlab:
           goto yyexhaustedlab;
       }]])[
     }
-
-]b4_locations_if([[  yyerror_range[1] = yylloc;]])[
-
+]b4_locations_if([[
+  yyerror_range[1] = yylloc;]])[
   if (yyerrstatus == 3)
     {
       /* If just tried and failed to reuse lookahead token after an
@@ -2004,8 +2022,8 @@ yyerrlab1:
       yyn = yypact[yystate];
       if (!yypact_value_is_default (yyn))
         {
-          yyn += ]b4_symbol_prefix[YYERROR;
-          if (0 <= yyn && yyn <= YYLAST && yycheck[yyn] == ]b4_symbol_prefix[YYERROR)
+          yyn += ]b4_symbol(1, kind)[;
+          if (0 <= yyn && yyn <= YYLAST && yycheck[yyn] == ]b4_symbol(1, kind)[)
             {
               yyn = yytable[yyn];
               if (0 < yyn)

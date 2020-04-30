@@ -305,35 +305,44 @@ m4_define([b4_shared_declarations],
     /// In theory \a t should be a token_kind_type, but character literals
     /// are valid, yet not members of the token_type enum.
     static symbol_kind_type yytranslate_ (int t);
-]b4_parse_error_bmatch([custom\|detailed], [[
-   /// The user-facing name of the symbol whose (internal) number is
-   /// YYSYMBOL.  No bounds checking.
-   static const char *symbol_name (symbol_kind_type yysymbol);
+
+]b4_parse_error_bmatch(
+[custom\|detailed],
+[[    /// The user-facing name of the symbol whose (internal) number is
+    /// YYSYMBOL.  No bounds checking.
+    static const char *symbol_name (symbol_kind_type yysymbol);]],
+[simple],
+[[#if ]b4_api_PREFIX[DEBUG || ]b4_token_table_flag[
+    /// The user-facing name of the symbol whose (internal) number is
+    /// YYSYMBOL.  No bounds checking.
+    static const char *symbol_name (symbol_kind_type yysymbol);
+
+    /// For a symbol, its name in clear.
+    static const char* const yytname_[];
+#endif // #if ]b4_api_PREFIX[DEBUG || ]b4_token_table_flag[
+]],
+[verbose],
+[[    /// The user-facing name of the symbol whose (internal) number is
+    /// YYSYMBOL.  No bounds checking.
+    static std::string symbol_name (symbol_kind_type yysymbol);
+
+    /// Convert the symbol name \a n to a form suitable for a diagnostic.
+    static std::string yytnamerr_ (const char *yystr);
+
+    /// For a symbol, its name in clear.
+    static const char* const yytname_[];
 ]])[
 
     // Tables.
 ]b4_parser_tables_declare[
-]b4_parse_error_case([verbose], [[
-    /// Convert the symbol name \a n to a form suitable for a diagnostic.
-    static std::string yytnamerr_ (const char *n);
-
-    /// For a symbol, its name in clear.
-    static const char* const yytname_[];
-]],
-[b4_token_table_if([], [[
-#if ]b4_api_PREFIX[DEBUG
-    /// For a symbol, its name in clear.
-    static const char* const yytname_[];
-#endif
-]])])[
 
 #if ]b4_api_PREFIX[DEBUG
 ]b4_integral_parser_table_declare([rline], [b4_rline],
      [[YYRLINE[YYN] -- Source line where rule number YYN was defined.]])[
     /// Report on the debug stream that the rule \a r is going to be reduced.
-    virtual void yy_reduce_print_ (int r);
+    virtual void yy_reduce_print_ (int r) const;
     /// Print the state stack on the debug stream.
-    virtual void yystack_print_ ();
+    virtual void yy_stack_print_ () const;
 
     /// Debugging level.
     int yydebug_;
@@ -523,6 +532,11 @@ m4_if(b4_prefix, [yy], [],
 #  define YY_(msgid) msgid
 # endif
 #endif
+]b4_has_translations_if([
+#ifndef N_
+# define N_(Msgid) Msgid
+#endif
+])[
 
 // Whether we are compiled with exception support.
 #ifndef YY_EXCEPTIONS
@@ -562,7 +576,7 @@ m4_if(b4_prefix, [yy], [],
 # define YY_STACK_PRINT()               \
   do {                                  \
     if (yydebug_)                       \
-      yystack_print_ ();                \
+      yy_stack_print_ ();                \
   } while (false)
 
 #else // !]b4_api_PREFIX[DEBUG
@@ -582,17 +596,16 @@ m4_if(b4_prefix, [yy], [],
 #define YYERROR         goto yyerrorlab
 #define YYRECOVERING()  (!!yyerrstatus_)
 
-]b4_namespace_open[]b4_parse_error_bmatch([custom\|detailed], [[
-  /* The user-facing name of the symbol whose (internal) number is
-     YYSYMBOL.  No bounds checking. */
-  const char *
+]b4_namespace_open[
+]b4_parse_error_bmatch([custom\|detailed],
+[[  const char *
   ]b4_parser_class[::symbol_name (symbol_kind_type yysymbol)
   {
     static const char *const yy_sname[] =
     {
     ]b4_symbol_names[
-    };]m4_ifdef([b4_translatable], [[
-    /* YYTRANSLATABLE[SYMBOL-NUM] -- Whether YYTNAME[SYMBOL-NUM] is
+    };]b4_has_translations_if([[
+    /* YYTRANSLATABLE[SYMBOL-NUM] -- Whether YY_SNAME[SYMBOL-NUM] is
        internationalizable.  */
     static ]b4_int_type_for([b4_translatable])[ yytranslatable[] =
     {
@@ -603,10 +616,18 @@ m4_if(b4_prefix, [yy], [],
             : yy_sname[yysymbol]);]], [[
     return yy_sname[yysymbol];]])[
   }
-]])
-b4_parse_error_case([verbose], [[
-
-  /* Return YYSTR after stripping away unnecessary quotes and
+]],
+[simple],
+[[#if ]b4_api_PREFIX[DEBUG || ]b4_token_table_flag[
+  const char *
+  ]b4_parser_class[::symbol_name (symbol_kind_type yysymbol)
+  {
+    return yytname_[yysymbol];
+  }
+#endif // #if ]b4_api_PREFIX[DEBUG || ]b4_token_table_flag[
+]],
+[verbose],
+[[  /* Return YYSTR after stripping away unnecessary quotes and
      backslashes, so that it's suitable for yyerror.  The heuristic is
      that double-quoting is unnecessary unless the string contains an
      apostrophe, a comma, or backslash (other than backslash-backslash).
@@ -644,6 +665,12 @@ b4_parse_error_case([verbose], [[
       }
 
     return yystr;
+  }
+
+  std::string
+  ]b4_parser_class[::symbol_name (symbol_kind_type yysymbol)
+  {
+    return yytnamerr_ (yytname_[yysymbol]);
   }
 ]])[
 
@@ -725,7 +752,7 @@ b4_parse_error_case([verbose], [[
     b4_symbol_variant([that.kind ()],
                       [value], [move], [YY_MOVE (that.value)])])[
     // that is emptied.
-    that.type = symbol_kind::]b4_symbol(-2, kind)[;
+    that.kind_ = symbol_kind::]b4_symbol(-2, kind)[;
   }
 
 #if YY_CPLUSPLUS < 201103L
@@ -768,23 +795,21 @@ b4_parse_error_case([verbose], [[
 #if ]b4_api_PREFIX[DEBUG
   template <typename Base>
   void
-  ]b4_parser_class[::yy_print_ (std::ostream& yyo,
-                                     const basic_symbol<Base>& yysym) const
+  ]b4_parser_class[::yy_print_ (std::ostream& yyo, const basic_symbol<Base>& yysym) const
   {
     std::ostream& yyoutput = yyo;
     YYUSE (yyoutput);
-    symbol_kind_type yykind = yysym.kind ();
-#if defined __GNUC__ && ! defined __clang__ && ! defined __ICC && __GNUC__ * 100 + __GNUC_MINOR__ <= 408
-    // Avoid a (spurious) G++ 4.8 warning about "array subscript is
-    // below array bounds".
     if (yysym.empty ())
-      std::abort ();
-#endif
-    yyo << (yykind < YYNTOKENS ? "token" : "nterm")
-        << ' ' << yytname_[yykind] << " ("]b4_locations_if([
-        << yysym.location << ": "])[;
-    ]b4_symbol_actions([printer])[
-    yyo << ')';
+      yyo << "empty symbol";
+    else
+      {
+        symbol_kind_type yykind = yysym.kind ();
+        yyo << (yykind < YYNTOKENS ? "token" : "nterm")
+            << ' ' << symbol_name (yykind) << " ("]b4_locations_if([
+            << yysym.location << ": "])[;
+        ]b4_symbol_actions([printer])[
+        yyo << ')';
+      }
   }
 #endif
 
@@ -943,7 +968,7 @@ b4_dollar_popdef])[]dnl
           {]b4_token_ctor_if([[
             symbol_type yylookahead (]b4_lex[);
             yyla.move (yylookahead);]], [[
-            yyla.type = yytranslate_ (]b4_lex[);]])[
+            yyla.kind_ = yytranslate_ (]b4_lex[);]])[
           }
 #if YY_EXCEPTIONS
         catch (const syntax_error& yyexc)
@@ -955,6 +980,16 @@ b4_dollar_popdef])[]dnl
 #endif // YY_EXCEPTIONS
       }
     YY_SYMBOL_PRINT ("Next token is", yyla);
+
+    if (yyla.kind () == ]symbol_kind::b4_symbol(1, kind)[)
+    {
+      // The scanner already issued an error message, process directly
+      // to error recovery.  But do not keep the error token as
+      // lookahead, it is too special and may lead us to an endless
+      // loop in error recovery. */
+      yyla.kind_ = ]symbol_kind::b4_symbol(2, kind)[;
+      goto yyerrlab1;
+    }
 
     /* If the proper action on seeing token YYLA.TYPE is to reduce or
        to detect an error, take that action.  */
@@ -1130,9 +1165,9 @@ b4_dollar_popdef])[]dnl
         yyn = yypact_[+yystack_[0].state];
         if (!yy_pact_value_is_default_ (yyn))
           {
-            yyn += symbol_kind::]b4_symbol_prefix[YYERROR;
+            yyn += symbol_kind::]b4_symbol(1, kind)[;
             if (0 <= yyn && yyn <= yylast_
-                && yycheck_[yyn] == symbol_kind::]b4_symbol_prefix[YYERROR)
+                && yycheck_[yyn] == symbol_kind::]b4_symbol(1, kind)[)
               {
                 yyn = yytable_[yyn];
                 if (0 < yyn)
@@ -1246,7 +1281,7 @@ b4_dollar_popdef])[]dnl
     for (int yyx = 0; yyx < YYNTOKENS; ++yyx)
       {
         symbol_kind_type yysym = YY_CAST (symbol_kind_type, yyx);
-        if (yysym != symbol_kind::]b4_symbol_prefix[YYERROR
+        if (yysym != symbol_kind::]b4_symbol(1, kind)[
             && yysym != symbol_kind::]b4_symbol_prefix[YYUNDEF
             && yyparser_.yy_lac_check_ (yysym))
           {
@@ -1269,7 +1304,7 @@ b4_dollar_popdef])[]dnl
         int yychecklim = yylast_ - yyn + 1;
         int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
         for (int yyx = yyxbegin; yyx < yyxend; ++yyx)
-          if (yycheck_[yyx + yyn] == yyx && yyx != symbol_kind::]b4_symbol_prefix[YYERROR
+          if (yycheck_[yyx + yyn] == yyx && yyx != symbol_kind::]b4_symbol(1, kind)[
               && !yy_table_value_is_error_ (yytable_[yyx + yyn]))
             {
               if (!yyarg)
@@ -1293,7 +1328,7 @@ b4_dollar_popdef])[]dnl
     yylac_stack_.clear ();
     // Reduce until we encounter a shift and thereby accept the token.
 #if ]b4_api_PREFIX[DEBUG
-    YYCDEBUG << "LAC: checking lookahead " << yytname_[yytoken] << ':';
+    YYCDEBUG << "LAC: checking lookahead " << symbol_name (yytoken) << ':';
 #endif
     std::ptrdiff_t lac_top = 0;
     while (true)
@@ -1393,7 +1428,7 @@ b4_dollar_popdef])[]dnl
       {
 #if ]b4_api_PREFIX[DEBUG
         YYCDEBUG << "LAC: initial context established for "
-                 << yytname_[yytoken] << '\n';
+                 << symbol_name (yytoken) << '\n';
 #endif
         yy_lac_established_ = true;
         return yy_lac_check_ (yytoken);
@@ -1502,9 +1537,7 @@ b4_dollar_popdef])[]dnl
     for (char const* yyp = yyformat; *yyp; ++yyp)
       if (yyp[0] == '%' && yyp[1] == 's' && yyi < yycount)
         {
-          yyres += ]b4_parse_error_case([verbose],
-                [[yytnamerr_ (yytname_[yyarg[yyi++]])]],
-                [[symbol_name (yyarg[yyi++])]])[;
+          yyres += symbol_name (yyarg[yyi++]);
           ++yyp;
         }
       else
@@ -1519,7 +1552,8 @@ b4_dollar_popdef])[]dnl
 
 ]b4_parser_tables_define[
 
-]b4_tname_if([], [[#if ]b4_api_PREFIX[DEBUG]])[
+]b4_parse_error_bmatch([simple\|verbose],
+[[#if ]b4_api_PREFIX[DEBUG]b4_tname_if([[ || 1]])[
   // YYTNAME[SYMBOL-NUM] -- String name of the symbol SYMBOL-NUM.
   // First, the terminals, then, starting at \a YYNTOKENS, nonterminals.
   const char*
@@ -1527,13 +1561,14 @@ b4_dollar_popdef])[]dnl
   {
   ]b4_tname[
   };
-]b4_tname_if([], [[#endif]])[
+#endif
+]])[
 
 #if ]b4_api_PREFIX[DEBUG][
 ]b4_integral_parser_table_define([rline], [b4_rline])[
 
   void
-  ]b4_parser_class[::yystack_print_ ()
+  ]b4_parser_class[::yy_stack_print_ () const
   {
     *yycdebug_ << "Stack now";
     for (stack_type::const_iterator
@@ -1545,7 +1580,7 @@ b4_dollar_popdef])[]dnl
   }
 
   void
-  ]b4_parser_class[::yy_reduce_print_ (int yyrule)
+  ]b4_parser_class[::yy_reduce_print_ (int yyrule) const
   {
     int yylno = yyrline_[yyrule];
     int yynrhs = yyr2_[yyrule];

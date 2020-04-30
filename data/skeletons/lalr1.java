@@ -78,6 +78,7 @@ m4_define([b4_define_state],[[
 ]b4_output_begin([b4_parser_file_name])[
 ]b4_copyright([Skeleton implementation for Bison LALR(1) parsers in Java],
               [2007-2015, 2018-2020])[
+]b4_disclaimer[
 ]b4_percent_define_ifdef([package], [package b4_percent_define_get([package]);[
 ]])[
 ]b4_user_pre_prologue[
@@ -163,12 +164,12 @@ import java.text.MessageFormat;
     }
   }
 
-  private ]b4_location_type[ yylloc (YYStack rhs, int n)
+  private ]b4_location_type[ yylloc(YYStack rhs, int n)
   {
     if (0 < n)
-      return new ]b4_location_type[ (rhs.locationAt (n-1).begin, rhs.locationAt (0).end);
+      return new ]b4_location_type[(rhs.locationAt(n-1).begin, rhs.locationAt(0).end);
     else
-      return new ]b4_location_type[ (rhs.locationAt (0).end);
+      return new ]b4_location_type[(rhs.locationAt(0).end);
   }]])[
 
 ]b4_declare_symbol_enum[
@@ -179,7 +180,7 @@ import java.text.MessageFormat;
    */
   public interface Lexer {
 ]b4_token_enums[
-    /** Deprecated, use b4_symbol(0, id) instead.  */
+    /** Deprecated, use ]b4_symbol(0, id)[ instead.  */
     public static final int EOF = ]b4_symbol(0, id)[;
 
 ]b4_locations_if([[
@@ -614,41 +615,55 @@ b4_dollar_popdef[]dnl
         yySymbolPrint ("Next token is", yytoken,
                        yylval]b4_locations_if([, yylloc])[);]])[
 
-        /* If the proper action on seeing token YYTOKEN is to reduce or to
-           detect an error, take that action.  */
-        yyn += yytoken.getCode ();
-        if (yyn < 0 || YYLAST_ < yyn || yycheck_[yyn] != yytoken.getCode ())
-          label = YYDEFAULT;
-
-        /* <= 0 means reduce or error.  */
-        else if ((yyn = yytable_[yyn]) <= 0)
+        if (yytoken == SymbolKind.]b4_symbol_prefix[YYerror)
           {
-            if (yyTableValueIsError (yyn))
-              label = YYERRLAB;
-            else
-              {
-                yyn = -yyn;
-                label = YYREDUCE;
-              }
+            // The scanner already issued an error message, process directly
+            // to error recovery.  But do not keep the error token as
+            // lookahead, it is too special and may lead us to an endless
+            // loop in error recovery. */
+            yychar = Lexer.]b4_percent_define_get([api.token.prefix])[YYUNDEF;
+            yytoken = SymbolKind.]b4_symbol_prefix[YYUNDEF;]b4_locations_if([[
+            yyerrloc = yylloc;]])[
+            label = YYERRLAB1;
           }
-
         else
           {
-            /* Shift the lookahead token.  */]b4_parse_trace_if([[
-            yySymbolPrint ("Shifting", yytoken,
-                           yylval]b4_locations_if([, yylloc])[);
+            /* If the proper action on seeing token YYTOKEN is to reduce or to
+               detect an error, take that action.  */
+            yyn += yytoken.getCode ();
+            if (yyn < 0 || YYLAST_ < yyn || yycheck_[yyn] != yytoken.getCode ())
+              label = YYDEFAULT;
+
+            /* <= 0 means reduce or error.  */
+            else if ((yyn = yytable_[yyn]) <= 0)
+              {
+                if (yyTableValueIsError (yyn))
+                  label = YYERRLAB;
+                else
+                  {
+                    yyn = -yyn;
+                    label = YYREDUCE;
+                  }
+              }
+
+            else
+              {
+                /* Shift the lookahead token.  */]b4_parse_trace_if([[
+                yySymbolPrint ("Shifting", yytoken,
+                               yylval]b4_locations_if([, yylloc])[);
 ]])[
-            /* Discard the token being shifted.  */
-            yychar = YYEMPTY_;
+                /* Discard the token being shifted.  */
+                yychar = YYEMPTY_;
 
-            /* Count tokens shifted since error; after three, turn off error
-               status.  */
-            if (yyerrstatus_ > 0)
-              --yyerrstatus_;
+                /* Count tokens shifted since error; after three, turn off error
+                   status.  */
+                if (yyerrstatus_ > 0)
+                  --yyerrstatus_;
 
-            yystate = yyn;
-            yystack.push (yystate, yylval]b4_locations_if([, yylloc])[);
-            label = YYNEWSTATE;
+                yystate = yyn;
+                yystack.push (yystate, yylval]b4_locations_if([, yylloc])[);
+                label = YYNEWSTATE;
+              }
           }
         break;
 
@@ -684,7 +699,6 @@ b4_dollar_popdef[]dnl
               yytoken = null;
             yyreportSyntaxError (new Context (yystack, yytoken]b4_locations_if([[, yylloc]])[));
           }
-
 ]b4_locations_if([[
         yyerrloc = yylloc;]])[
         if (yyerrstatus_ == 3)
@@ -732,9 +746,9 @@ b4_dollar_popdef[]dnl
             yyn = yypact_[yystate];
             if (!yyPactValueIsDefault (yyn))
               {
-                yyn += SymbolKind.]b4_symbol_prefix[YYERROR.getCode ();
+                yyn += SymbolKind.]b4_symbol(1, kind)[.getCode ();
                 if (0 <= yyn && yyn <= YYLAST_
-                    && yycheck_[yyn] == SymbolKind.]b4_symbol_prefix[YYERROR.getCode ())
+                    && yycheck_[yyn] == SymbolKind.]b4_symbol(1, kind)[.getCode ())
                   {
                     yyn = yytable_[yyn];
                     if (0 < yyn)
@@ -925,7 +939,7 @@ b4_dollar_popdef[]dnl
           int yychecklim = YYLAST_ - yyn + 1;
           int yyxend = yychecklim < NTOKENS ? yychecklim : NTOKENS;
           for (int yyx = yyxbegin; yyx < yyxend; ++yyx)
-            if (yycheck_[yyx + yyn] == yyx && yyx != SymbolKind.]b4_symbol_prefix[YYERROR.getCode ()
+            if (yycheck_[yyx + yyn] == yyx && yyx != SymbolKind.]b4_symbol(1, kind)[.getCode ()
                 && !yyTableValueIsError (yytable_[yyx + yyn]))
               {
                 if (yyarg == null)

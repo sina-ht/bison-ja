@@ -314,6 +314,7 @@ Parser C-Language Interface
 The Lexical Analyzer Function @code{yylex}
 
 * Calling Convention::  How @code{yyparse} calls @code{yylex}.
+* Special Tokens::      Signaling end-of-file and errors to the parser.
 * Tokens from Literals:: Finding token kinds from string aliases.
 * Token Values::        How @code{yylex} must return the semantic value
                           of the token it has read.
@@ -7115,6 +7116,7 @@ that need it.  @xref{Invocation}.
 
 @menu
 * Calling Convention::  How @code{yyparse} calls @code{yylex}.
+* Special Tokens::      Signaling end-of-file and errors to the parser.
 * Tokens from Literals:: Finding token kinds from string aliases.
 * Token Values::        How @code{yylex} must return the semantic value
                           of the token it has read.
@@ -7167,6 +7169,49 @@ yylex (void)
 This interface has been designed so that the output from the @code{lex}
 utility can be used without change as the definition of @code{yylex}.
 
+
+@node Special Tokens
+@subsection Special Tokens
+
+In addition to the user defined tokens, Bison generates a few special tokens
+that @code{yylex} may return.
+
+The @code{YYEOF} token denotes the end of file, and signals to the parser
+that there is nothing left afterwards.  @xref{Calling Convention}, for an
+example.
+
+Returning @code{YYUNDEF} tells the parser that some lexical error was found.
+It will emit an error message about an ``invalid token'', and enter
+error-recovery (@pxref{Error Recovery}).  Returning an unknown token kind
+results in the exact same behavior.
+
+Returning @code{YYerror} requires the parser to enter error-recovery
+@emph{without} emitting an error message.  This way the lexical analyzer can
+produce an accurate error messages about the invalid input (something the
+parser cannot do), and yet benefit from the error-recovery features of the
+parser.
+
+@example
+int
+yylex (void)
+@{
+  @dots{}
+  switch (c)
+    @{
+      @dots{}
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
+        @dots{}
+        return TOK_NUM;
+      @dots{}
+      case EOF:
+        return YYEOF;
+      default:
+        yyerror ("syntax error: invalid character: %c", c);
+        return YYerror;
+    @}
+@}
+@end example
 
 @node Tokens from Literals
 @subsection Finding Tokens by String Literals
@@ -7471,7 +7516,7 @@ enum yysymbol_kind_t
 @{
   YYSYMBOL_YYEMPTY = -2,      /* No symbol.  */
   YYSYMBOL_YYEOF = 0,         /* "end of file"  */
-  YYSYMBOL_YYERROR = 1,       /* error  */
+  YYSYMBOL_YYerror = 1,       /* error  */
   YYSYMBOL_YYUNDEF = 2,       /* "invalid token"  */
   YYSYMBOL_PLUS = 3,          /* "+"  */
   YYSYMBOL_MINUS = 4,         /* "-"  */
@@ -7497,7 +7542,7 @@ The location of the syntax error (that of the unexpected token).
 
 @deftypefun int yypcontext_expected_tokens (@code{const yypcontext_t *}ctx, @code{yysymbol_kind_t} @var{argv}@code{[]}, @code{int} @var{argc})
 Fill @var{argv} with the expected tokens, which never includes
-@code{YYSYMBOL_YYEMPTY}, @code{YYSYMBOL_YYERROR}, or
+@code{YYSYMBOL_YYEMPTY}, @code{YYSYMBOL_YYerror}, or
 @code{YYSYMBOL_YYUNDEF}.
 
 Never put more than @var{argc} elements into @var{argv}, and on success
@@ -7510,11 +7555,15 @@ If @var{argv} is null, return the size needed to store all the possible
 values, which is always less than @code{YYNTOKENS}.
 @end deftypefun
 
-@deftypefun {const char *} yysymbol_name (@code{symbol_kind_t} @var{symbol})
+@deftypefun {@r{string type}} yysymbol_name (@code{symbol_kind_t} @var{symbol})
 The name of the symbol whose kind is @var{symbol}, possibly translated.
+Depending on the options, may return a @code{const char*} or a
+@code{std::string}.
 @end deftypefun
 
-A custom syntax error function looks as follows.
+A custom syntax error function looks as follows.  This implementation is
+inappropriate for internationalization, see the @file{c/bistromathic}
+example for a better alternative.
 
 @example
 int
@@ -7802,7 +7851,7 @@ or @code{detailed}, token aliases can be internationalized:
 %token
     '\n'   _("end of line")
   <double>
-    NUM    _("double precision number")
+    NUM    _("number")
   <symrec*>
     FUN    _("function")
     VAR    _("variable")
@@ -8253,7 +8302,7 @@ the lookahead token has no precedence, then the default is to shift.
 @subsection Using Precedence For Non Operators
 
 Using properly precedence and associativity directives can help fixing
-shift/reduce conflicts that do not involve arithmetics-like operators.  For
+shift/reduce conflicts that do not involve arithmetic-like operators.  For
 instance, the ``dangling @code{else}'' problem (@pxref{Shift/Reduce}) can be
 solved elegantly in two different ways.
 
@@ -10601,7 +10650,7 @@ Print the version number of Bison and exit.
 Print the name of the directory containing locale-dependent data.
 
 @item --print-datadir
-Print the name of the directory containing skeletons and XSLT.
+Print the name of the directory containing skeletons, CSS and XSLT.
 
 @item -u
 @item --update
@@ -11545,7 +11594,7 @@ struct token
   @{
     YYEMPTY = -2,              // No token.
     YYEOF = 0,                 // "end of file"
-    YYERRCODE = 256,           // error
+    YYerror = 256,             // error
     YYUNDEF = 257,             // "invalid token"
     PLUS = 258,                // "+"
     MINUS = 259,               // "-"
@@ -12074,7 +12123,9 @@ values, which is always less than @code{YYNTOKENS}.
 The name of the symbol whose kind is @var{symbol}, possibly translated.
 @end deftypemethod
 
-A custom syntax error function looks as follows.
+A custom syntax error function looks as follows.  This implementation is
+inappropriate for internationalization, see the @file{c/bistromathic}
+example for a better alternative.
 
 @example
 void
@@ -12330,7 +12381,7 @@ interactions.  A hand-written scanner is actually easier to interface with.
 @node Calc++ --- C++ Calculator
 @subsubsection Calc++ --- C++ Calculator
 
-Of course the grammar is dedicated to arithmetics, a single expression,
+Of course the grammar is dedicated to arithmetic, a single expression,
 possibly preceded by variable assignments.  An environment containing
 possibly predefined variables such as @code{one} and @code{two}, is
 exchanged with the parser.  An example of valid input follows.
@@ -13327,6 +13378,10 @@ public void reportSyntaxError(YYParser.Context ctx) @{
   System.err.println("");
 @}
 @end example
+
+@noindent
+This implementation is inappropriate for internationalization, see the
+@file{c/bistromathic} example for a better alternative.
 @end deftypemethod
 
 @node Java Action Features
@@ -15116,7 +15171,7 @@ London, Department of Computer Science, TR-00-12 (December 2000).
 @c LocalWords: redeclare automata Dparse localedir datadir XSLT midrule Wno
 @c LocalWords: multitable headitem hh basename Doxygen fno filename gdef de
 @c LocalWords: doxygen ival sval deftypemethod deallocate pos deftypemethodx
-@c LocalWords: Ctor defcv defcvx arg accessors arithmetics CPP ifndef CALCXX
+@c LocalWords: Ctor defcv defcvx arg accessors CPP ifndef CALCXX YYerror
 @c LocalWords: lexer's calcxx bool LPAREN RPAREN deallocation cerrno climits
 @c LocalWords: cstdlib Debian undef yywrap unput noyywrap nounput zA yyleng
 @c LocalWords: errno strtol ERANGE str strerror iostream argc argv Javadoc PSLR
@@ -15150,7 +15205,7 @@ London, Department of Computer Science, TR-00-12 (December 2000).
 @c LocalWords: Wdangling yytoken erreur syntaxe inattendu attendait nombre
 @c LocalWords: YYUNDEF SymbolKind yypcontext YYENOMEM TOKENMAX getBundle
 @c LocalWords: ResourceBundle myResources getString getName getToken
-@c LocalWords: getLocation getExpectedTokens reportSyntaxError
+@c LocalWords: getLocation getExpectedTokens reportSyntaxError bistromathic
 
 @c Local Variables:
 @c ispell-dictionary: "american"

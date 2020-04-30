@@ -137,9 +137,14 @@ m4_define([b4_integral_parser_table_define],
 # ------------------------
 # Output the definition of this token as an enum.
 m4_define([b4_token_enum],
-[b4_token_format([    /** Token number, to be returned by the scanner.  */
-    static final int %s = %s;
-], [$1])])
+[b4_token_visible_if([$1],
+    [m4_format([[    /** Token %s, to be returned by the scanner.  */
+    static final int %s = %s%s;
+]],
+               b4_symbol([$1], [tag]),
+               b4_symbol([$1], [id]),
+               b4_symbol([$1], b4_api_token_raw_if([[number]], [[user_number]])))])])
+
 
 # b4_token_enums
 # --------------
@@ -344,7 +349,7 @@ m4_define([b4_symbol_translate],
 # ----------------
 # Translate a string if i18n is enabled.  Avoid collision with b4_translate.
 m4_define([b4_trans],
-[m4_if(b4_has_translations, 0, [$1], [i18n($1)])])
+[b4_has_translations_if([i18n($1)], [$1])])
 
 
 

@@ -1,4 +1,4 @@
-/* A Bison parser, made by GNU Bison 3.5.4.236-8d75.  */
+/* A Bison parser, made by GNU Bison 3.5.90.  */
 
 /* Bison interface for Yacc-like parsers in C
 
@@ -31,8 +31,9 @@
    This special exception was added by the Free Software Foundation in
    version 2.2 of Bison.  */
 
-/* Undocumented macros, especially those whose name start with YY_,
-   are private implementation details.  Do not rely on them.  */
+/* DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+   especially those whose name start with YY_ or yy_.  They are
+   private implementation details that can be changed or removed.  */
 
 #ifndef YY_GRAM_SRC_PARSE_GRAM_H_INCLUDED
 # define YY_GRAM_SRC_PARSE_GRAM_H_INCLUDED
@@ -79,7 +80,7 @@ extern int gram_debug;
   {
     GRAM_EMPTY = -2,
     GRAM_EOF = 0,                  /* "end of file"  */
-    GRAM_ERRCODE = 1,              /* error  */
+    GRAM_error = 1,                /* error  */
     GRAM_UNDEF = 2,                /* "invalid token"  */
     STRING = 3,                    /* "string"  */
     TSTRING = 4,                   /* "translatable string"  */

@@ -167,7 +167,7 @@ m4_pushdef([b4_parse_param], m4_defn([b4_parse_param_orig]))dnl
   void
   ]b4_parser_class[::yy_symbol_value_print_ (symbol_kind_type yykind,
                            const semantic_type* yyvaluep]b4_locations_if([[,
-                           const location_type* yylocationp]])[)
+                           const location_type* yylocationp]])[) const
   {]b4_locations_if([[
     YYUSE (yylocationp);]])[
     YYUSE (yyvaluep);
@@ -181,7 +181,7 @@ m4_pushdef([b4_parse_param], m4_defn([b4_parse_param_orig]))dnl
   void
   ]b4_parser_class[::yy_symbol_print_ (symbol_kind_type yykind,
                            const semantic_type* yyvaluep]b4_locations_if([[,
-                           const location_type* yylocationp]])[)
+                           const location_type* yylocationp]])[) const
   {
     *yycdebug_ << (yykind < YYNTOKENS ? "token" : "nterm")
                << ' ' << yytname[yykind] << " ("]b4_locations_if([[
@@ -317,16 +317,16 @@ b4_percent_code_get([[requires]])[
     /// \param yylocationp  Its location.]])[
     virtual void yy_symbol_value_print_ (symbol_kind_type yykind,
                                          const semantic_type* yyvaluep]b4_locations_if([[,
-                                         const location_type* yylocationp]])[);
+                                         const location_type* yylocationp]])[) const;
     /// \brief Report a symbol on the debug stream.
     /// \param yykind       The symbol kind.
     /// \param yyvaluep     Its semantic value.]b4_locations_if([[
     /// \param yylocationp  Its location.]])[
     virtual void yy_symbol_print_ (symbol_kind_type yykind,
                                    const semantic_type* yyvaluep]b4_locations_if([[,
-                                   const location_type* yylocationp]])[);
+                                   const location_type* yylocationp]])[) const;
   private:
-    // Debugging.
+    /// Debug stream.
     std::ostream* yycdebug_;
 #endif
 
@@ -344,6 +344,8 @@ b4_percent_define_flag_if([[global_tokens_and_yystype]],
 #define ]b4_symbol(-2, [id])[ ]b4_namespace_ref[::]b4_parser_class[::token::]b4_symbol(-2, [id])[
 #undef ]b4_symbol(0, [id])[
 #define ]b4_symbol(0, [id])[ ]b4_namespace_ref[::]b4_parser_class[::token::]b4_symbol(0, [id])[
+#undef ]b4_symbol(1, [id])[
+#define ]b4_symbol(1, [id])[ ]b4_namespace_ref[::]b4_parser_class[::token::]b4_symbol(1, [id])[
 
 #ifndef ]b4_api_PREFIX[STYPE
 # define ]b4_api_PREFIX[STYPE ]b4_namespace_ref[::]b4_parser_class[::semantic_type
@@ -354,10 +356,10 @@ b4_percent_define_flag_if([[global_tokens_and_yystype]],
 
 ]m4_define([b4_declare_symbol_enum],
 [[typedef ]b4_namespace_ref[::]b4_parser_class[::symbol_kind_type yysymbol_kind_t;
-#define ]b4_symbol_prefix[YYEMPTY ]b4_namespace_ref[::]b4_parser_class[::symbol_kind::]b4_symbol_prefix[YYEMPTY
-#define ]b4_symbol_prefix[YYERROR ]b4_namespace_ref[::]b4_parser_class[::symbol_kind::]b4_symbol_prefix[YYERROR
-#define ]b4_symbol_prefix[YYEOF   ]b4_namespace_ref[::]b4_parser_class[::symbol_kind::]b4_symbol_prefix[YYEOF
-#define ]b4_symbol_prefix[YYUNDEF ]b4_namespace_ref[::]b4_parser_class[::symbol_kind::]b4_symbol_prefix[YYUNDEF
+#define ]b4_symbol_prefix[YYEMPTY  ]b4_namespace_ref[::]b4_parser_class[::symbol_kind::]b4_symbol_prefix[YYEMPTY
+#define ]b4_symbol_prefix[YYerror  ]b4_namespace_ref[::]b4_parser_class[::symbol_kind::]b4_symbol_prefix[YYerror
+#define ]b4_symbol_prefix[YYEOF    ]b4_namespace_ref[::]b4_parser_class[::symbol_kind::]b4_symbol_prefix[YYEOF
+#define ]b4_symbol_prefix[YYUNDEF  ]b4_namespace_ref[::]b4_parser_class[::symbol_kind::]b4_symbol_prefix[YYUNDEF
 ]])[
 ]b4_percent_code_get([[provides]])[
 ]m4_popdef([b4_parse_param])dnl

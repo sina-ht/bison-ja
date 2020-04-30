@@ -261,6 +261,11 @@ static YYLTYPE yyloc_default][]b4_yyloc_default;])[
 #  define YY_(Msgid) Msgid
 # endif
 #endif
+]b4_has_translations_if([
+#ifndef N_
+# define N_(Msgid) Msgid
+#endif
+])[
 
 #ifndef YYFREE
 # define YYFREE free
@@ -329,10 +334,7 @@ static YYLTYPE yyloc_default][]b4_yyloc_default;])[
 #define YYMAXLEFT ]b4_max_left_semantic_context[
 
 /* YYMAXUTOK -- Last valid token number (for yychar).  */
-#define YYMAXUTOK   ]b4_user_token_number_max[]b4_glr_cc_if([[
-/* YYFAULTYTOK -- Token number (for yychar) that denotes a
-   syntax_error thrown from the scanner.  */
-#define YYFAULTYTOK (YYMAXUTOK + 1)]])[
+#define YYMAXUTOK   ]b4_user_token_number_max[
 
 /* YYTRANSLATE(TOKEN-NUM) -- Symbol number corresponding to TOKEN-NUM
    as returned by yylex, with out-of-bounds checking.  */
@@ -621,8 +623,8 @@ yysymbol_name (yysymbol_kind_t yysymbol)
   static const char *const yy_sname[] =
   {
   ]b4_symbol_names[
-  };]m4_ifdef([b4_translatable], [[
-  /* YYTRANSLATABLE[SYMBOL-NUM] -- Whether YYTNAME[SYMBOL-NUM] is
+  };]b4_has_translations_if([[
+  /* YYTRANSLATABLE[SYMBOL-NUM] -- Whether YY_SNAME[SYMBOL-NUM] is
      internationalizable.  */
   static ]b4_int_type_for([b4_translatable])[ yytranslatable[] =
   {
@@ -664,12 +666,12 @@ yysymbol_name (yysymbol_kind_t yysymbol)
 
 ]b4_yy_symbol_print_define[
 
-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)                  \
+# define YY_SYMBOL_PRINT(Title, Kind, Value, Location)                  \
   do {                                                                  \
     if (yydebug)                                                        \
       {                                                                 \
         YY_FPRINTF ((stderr, "%s ", Title));                            \
-        yy_symbol_print (stderr, Type, Value]b4_locuser_args([Location])[);        \
+        yy_symbol_print (stderr, Kind, Value]b4_locuser_args([Location])[);        \
         YY_FPRINTF ((stderr, "\n"));                                    \
       }                                                                 \
   } while (0)
@@ -686,7 +688,7 @@ static void yypdumpstack (yyGLRStack* yystackp)
 #else /* !]b4_api_PREFIX[DEBUG */
 
 # define YY_DPRINTF(Args) do {} while (yyfalse)
-# define YY_SYMBOL_PRINT(Title, Type, Value, Location)
+# define YY_SYMBOL_PRINT(Title, Kind, Value, Location)
 
 #endif /* !]b4_api_PREFIX[DEBUG */
 
@@ -825,7 +827,7 @@ yygetToken (int *yycharp][]b4_pure_if([, yyGLRStack* yystackp])[]b4_user_formals
           // Map errors caught in the scanner to the undefined token,
           // so that error handling is started.  However, record this
           // with this special value of yychar.
-          *yycharp = YYFAULTYTOK;
+          *yycharp = ]b4_symbol(1, id)[;
         }
 #endif // YY_EXCEPTIONS]], [[
       *yycharp = ]b4_lex[;]])[
@@ -1030,8 +1032,14 @@ static inline int
 yygetLRActions (yy_state_t yystate, yysymbol_kind_t yytoken, const short** yyconflicts)
 {
   int yyindex = yypact[yystate] + yytoken;
-  if (yyisDefaultedState (yystate)
-      || yyindex < 0 || YYLAST < yyindex || yycheck[yyindex] != yytoken)
+  if (yytoken == ]b4_symbol(1, kind)[)
+    {
+      // This is the error token.
+      *yyconflicts = yyconfl;
+      return 0;
+    }
+  else if (yyisDefaultedState (yystate)
+           || yyindex < 0 || YYLAST < yyindex || yycheck[yyindex] != yytoken)
     {
       *yyconflicts = yyconfl;
       return -yydefact[yystate];
@@ -2029,7 +2037,7 @@ yyprocessOneStack (yyGLRStack* yystackp, ptrdiff_t yyk,
           const int yyaction = yygetLRActions (yystate, yytoken, &yyconflicts);
           yystackp->yytops.yylookaheadNeeds[yyk] = yytrue;
 
-          while (*yyconflicts != 0)
+          for (/* nothing */; *yyconflicts; yyconflicts += 1)
             {
               YYRESULTTAG yyflag;
               ptrdiff_t yynewStack = yysplitStack (yystackp, yyk);
@@ -2048,7 +2056,6 @@ yyprocessOneStack (yyGLRStack* yystackp, ptrdiff_t yyk,
                 }
               else
                 return yyflag;
-              yyconflicts += 1;
             }
 
           if (yyisShiftAction (yyaction))
@@ -2103,7 +2110,7 @@ yypcontext_expected_tokens (const yyGLRStack* yystackp,
       int yyxend = yychecklim < YYNTOKENS ? yychecklim : YYNTOKENS;
       int yyx;
       for (yyx = yyxbegin; yyx < yyxend; ++yyx)
-        if (yycheck[yyx + yyn] == yyx && yyx != ]b4_symbol_prefix[YYERROR
+        if (yycheck[yyx + yyn] == yyx && yyx != ]b4_symbol(1, kind)[
             && !yytable_value_is_error (yytable[yyx + yyn]))
           {
             if (!yyarg)
@@ -2361,8 +2368,8 @@ yyrecoverSyntaxError (yyGLRStack* yystackp]b4_user_formals[)
       int yyj = yypact[yys->yylrState];
       if (! yypact_value_is_default (yyj))
         {
-          yyj += ]b4_symbol_prefix[YYERROR;
-          if (0 <= yyj && yyj <= YYLAST && yycheck[yyj] == ]b4_symbol_prefix[YYERROR
+          yyj += ]b4_symbol(1, kind)[;
+          if (0 <= yyj && yyj <= YYLAST && yycheck[yyj] == ]b4_symbol(1, kind)[
               && yyisShiftAction (yytable[yyj]))
             {
               /* Shift the error token.  */
@@ -2445,7 +2452,7 @@ b4_dollar_popdef])[]dnl
       /* For efficiency, we have two loops, the first of which is
          specialized to deterministic operation (single stack, no
          potential ambiguity).  */
-      /* Standard mode */
+      /* Standard mode. */
       while (yytrue)
         {
           yy_state_t yystate = yystack.yytops.yystates[0]->yylrState;
@@ -2468,7 +2475,8 @@ b4_dollar_popdef])[]dnl
               yysymbol_kind_t yytoken = ]b4_yygetToken_call;[
               const short* yyconflicts;
               int yyaction = yygetLRActions (yystate, yytoken, &yyconflicts);
-              if (*yyconflicts != 0)
+              if (*yyconflicts)
+                /* Enter nondeterministic mode.  */
                 break;
               if (yyisShiftAction (yyaction))
                 {
@@ -2481,11 +2489,11 @@ b4_dollar_popdef])[]dnl
                 }
               else if (yyisErrorAction (yyaction))
                 {]b4_locations_if([[
-                  yystack.yyerror_range[1].yystate.yyloc = yylloc;]])[]b4_glr_cc_if([[
-                  /* Don't issue an error message again for exceptions
-                     thrown from the scanner.  */
-                  if (yychar != YYFAULTYTOK)
-  ]])[                  yyreportSyntaxError (&yystack]b4_user_args[);
+                  yystack.yyerror_range[1].yystate.yyloc = yylloc;]])[
+                  /* Issue an error message unless the scanner already
+                     did. */
+                  if (yychar != ]b4_symbol(1, id)[)
+                    yyreportSyntaxError (&yystack]b4_user_args[);
                   goto yyuser_error;
                 }
               else
@@ -2493,6 +2501,7 @@ b4_dollar_popdef])[]dnl
             }
         }
 
+      /* Nondeterministic mode. */
       while (yytrue)
         {
           yysymbol_kind_t yytoken_to_shift;

@@ -7,6 +7,10 @@
 - is there a migration path that would allow to use TokenKinds in
   yylex?
 
+- define the tokens as an enum too.
+
+- promote YYEOF rather than EOF.
+
 *** D
 - is there a way to attach yysymbol_name to the enum itself?  As we did
   in Java.
@@ -14,9 +18,11 @@
 - It would be better to have TokenKind as return value.  Can we use
   reflection to support both output types?
 
-** Documentation
-- YYERRCODE, YYUNDEF, YYEOF
-- YYERRCODE and translation
+** YYerror
+https://git.savannah.gnu.org/gitweb/?p=gettext.git;a=blob;f=gettext-runtime/intl/plural.y;h=a712255af4f2f739c93336d4ff6556d932a426a5;hb=HEAD
+
+should be updated to not use YYERRCODE.  Returning an undef token is good
+enough.
 
 ** Java
 *** Examples
@@ -24,6 +30,28 @@ Have an example with a push parser.  Use autocompletion in that case.
 
 *** calc.at
 Stop hard-coding "Calc".  Adjust local.at (look for FIXME).
+
+* Bison 3.7
+** Counter example generation
+See https://github.com/akimd/bison/pull/15.
+
+** Clean up
+Rename user_token_number for tokens as "code".  It's not a "user number",
+it's the token code, and the user can control it, but this code always
+exists.
+
+See also USER_NUMBER_UNDEFINED and NUMBER_UNDEFINED.
+
+Rename endtoken as eoftoken.
+
+Also do it in data/skeletons.
+
+Don't rename in Bison 3.6 (it would be logical to do so) because that
+would probably create many conflicts in Vincent's work (see previous point).
+
+** A dev warning for b4_
+Maybe we should check for m4_ and b4_ leaking out of the m4 processing, as
+Autoconf does.  It would have caught overquotation issues.
 
 ** doc
 I feel it's ugly to use the GNU style to declare functions in the doc.  It
@@ -35,7 +63,7 @@ token vs terminal, variable vs non terminal.
 
 ** api.token.raw
 The YYUNDEFTOK could be assigned a semantic value so that yyerror could be
-used to report invalid lexemes.  See also the item "$undefined" below.
+used to report invalid lexemes.
 
 ** push parsers
 Consider deprecating impure push parsers.  They add a lot of complexity, for
@@ -43,21 +71,6 @@ a bad feature.  On the other hand, that would make it much harder to sit
 push parsers on top of pull parser.  Which is currently not relevant, since
 push parsers are measurably slower.
 
-* Bison 3.7
-** Counter example generation
-See https://github.com/akimd/bison/pull/15.
-
-** Clean up
-Rename user_token_number for tokens as "code".  It's not a "user number",
-it's the token code, and the user can control it, but this code always
-exists.
-
-Rename endtoken as eoftoken.
-
-Also do it in data/skeletons.
-
-Don't rename in Bison 3.6 (it would be logical to do so) because that
-would probably create many conflicts in Vincent's work (see previous point).
 
 * Bison 3.8
 ** Unit rules / Injection rules (Akim Demaille)
@@ -459,15 +472,6 @@ makes it impossible to have modular precedence information.  We should
 move to partial orders (sounds like series/parallel orders to me).
 
 This is a prerequisite for modules.
-
-* $undefined
-From Hans:
-- If the Bison generated parser experiences an undefined number in the
-character range, that character is written out in diagnostic messages, an
-addition to the $undefined value.
-
-Suggest: Change the name $undefined to undefined; looks better in outputs.
-
 
 * Pre and post actions.
 From: Florian Krohm <florian@edamail.fishkill.ibm.com>

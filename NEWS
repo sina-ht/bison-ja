@@ -3,6 +3,27 @@ GNU Bison NEWS
 * Noteworthy changes in release ?.? (????-??-??) [?]
 
 
+* Noteworthy changes in release 3.5.91 (2020-04-29) [stable]
+
+** New features
+
+*** Returning the error token
+
+  When the scanner returns an invalid token or the undefined token
+  (YYUNDEF), the parser generates an error message and enters error
+  recovery.  Because of that error message, most scanners that find lexical
+  errors generate an error message, and then ignore the invalid input
+  without entering the error-recovery.
+
+  The scanners may now return YYerror, the error token, to enter the
+  error-recovery mode without triggering an additional error message.  See
+  the bistromathic for an example.
+
+*** The bistromathic features internationalization
+
+  Its way to build the error message is more general and is easy to use in
+  other projects.
+
 * Noteworthy changes in release 3.5.90 (2020-04-18) [beta]
 
 ** Backward incompatible changes
@@ -16,6 +37,12 @@ GNU Bison NEWS
   for YYERROR_VERBOSE would be removed.  Note that since Bison 3.0
   (2013-07-25), "%error-verbose" is deprecated in favor of "%define
   parse.error verbose".
+
+** Deprecated features
+
+  The YYPRINT macro, which works only with yacc.c and only for tokens, was
+  obsoleted long ago by %printer, introduced in Bison 1.50 (November 2002).
+  It is deprecated and its support will be removed eventually.
 
 ** New features
 
@@ -83,7 +110,7 @@ GNU Bison NEWS
         PLUS   "+"
         MINUS  "-"
       <double>
-        NUM _("double precision number")
+        NUM _("number")
       <symrec*>
         FUN _("function")
         VAR _("variable")
@@ -120,7 +147,7 @@ GNU Bison NEWS
   "yytoken_kind_t".
 
   This type now also includes tokens that were previously hidden: YYEOF (end
-  of input), YYUNDEF (undefined token), and YYERRCODE (error token).  They
+  of input), YYUNDEF (undefined token), and YYerror (error token).  They
   now have string aliases, internationalized when internationalization is
   enabled.  Therefore, by default, error messages now refer to "end of file"
   (internationalized) rather than the cryptic "$end", or to "invalid token"
@@ -4117,7 +4144,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  LocalWords:  yysymbol yytnamerr yyreport ctx ARGMAX yysyntax stderr LPAREN
  LocalWords:  symrec yypcontext TOKENMAX yyexpected YYEMPTY yypstate YYEOF
  LocalWords:  autocompletion bistromathic submessages Cayuela lexcalc hoc
- LocalWords:  yytoken YYUNDEF YYERRCODE
+ LocalWords:  yytoken YYUNDEF YYerror
 
 Local Variables:
 ispell-dictionary: "american"

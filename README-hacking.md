@@ -37,6 +37,14 @@ Only user visible strings are to be translated: error messages, bits of the
 assert/abort), and all the --trace output which is meant for the maintainers
 only.
 
+## Syntax highlighting
+It's quite nice to be in C++ mode when editing lalr1.cc for instance.
+However tools such as Emacs will be fooled by the fact that braces and
+parens do not nest, as in `[[}]]`.  As a consequence you might be misguided
+by its visual pairing to parens.  The m4-mode is safer.  Unfortunately the
+m4-mode is also fooled by `#` which is sees as a comment, stops pairing with
+parens/brackets that are inside...
+
 ## Coding Style
 Do not add horizontal tab characters to any file in Bison's repository
 except where required.  For example, do not use tabs to format C code.
@@ -56,6 +64,31 @@ Actually, Bison has legacy code that we should replace with gnulib modules
 
 ### Skeletons
 We try to use the "typical" coding style for each language.
+
+#### CPP
+We indent the CPP directives this way:
+
+```
+#if FOO
+# if BAR
+#  define BAZ
+# endif
+#endif
+```
+
+Don't indent with leading spaces in the skeletons (it's ok in the grammar
+files though, e.g., in `%code {...}` blocks).
+
+On occasions, use `cppi -c` to see where we stand.  We don't aim at full
+correctness: depending `-d`, some bits can be in the *.c file, or the *.h
+file within the double-inclusion cpp-guards.  In that case, favor the case
+of the *.h file, but don't waste time on this.
+
+Don't hesitate to leave a comment on the `#endif` (e.g., `#endif /* FOO
+*/`), especially for long blocks.
+
+There is no conistency on `! defined` vs. `!defined`.  The day gnulib
+decides, we'll follow them.
 
 #### C/C++
 Follow the GNU Coding Standards.
@@ -369,6 +402,12 @@ tests.  Re-run the test suite.  It might be interesting to run `update-test`
 again, since some early failures may stop latter tests from being run.  Yet
 at some point, you'll have to fix remaining issues by hand...
 
+
+## Running Java parsers
+Use the `javaexec.sh` script.  For instance to run the parser of test case
+504:
+
+    $ sh ./_build/javaexec.sh -cp ./_build/tests/testsuite.dir/504 Calc
 
 ## make maintainer-check-valgrind
 This target uses valgrind both to check bison, and the generated parsers.

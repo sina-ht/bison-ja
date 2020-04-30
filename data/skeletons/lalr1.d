@@ -21,7 +21,7 @@ m4_include(b4_skeletonsdir/[d.m4])
 b4_output_begin([b4_parser_file_name])
 b4_copyright([Skeleton implementation for Bison LALR(1) parsers in D],
              [2007-2012, 2019-2020])[
-
+]b4_disclaimer[
 ]b4_percent_define_ifdef([package], [module b4_percent_define_get([package]);
 ])[
 version(D_Version2) {
@@ -509,39 +509,53 @@ m4_popdef([b4_at_dollar])])dnl
         yytoken = yytranslate_ (yychar);]b4_parse_trace_if([[
         yy_symbol_print ("Next token is", yytoken, yylval]b4_locations_if([, yylloc])[);]])[
 
-        /* If the proper action on seeing token YYTOKEN is to reduce or to
-           detect an error, take that action.  */
-        yyn += yytoken;
-        if (yyn < 0 || yylast_ < yyn || yycheck_[yyn] != yytoken)
-          label = YYDEFAULT;
-
-        /* <= 0 means reduce or error.  */
-        else if ((yyn = yytable_[yyn]) <= 0)
+        if (yytoken == SymbolKind.]b4_symbol(1, kind)[)
         {
-          if (yy_table_value_is_error_ (yyn))
-            label = YYERRLAB;
-          else
-          {
-            yyn = -yyn;
-            label = YYREDUCE;
-          }
+          // The scanner already issued an error message, process directly
+          // to error recovery.  But do not keep the error token as
+          // lookahead, it is too special and may lead us to an endless
+          // loop in error recovery. */
+          yychar = TokenKind.YYUNDEF;
+          yytoken = SymbolKind.]b4_symbol_prefix[YYUNDEF;]b4_locations_if([[
+          yyerrloc = yylloc;]])[
+          label = YYERRLAB1;
         }
         else
         {
-          /* Shift the lookahead token.  */]b4_parse_trace_if([[
-          yy_symbol_print ("Shifting", yytoken, yylval]b4_locations_if([, yylloc])[);]])[
+          /* If the proper action on seeing token YYTOKEN is to reduce or to
+             detect an error, take that action.  */
+          yyn += yytoken;
+          if (yyn < 0 || yylast_ < yyn || yycheck_[yyn] != yytoken)
+            label = YYDEFAULT;
 
-          /* Discard the token being shifted.  */
-          yychar = TokenKind.YYEMPTY;
+          /* <= 0 means reduce or error.  */
+          else if ((yyn = yytable_[yyn]) <= 0)
+          {
+            if (yy_table_value_is_error_ (yyn))
+              label = YYERRLAB;
+            else
+            {
+              yyn = -yyn;
+              label = YYREDUCE;
+            }
+          }
+          else
+          {
+            /* Shift the lookahead token.  */]b4_parse_trace_if([[
+            yy_symbol_print ("Shifting", yytoken, yylval]b4_locations_if([, yylloc])[);]])[
 
-          /* Count tokens shifted since error; after three, turn off error
-           * status.  */
-          if (yyerrstatus_ > 0)
-            --yyerrstatus_;
+            /* Discard the token being shifted.  */
+            yychar = TokenKind.YYEMPTY;
 
-          yystate = yyn;
-          yystack.push (yystate, yylval]b4_locations_if([, yylloc])[);
-          label = YYNEWSTATE;
+            /* Count tokens shifted since error; after three, turn off error
+             * status.  */
+            if (yyerrstatus_ > 0)
+              --yyerrstatus_;
+
+            yystate = yyn;
+            yystack.push (yystate, yylval]b4_locations_if([, yylloc])[);
+            label = YYNEWSTATE;
+          }
         }
         break;
 
@@ -577,8 +591,8 @@ m4_popdef([b4_at_dollar])])dnl
             yytoken = SymbolKind.]b4_symbol(-2, kind)[;
           yyerror (]b4_locations_if([yylloc, ])[yysyntax_error (yystate, yytoken));
         }
-
-]b4_locations_if([        yyerrloc = yylloc;])[
+]b4_locations_if([
+        yyerrloc = yylloc;])[
         if (yyerrstatus_ == 3)
         {
           /* If just tried and failed to reuse lookahead token after an
@@ -624,8 +638,8 @@ m4_popdef([b4_at_dollar])])dnl
           yyn = yypact_[yystate];
           if (!yy_pact_value_is_default_ (yyn))
           {
-            yyn += SymbolKind.]b4_symbol_prefix[YYERROR;
-            if (0 <= yyn && yyn <= yylast_ && yycheck_[yyn] == SymbolKind.]b4_symbol_prefix[YYERROR)
+            yyn += SymbolKind.]b4_symbol(1, kind)[;
+            if (0 <= yyn && yyn <= yylast_ && yycheck_[yyn] == SymbolKind.]b4_symbol(1, kind)[)
             {
               yyn = yytable_[yyn];
               if (0 < yyn)
@@ -731,14 +745,14 @@ m4_popdef([b4_at_dollar])])dnl
         int yyxend = yychecklim < yyntokens_ ? yychecklim : yyntokens_;
         int count = 0;
         for (int x = yyxbegin; x < yyxend; ++x)
-          if (yycheck_[x + yyn] == x && x != SymbolKind.]b4_symbol_prefix[YYERROR
+          if (yycheck_[x + yyn] == x && x != SymbolKind.]b4_symbol(1, kind)[
               && !yy_table_value_is_error_ (yytable_[x + yyn]))
              ++count;
           if (count < 5)
           {
              count = 0;
              for (int x = yyxbegin; x < yyxend; ++x)
-               if (yycheck_[x + yyn] == x && x != SymbolKind.]b4_symbol_prefix[YYERROR
+               if (yycheck_[x + yyn] == x && x != SymbolKind.]b4_symbol(1, kind)[
                    && !yy_table_value_is_error_ (yytable_[x + yyn]))
                {
                   res ~= count++ == 0 ? ", expecting " : " or ";

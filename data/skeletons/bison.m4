@@ -72,8 +72,9 @@ version 2.2 of Bison.])
 # -------------
 # Issue a warning about private implementation details.
 m4_define([b4_disclaimer],
-[b4_comment([Undocumented macros, especially those whose name start with YY_,
-are private implementation details.  Do not rely on them.])
+[b4_comment([DO NOT RELY ON FEATURES THAT ARE NOT DOCUMENTED in the manual,
+especially those whose name start with YY_ or yy_.  They are
+private implementation details that can be changed or removed.])
 ])
 
 
@@ -369,6 +370,7 @@ m4_define([b4_$3_if],
 # Expand IF-TRUE, if FLAG is true, IF-FALSE otherwise.
 b4_define_flag_if([defines])            # Whether headers are requested.
 b4_define_flag_if([glr])                # Whether a GLR parser is requested.
+b4_define_flag_if([has_translations])   # Whether some tokens are internationalized.
 b4_define_flag_if([nondeterministic])   # Whether conflicts should be handled.
 b4_define_flag_if([token_table])        # Whether yytoken_table is demanded.
 b4_define_flag_if([yacc])               # Whether POSIX Yacc is emulated.
@@ -425,7 +427,7 @@ m4_define([b4_symbol_kind],
 m4_case([$1],
   [-2],                             [[YYEMPTY]],
   [0],                              [[YYEOF]],
-  [1],                              [[YYERROR]],
+  [1],                              [[YYerror]],
   [2],                              [[YYUNDEF]],
   [m4_case(b4_symbol([$1], [tag]),
       [$accept],                    [[YYACCEPT]],

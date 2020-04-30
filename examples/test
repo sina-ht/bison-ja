@@ -68,26 +68,35 @@ trap cleanup 0 1 2 13 15
 mkdir $$.dir
 cd $$.dir
 
-# run [-noerr] EXPECTED-EXIT-STATUS EXPECTED-OUTPUT [PARSER-OPTIONS]
-# ------------------------------------------------------------------
+# run [-noerr, -n] EXPECTED-EXIT-STATUS EXPECTED-OUTPUT [PARSER-OPTIONS]
+# ----------------------------------------------------------------------
 # -noerr: ignore stderr, otherwise merge it into effective output.
+# -n: not final end-of-line in expected-output
 run ()
 {
   noerr=false
-  case $1 in
-    (-noerr) noerr=true; shift;;
-  esac
+  echo=echo
+  while true; do
+    case $1 in
+      (-noerr) noerr=true; shift;;
+      (-n)     echo=printf; shift;;
+      (*)      break;;
+    esac
+  done
 
   # Expected exit status.
   sta_exp=$1
   shift
 
   # Expected output.
-  if $strip_prompt; then
-      out_exp=$(echo "$1" | sed -e 's/^> err:/err:/;/^> /d')
-  else
-      out_exp=$1
-  fi
+  $echo "$1" |
+    sed -e 's/Reducing stack by rule .* (line .*):/Reducing stack by rule XX (line XXX):/g' |
+    if $strip_prompt; then
+      # An extra EOL added in bistromathic's main.  Keep that empty line.
+      sed -e '/^> ./d;s/^> $//g'
+    else
+      cat
+    fi >exp
   shift
 
   # Effective exit status.
@@ -96,19 +105,28 @@ run ()
   prog "$@" - <input >out_eff 2>err_eff || sta_eff=$?
 
   # Combine effective output and error streams.
-  out_eff=$(cat out_eff && $noerr || sed -e 's/^/err: /g' err_eff)
+  {
+    cat out_eff
+    if ! $noerr; then
+       sed -e 's/^/err: /g' \
+           -e 's/Reducing stack by rule .* (line .*):/Reducing stack by rule XX (line XXX):/g' \
+           err_eff
+    fi
+  } >eff
 
   if test $sta_eff -eq $sta_exp; then
-    if test "$out_eff" = "$out_exp"; then
+    if cmp eff exp 2>/dev/null; then
       echo "$me: PASS: $number"
     else
       echo "$me: FAIL: $number"
       echo "$me: input:"
       sed -e 's/^/  /' input
       echo "$me: expected output:"
-      echo "$out_exp" | sed -e 's/^/  /'
+      sed -e 's/^/  /' exp
       echo "$me: effective output:"
-      echo "$out_eff" | sed -e 's/^/  /'
+      sed -e 's/^/  /' eff
+      echo "$me: diff:"
+      diff -u exp eff | sed -e 's/^/  /'
       exit=false
     fi
   else

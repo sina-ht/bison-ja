@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNU bison 3.5.90.9-aa3e0\n"
 "Report-Msgid-Bugs-To: bug-bison@gnu.org\n"
-"POT-Creation-Date: 2020-04-19 20:26+0900\n"
-"PO-Revision-Date: 2020-04-19 20:29+0900\n"
+"POT-Creation-Date: 2020-04-30 19:13+0900\n"
+"PO-Revision-Date: 2020-04-30 19:23+0900\n"
 "Last-Translator: Hiroshi Takekawa <sian@big.or.jp>\n"
 "Language-Team: Japanese <translation-team-ja@lists.sourceforge.net>\n"
 "Language: ja\n"
@@ -20,6 +20,73 @@ msgstr ""
 "X-Bugs: Report translation errors to the Language-Team address.\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Poedit 2.1.1\n"
+
+#: examples/c/bistromathic/parse.y:105 examples/java/calc/Calc.y:50
+msgid "number"
+msgstr "number"
+
+#: examples/c/bistromathic/parse.y:107
+msgid "function"
+msgstr "function"
+
+#: examples/c/bistromathic/parse.y:108
+msgid "variable"
+msgstr "variable"
+
+#: examples/c/bistromathic/parse.y:319
+msgid "%@: syntax error"
+msgstr "%@: 文法エラー"
+
+#: examples/c/bistromathic/parse.y:320
+msgid "%@: syntax error: unexpected %u"
+msgstr "%@: 文法エラー: %u があるべきではありません"
+
+#. TRANSLATORS: '%@' is a location in a file, '%u' is an
+#. "unexpected token", and '%0e', '%1e'... are expected tokens
+#. at this point.
+#.
+#. For instance on the expression "1 + * 2", you'd get
+#.
+#. 1.5: syntax error: expected - or ( or number or function or variable before *
+#: examples/c/bistromathic/parse.y:328
+msgid "%@: syntax error: expected %0e before %u"
+msgstr "%@: 文法エラー: %u の前に %0e があるべきです"
+
+#: examples/c/bistromathic/parse.y:329
+msgid "%@: syntax error: expected %0e or %1e before %u"
+msgstr "%@: 文法エラー: %u の前に %0e か %1e があるべきです"
+
+#: examples/c/bistromathic/parse.y:330
+msgid "%@: syntax error: expected %0e or %1e or %2e before %u"
+msgstr "%@: 文法エラー: %u の前に %0e か %1e か %2e があるべきです"
+
+#: examples/c/bistromathic/parse.y:331
+msgid "%@: syntax error: expected %0e or %1e or %2e or %3e before %u"
+msgstr "%@: 文法エラー: %u の前に %0e か %1e か %2e か %3e があるべきです"
+
+#: examples/c/bistromathic/parse.y:332
+msgid "%@: syntax error: expected %0e or %1e or %2e or %3e or %4e before %u"
+msgstr ""
+"%@: 文法エラー: %u の前に %0e か %1e か %2e か %3e か %4e があるべきです"
+
+#: examples/c/bistromathic/parse.y:333
+msgid ""
+"%@: syntax error: expected %0e or %1e or %2e or %3e or %4e or %5e before %u"
+msgstr ""
+"%@: 文法エラー: %u の前に %0e か %1e か %2e か %3e か %4e か %5e があるべきで"
+"す"
+
+#: examples/c/bistromathic/parse.y:334
+msgid ""
+"%@: syntax error: expected %0e or %1e or %2e or %3e or %4e or %5e or %6e "
+"before %u"
+msgstr ""
+"%@: 文法エラー: %u の前に %0e か %1e か %2e か %3e か %4e か %5e か %6e があ"
+"るべきです"
+
+#: examples/java/calc/Calc.y:48
+msgid "end of line"
+msgstr "end of line"
 
 #: src/complain.c:115
 msgid "S/R conflicts (enabled by default)"
@@ -145,8 +212,8 @@ msgid "expected %1$s or %2$s or %3$s before %0$s"
 msgstr "%0$s の前に %1$s か %2$s か %3$s があるべきです"
 
 #: src/complain.c:603
-msgid "expected %1$s or %2$s or %4$s or %5$s before %0$s"
-msgstr "%0$s の前に %1$s か %2$s か %4$s か %5$s があるべきです"
+msgid "expected %1$s or %2$s or %3$s or %4$s before %0$s"
+msgstr "%0$s の前に %1$s か %2$s か %3$s か %4$s があるべきです"
 
 #: src/conflicts.c:81
 #, c-format
@@ -555,7 +622,15 @@ msgstr ""
 "// Home page: <%s>.\n"
 "\n"
 
-#: src/location.c:150 src/scan-gram.l:924
+#: src/i18n-strings.c:35
+msgid "end of file"
+msgstr "ファイル末尾"
+
+#: src/i18n-strings.c:36
+msgid "invalid token"
+msgstr "不正なトークン"
+
+#: src/location.c:150 src/scan-gram.l:945
 #, c-format
 msgid "line number overflow"
 msgstr "行番号がオーバーフローしました"
@@ -904,7 +979,7 @@ msgstr " at %s"
 msgid ", cannot be accessed from midrule action at $%d"
 msgstr ", %d にある midrule アクションからアクセスできません"
 
-#: src/scan-code.l:422 src/scan-gram.l:846
+#: src/scan-code.l:422 src/scan-gram.l:867
 #, c-format
 msgid "integer out of range: %s"
 msgstr "整数が値の範囲外です: %s"
@@ -965,82 +1040,82 @@ msgstr "$%s の %s に宣言のない型があります"
 msgid "multiple occurrences of $%d with api.value.automove"
 msgstr "api.value.automove が有効で $%d が複数回でてきます"
 
-#: src/scan-gram.l:198
-#, c-format
-msgid "stray ',' treated as white space"
-msgstr "はぐれた ',' は空白として扱われました"
-
-#: src/scan-gram.l:292
-#, c-format
-msgid "invalid directive: %s"
-msgstr "無効な指示: %s"
-
-#: src/scan-gram.l:313
-#, c-format
-msgid "invalid identifier: %s"
-msgstr "無効な識別子: %s"
-
-#: src/scan-gram.l:366
-msgid "invalid character"
-msgid_plural "invalid characters"
-msgstr[0] "無効な文"
-
-#: src/scan-gram.l:384
-#, c-format
-msgid "invalid null character"
-msgstr "無効な null 文字"
-
-#: src/scan-gram.l:438
-#, c-format
-msgid "unexpected identifier in bracketed name: %s"
-msgstr "ブラケットに囲まれた識別子としては期待されていません: %s"
-
-#: src/scan-gram.l:460
-#, c-format
-msgid "an identifier expected"
-msgstr "識別子が期待されています"
-
-#: src/scan-gram.l:465
-msgid "invalid character in bracketed name"
-msgid_plural "invalid characters in bracketed name"
-msgstr[0] "ブラケットに囲まれた名前に不正な文字があります"
-
-#: src/scan-gram.l:536 src/scan-gram.l:550
-#, c-format
-msgid "POSIX Yacc does not support string literals"
-msgstr "POSIX Yacc は文字列リテラルをサポートしていません"
-
-#: src/scan-gram.l:572
-#, c-format
-msgid "empty character literal"
-msgstr "空の文字定数"
-
-#: src/scan-gram.l:578
-#, c-format
-msgid "extra characters in character literal"
-msgstr "キャラクタリテラルに余分な文字があります"
-
-#: src/scan-gram.l:627 src/scan-gram.l:637 src/scan-gram.l:655
+#: src/scan-gram.l:95
 #, c-format
 msgid "invalid number after \\-escape: %s"
 msgstr "\\ エスケープの後に不正な数字があります: %s"
 
-#: src/scan-gram.l:667
+#: src/scan-gram.l:215
+#, c-format
+msgid "stray ',' treated as white space"
+msgstr "はぐれた ',' は空白として扱われました"
+
+#: src/scan-gram.l:309
+#, c-format
+msgid "invalid directive: %s"
+msgstr "無効な指示: %s"
+
+#: src/scan-gram.l:331
+#, c-format
+msgid "invalid identifier: %s"
+msgstr "無効な識別子: %s"
+
+#: src/scan-gram.l:385
+msgid "invalid character"
+msgid_plural "invalid characters"
+msgstr[0] "無効な文"
+
+#: src/scan-gram.l:405
+#, c-format
+msgid "invalid null character"
+msgstr "無効な null 文字"
+
+#: src/scan-gram.l:462
+#, c-format
+msgid "unexpected identifier in bracketed name: %s"
+msgstr "ブラケットに囲まれた識別子としては期待されていません: %s"
+
+#: src/scan-gram.l:486
+#, c-format
+msgid "an identifier expected"
+msgstr "識別子が期待されています"
+
+#: src/scan-gram.l:493
+msgid "invalid character in bracketed name"
+msgid_plural "invalid characters in bracketed name"
+msgstr[0] "ブラケットに囲まれた名前に不正な文字があります"
+
+#: src/scan-gram.l:565 src/scan-gram.l:579
+#, c-format
+msgid "POSIX Yacc does not support string literals"
+msgstr "POSIX Yacc は文字列リテラルをサポートしていません"
+
+#: src/scan-gram.l:601
+#, c-format
+msgid "empty character literal"
+msgstr "空の文字定数"
+
+#: src/scan-gram.l:607
+#, c-format
+msgid "extra characters in character literal"
+msgstr "キャラクタリテラルに余分な文字があります"
+
+#: src/scan-gram.l:687
 #, c-format
 msgid "invalid character after \\-escape: %s"
 msgstr "\\ エスケープの後に不正な文字があります: %s\""
 
-#: src/scan-gram.l:839
+#: src/scan-gram.l:860
 #, c-format
 msgid "POSIX Yacc does not support hexadecimal literals"
 msgstr "POSIX Yacc は16進数リテラルをサポートしていません"
 
-#: src/scan-gram.l:977
+#: src/scan-gram.l:998
 #, c-format
 msgid "missing %s at end of file"
 msgstr "ファイル末尾に %s がありません"
 
-#: src/scan-gram.l:988
+#: src/scan-gram.l:1009
 #, c-format
 msgid "missing %s at end of line"
 msgstr "行末に %s がありません"
@@ -1176,27 +1251,27 @@ msgstr "%s に対する以前の宣言"
 msgid "token number too large"
 msgstr "トークン数が大きすぎます"
 
-#: src/symtab.c:1134
+#: src/symtab.c:1149
 #, c-format
 msgid "the start symbol %s is undefined"
 msgstr "開始シンボル %s は定義されていません"
 
-#: src/symtab.c:1138
+#: src/symtab.c:1153
 #, c-format
 msgid "the start symbol %s is a token"
 msgstr "開始シンボル %s はトークンです"
 
-#: src/symtab.c:1309
+#: src/symtab.c:1336
 #, c-format
 msgid "useless precedence and associativity for %s"
 msgstr "%s に無用な precedence and associativity"
 
-#: src/symtab.c:1312
+#: src/symtab.c:1339
 #, c-format
 msgid "useless precedence for %s"
 msgstr "%s に無用な precedence"
 
-#: src/symtab.c:1316
+#: src/symtab.c:1343
 #, c-format
 msgid "useless associativity for %s, use %%precedence"
 msgstr "%s に無用な associativity、%%precedence を使ってください"

@@ -2,6 +2,7 @@
 
 %code top {
   #include <ctype.h>  // isdigit
+  #include <locale.h> // LC_ALL
   #include <math.h>   // cos, sin, etc.
   #include <stdarg.h> // va_start
   #include <stdio.h>  // printf
@@ -216,7 +217,7 @@ getsym (char const *name)
 }
 
 // How many symbols are registered.
-int
+static int
 symbol_count (void)
 {
   int res = 0;
@@ -310,12 +311,12 @@ yylex (const char **line, YYSTYPE *yylval, YYLTYPE *yylloc)
 `---------*/
 
 
-const char *
+static const char *
 error_format_string (int argc)
 {
   switch (argc)
     {
-    default: /* Avoid compiler warnings. */
+    default: // Avoid compiler warnings.
     case 0: return _("%@: syntax error");
     case 1: return _("%@: syntax error: unexpected %u");
       // TRANSLATORS: '%@' is a location in a file, '%u' is an
@@ -331,7 +332,7 @@ error_format_string (int argc)
     case 5: return _("%@: syntax error: expected %0e or %1e or %2e or %3e before %u");
     case 6: return _("%@: syntax error: expected %0e or %1e or %2e or %3e or %4e before %u");
     case 7: return _("%@: syntax error: expected %0e or %1e or %2e or %3e or %4e or %5e before %u");
-    case 8: return _("%@: syntax error: expected %0e or %1e or %2e or %3e or %4e or %5e or %6e before %u");
+    case 8: return _("%@: syntax error: expected %0e or %1e or %2e or %3e or %4e or %5e etc., before %u");
     }
 }
 
@@ -339,12 +340,15 @@ error_format_string (int argc)
 int
 yyreport_syntax_error (const yypcontext_t *ctx)
 {
-  enum { ARGS_MAX = 7 };
+  enum { ARGS_MAX = 6 };
   yysymbol_kind_t arg[ARGS_MAX];
   int argsize = yypcontext_expected_tokens (ctx, arg, ARGS_MAX);
   if (argsize < 0)
     return argsize;
-  const char *format = error_format_string (1 + argsize);
+  const int too_many_expected_tokens = argsize == 0 && arg[0] != YYSYMBOL_YYEMPTY;
+  if (too_many_expected_tokens)
+    argsize = ARGS_MAX;
+  const char *format = error_format_string (1 + argsize + too_many_expected_tokens);
 
   while (*format)
     // %@: location.
@@ -361,7 +365,7 @@ yyreport_syntax_error (const yypcontext_t *ctx)
       }
     // %0e, %1e...: expected token.
     else if (format[0] == '%'
-             && isdigit (format[1])
+             && isdigit ((unsigned char) format[1])
              && format[2] == 'e'
              && (format[1] - '0') < argsize)
       {
@@ -392,12 +396,30 @@ void yyerror (YYLTYPE *loc, char const *format, ...)
 }
 
 
+// Return a newly allocated copy of at most N bytes of STRING.  In
+// other words, return a copy of the initial segment of length N of
+// STRING.
+static char *
+xstrndup (const char *string, size_t n)
+{
+  // len = strnlen (string, n), portably.
+  const char *end = memchr (string, '\0', n);
+  size_t len = end ? (size_t) (end - string) : n;
+  char *new = malloc (len + 1);
+  if (!new)
+    abort ();
+  new[len] = '\0';
+  return memcpy (new, string, len);
+}
+
+
 /*-----------.
 | Readline.  |
 `-----------*/
 
 // Parse (and execute) this line.
-int process_line (YYLTYPE *lloc, const char *line)
+static int
+process_line (YYLTYPE *lloc, const char *line)
 {
   yypstate *ps = yypstate_new ();
   int status = 0;
@@ -412,7 +434,8 @@ int process_line (YYLTYPE *lloc, const char *line)
 }
 
 // Get the list of possible tokens after INPUT was read.
-int
+// Returns a nonnegative.
+static int
 expected_tokens (const char *input,
                  int *tokens, int ntokens)
 {
@@ -433,16 +456,18 @@ expected_tokens (const char *input,
 
   // Then query for the accepted tokens at this point.
   int res = yypstate_expected_tokens (ps, tokens, ntokens);
+  if (res < 0)
+    abort ();
   yypstate_delete (ps);
   return res;
 }
 
-/* Attempt to complete on the contents of TEXT.  START and END bound the
-   region of rl_line_buffer that contains the word to complete.  TEXT is
-   the word to complete.  We can use the entire contents of rl_line_buffer
-   in case we want to do some simple parsing.  Return the array of matches,
-   or NULL if there aren't any. */
-char **
+// Attempt to complete on the contents of TEXT.  START and END bound
+// the region of rl_line_buffer that contains the word to complete.
+// TEXT is the word to complete.  We can use the entire contents of
+// rl_line_buffer in case we want to do some simple parsing.  Return
+// the array of matches, or NULL if there aren't any.
+static char **
 completion (const char *text, int start, int end)
 {
   YYDPRINTF ((stderr, "completion (\"%.*s[%.*s]%s\")\n",
@@ -452,14 +477,17 @@ completion (const char *text, int start, int end)
 
   // Get list of token numbers.
   int tokens[YYNTOKENS];
-  char *line = strndup (rl_line_buffer, start);
+  char *line = xstrndup (rl_line_buffer, (size_t) start);
   int ntokens = expected_tokens (line, tokens, YYNTOKENS);
   free (line);
 
   // Build MATCHES, the list of possible completions.
-  const int len = strlen (text);
+  const size_t len = strlen (text);
   // Need initial prefix and final NULL.
-  char **matches = calloc (ntokens + symbol_count () + 2, sizeof *matches);
+  char **matches
+    = calloc ((size_t) ntokens + (size_t) symbol_count () + 2, sizeof *matches);
+  if (!matches)
+    abort ();
   int match = 1;
   for (int i = 0; i < ntokens; ++i)
     switch (tokens[i])
@@ -489,12 +517,12 @@ completion (const char *text, int start, int end)
     matches[0] = strdup (text);
   else
     {
-      int lcplen = strlen (matches[1]);
+      size_t lcplen = strlen (matches[1]);
       for (int i = 2; i < match && lcplen; ++i)
-        for (int j = 0; j < lcplen; ++j)
+        for (size_t j = 0; j < lcplen; ++j)
           if (matches[1][j] != matches[i][j])
             lcplen = j;
-      matches[0] = strndup (matches[1], lcplen);
+      matches[0] = xstrndup (matches[1], lcplen);
     }
 
   if (yydebug)
@@ -515,7 +543,8 @@ completion (const char *text, int start, int end)
   return matches;
 }
 
-void init_readline (void)
+static void
+init_readline (void)
 {
   // Allow conditional parsing of the ~/.inputrc file.
   rl_readline_name = "bistromathic";
@@ -534,7 +563,8 @@ void init_readline (void)
 | Main.  |
 `-------*/
 
-int main (int argc, char const* argv[])
+int
+main (int argc, char const* argv[])
 {
 #if defined ENABLE_NLS && ENABLE_NLS
   // Set up internationalization.

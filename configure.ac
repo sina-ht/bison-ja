@@ -36,10 +36,8 @@ AC_DEFINE_UNQUOTED([PACKAGE_COPYRIGHT_YEAR], [$PACKAGE_COPYRIGHT_YEAR],
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
 
-# We use Automake 1.14's %D% and %C%.
-#
 # When we move to Automake 1.16, simplify examples/c/reccalc/local.mk.
-# Our CI runs on Xenial, which has only Automake 1.15.
+# Our CI build the packages on Bionic, which has only Automake 1.15.
 #
 # We want gnits strictness only when rolling a stable release.  For
 # release candidates, we use version strings like 2.4.3_rc1, but gnits
@@ -47,7 +45,7 @@ AC_CONFIG_MACRO_DIR([m4])
 # releases, we want to be able run make dist without being required to
 # add a bogus NEWS entry.  In that case, the version string
 # automatically contains a dash, which we also let disable gnits.
-AM_INIT_AUTOMAKE([1.14 dist-xz nostdinc
+AM_INIT_AUTOMAKE([1.15 dist-lzip dist-xz nostdinc
                  color-tests parallel-tests
                  silent-rules]
                  m4_bmatch(m4_defn([AC_PACKAGE_VERSION]), [[-_]],
@@ -137,7 +135,9 @@ if test "$enable_gcc_warnings" = yes; then
     -Wpointer-arith -Wshadow
     -Wwrite-strings
     -wr188 -wr2259 -wr3179'
-  warn_c='-Wbad-function-cast -Wstrict-prototypes'
+  warn_c='-Wbad-function-cast
+    -Wmissing-prototypes
+    -Wstrict-prototypes'
   warn_cxx='-Wextra-semi -Wnoexcept -Wold-style-cast -Wundefined-func-template
     -Wweak-vtables'
   # Warnings for the test suite only.
@@ -261,9 +261,9 @@ if ! "$LEX_IS_FLEX" || test "X$LEX" = X:; then
   AC_MSG_WARN([bypassing lex because flex is required])
   LEX=:
 fi
-AM_CONDITIONAL([FLEX_WORKS], [$LEX_IS_FLEX])
+AM_CONDITIONAL([FLEX_WORKS], [$LEX_IS_FLEX && $FLEX_SUPPORTS_HEADER_OPT])
 AM_CONDITIONAL([FLEX_CXX_WORKS],
-  [$LEX_IS_FLEX && test $bison_cv_cxx_works = yes])
+  [$LEX_IS_FLEX && $FLEX_SUPPORTS_HEADER_OPT && test $bison_cv_cxx_works = yes])
 AC_PROG_YACC
 AC_PROG_RANLIB
 AC_PROG_GNU_M4
@@ -331,6 +331,13 @@ AC_MSG_RESULT([$suppfile])
 
 # Whether we cannot run the compiled bison.
 AM_CONDITIONAL([CROSS_COMPILING], [test "$cross_compiling" = yes])
+
+# Build bistromathic if we have the lib and both readline/readline.h
+# and readline/history.h.
+AM_CONDITIONAL([ENABLE_BISTROMATHIC],
+[test "$gl_cv_lib_readline" != no &&
+  test "$ac_cv_header_readline_readline_h" = yes &&
+  test "$ac_cv_header_readline_history_h" = yes])
 
 AM_MISSING_PROG([AUTOM4TE], [autom4te])
 # Needed by tests/atlocal.in.

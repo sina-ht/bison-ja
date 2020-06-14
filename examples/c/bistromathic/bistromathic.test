@@ -15,11 +15,46 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# macOS' version of readline does not repeat stdin on stdout in
-# non-interactive mode.
-if ! echo '1-1' | prog | grep '1-1' >/dev/null; then
-   strip_prompt=true
+# Users may customize the behavior of readline, which might break our
+# expected results.
+INPUTRC=/dev/null
+export INPUTRC
+
+# Beware of portability issues of readline when not feeding it from a
+# terminal.
+#
+# With recent versions of GNU Readline, input "1+2*3\n" gives
+# "> 1+2*3\n7\n> \n"
+#
+# macOS' version does not display the prompt and does not repeat stdin
+# on stdout, so input "1+2*3\n" gives "7\n" as output.  Let's try to
+# cope with this.
+#
+# On OpenBSD 6.5 the prompt is displayed, but the input is not
+# repeated (!).  So input "1+2*3\n" gives "> 7\n> \n" as output.
+#
+# On AIX, you get some escaping sequence before the prompt:
+# "<ESC>[?1034h> 1+2*3".  It appears to pass the terminfo capability
+# "smm", to put the terminal in "meta mode": as if the user had hit
+# META.
+
+echo >perfect '> 0
+0
+> '
+
+echo >ok '0'
+echo '0' | prog >effective
+
+echo "checking for readline output..."
+if diff perfect effective; then
+    # Alles ist gut.
+    strip_prompt=false
+elif diff ok effective; then
+    strip_prompt=true
+else
+    skip "this is not the GNU Readline we expect"
 fi
+
 
 cat >input <<EOF
 1+2*3
@@ -66,7 +101,7 @@ cat >input <<EOF
 EOF
 run 0 '> *
 > ''
-err: 1.1: syntax error: expected end of file or - or ( or exit or number or function or variable before *'
+err: 1.1: syntax error: expected end of file or - or ( or exit or number or function etc., before *'
 
 cat >input <<EOF
 1 + 2 * * 3
@@ -227,13 +262,21 @@ err: Cleanup: popping nterm input (1.1-4: )' -p
 # From now on, the differences between versions of GNU Readline are
 # too painful to try to cope with.
 if $strip_prompt; then
-    echo "SKIP: this is not the GNU Readline we expect"
-    if $exit; then
-        exit 0
-    else
-        exit 1
-    fi
+  echo "SKIP: this is not the GNU Readline we expect"
+  exit $status
 fi
+
+# On Windows10/MSYS2 the ^G coming from <tab> completion is not
+# emitted the same way
+# (https://lists.gnu.org/r/bug-bison/2020-05/msg00076.html).
+echo "checking for kernel name... $(uname -s)"
+case $(uname -s) in
+  (MSYS*)
+    echo "SKIP: this is Windows/MSYS"
+    exit $status
+    ;;
+esac
+
 
 # Check completion after an operator.
 sed -e 's/\\t/	/g' >input <<EOF

@@ -300,10 +300,7 @@ Bison Declarations
 Parser C-Language Interface
 
 * Parser Function::         How to call @code{yyparse} and what it returns.
-* Push Parser Function::    How to call @code{yypush_parse} and what it returns.
-* Pull Parser Function::    How to call @code{yypull_parse} and what it returns.
-* Parser Create Function::  How to call @code{yypstate_new} and what it returns.
-* Parser Delete Function::  How to call @code{yypstate_delete} and what it returns.
+* Push Parser Interface::   How to create, use, and destroy push parsers.
 * Lexical::                 You must supply a function @code{yylex}
                               which reads tokens.
 * Error Reporting::         Passing error messages to the user.
@@ -1882,6 +1879,7 @@ Here is the code for the lexical analyzer:
    and tabs, and returns 0 for end-of-input. */
 
 #include <ctype.h>
+#include <stdlib.h>
 @end group
 
 @group
@@ -1898,7 +1896,8 @@ yylex (void)
   if (c == '.' || isdigit (c))
     @{
       ungetc (c, stdin);
-      scanf ("%lf", &yylval);
+      if (scanf ("%lf", &yylval) != 1)
+        abort ();
       return NUM;
     @}
 @end group
@@ -2369,9 +2368,9 @@ yylex (void)
 @end group
 @end example
 
-Basically, the lexical analyzer performs the same processing as before:
-it skips blanks and tabs, and reads numbers or single-character tokens.
-In addition, it updates @code{yylloc}, the global variable (of type
+Basically, the lexical analyzer performs the same processing as before: it
+skips blanks and tabs, and reads numbers or single-character tokens.  In
+addition, it updates @code{yylloc}, the global variable (of type
 @code{YYLTYPE}) containing the token's location.
 
 Now, each time this function returns a token, the parser has its kind as
@@ -2731,7 +2730,8 @@ yylex (void)
   if (c == '.' || isdigit (c))
     @{
       ungetc (c, stdin);
-      scanf ("%lf", &yylval.NUM);
+      if (scanf ("%lf", &yylval.NUM) != 1)
+        abort ();
       return NUM;
     @}
 @end group
@@ -2758,10 +2758,10 @@ Bison generated a definition of @code{YYSTYPE} with a member named
           if (bufsize <= i)
             @{
               bufsize = 2 * bufsize + 40;
-              symbuf = realloc (symbuf, bufsize);
+              symbuf = realloc (symbuf, (size_t) bufsize);
             @}
           /* Add this character to the buffer. */
-          symbuf[i++] = c;
+          symbuf[i++] = (char) c;
           /* Get another character. */
           c = getchar ();
         @}
@@ -4505,11 +4505,16 @@ typedef struct YYLTYPE
 @} YYLTYPE;
 @end example
 
+While default locations represent a range in the source file(s), this is not
+a requirement.  It could be a single point or just a line number, or even
+more complex structures.
+
 When @code{YYLTYPE} is not defined, at the beginning of the parsing, Bison
 initializes all these fields to 1 for @code{yylloc}.  To initialize
 @code{yylloc} with a custom location type (or to chose a different
 initialization), use the @code{%initial-action} directive.  @xref{Initial
 Action Decl}.
+
 
 @node Actions and Locations
 @subsection Actions and Locations
@@ -6132,7 +6137,7 @@ the @code{full} value was introduced in Bison 2.7
 @deffn Directive {%define api.push-pull} @var{kind}
 
 @itemize @bullet
-@item Language(s): C (deterministic parsers only)
+@item Language(s): C (deterministic parsers only), Java
 
 @item Purpose: Request a pull parser, a push parser, or both.
 @xref{Push Decl}.
@@ -6922,10 +6927,7 @@ in the grammar file, you are likely to run into trouble.
 
 @menu
 * Parser Function::         How to call @code{yyparse} and what it returns.
-* Push Parser Function::    How to call @code{yypush_parse} and what it returns.
-* Pull Parser Function::    How to call @code{yypull_parse} and what it returns.
-* Parser Create Function::  How to call @code{yypstate_new} and what it returns.
-* Parser Delete Function::  How to call @code{yypstate_delete} and what it returns.
+* Push Parser Interface::   How to create, use, and destroy push parsers.
 * Lexical::                 You must supply a function @code{yylex}
                               which reads tokens.
 * Error Reporting::         Passing error messages to the user.
@@ -7028,16 +7030,40 @@ void yyerror (YYLTYPE *llocp, int *randomness, const char *msg);
 int  yyparse (int *randomness);
 @end example
 
-@node Push Parser Function
-@section The Push Parser Function @code{yypush_parse}
-@findex yypush_parse
+@node Push Parser Interface
+@section Push Parser Interface
 
-You call the function @code{yypush_parse} to parse a single token.  This
+@findex yypstate_new
+You call the function @code{yypstate_new} to create a new parser instance.
+This function is available if either the @samp{%define api.push-pull push}
+or @samp{%define api.push-pull both} declaration is used.  @xref{Push Decl}.
+
+@deftypefun {yypstate*} yypstate_new (@code{void})
+@anchor{yypstate_new}
+Return a valid parser instance if there is memory available, 0 otherwise.
+In impure mode, it will also return 0 if a parser instance is currently
+allocated.
+@end deftypefun
+
+@findex yypstate_delete
+You call the function @code{yypstate_delete} to delete a parser instance.
 function is available if either the @samp{%define api.push-pull push} or
 @samp{%define api.push-pull both} declaration is used.
 @xref{Push Decl}.
 
+@deftypefun void yypstate_delete (@code{yypstate *}@var{yyps})
+@anchor{yypstate_delete}
+Reclaim the memory associated with a parser instance.  After this call, you
+should no longer attempt to use the parser instance.
+@end deftypefun
+
+@findex yypush_parse
+You call the function @code{yypush_parse} to parse a single token.  This
+function is available if either the @samp{%define api.push-pull push} or
+@samp{%define api.push-pull both} declaration is used.  @xref{Push Decl}.
+
 @deftypefun int yypush_parse (@code{yypstate *}@var{yyps})
+@anchor{yypush_parse}
 The value returned by @code{yypush_parse} is the same as for @code{yyparse}
 with the following exception: it returns @code{YYPUSH_MORE} if more input is
 required to finish parsing the grammar.
@@ -7051,50 +7077,35 @@ reuse.  For example, a calculator application which parses each input line
 as an expression can just keep reusing the same @code{yyps} even if an input
 was invalid.
 
-@node Pull Parser Function
-@section The Pull Parser Function @code{yypull_parse}
-@findex yypull_parse
-
 You call the function @code{yypull_parse} to parse the rest of the input
 stream.  This function is available if the @samp{%define api.push-pull both}
-declaration is used.
-@xref{Push Decl}.
+declaration is used.  @xref{Push Decl}.
 
 @deftypefun int yypull_parse (@code{yypstate *}@var{yyps})
+@anchor{yypull_parse}
 The value returned by @code{yypull_parse} is the same as for @code{yyparse}.
 
 The parser instance @code{yyps} may be reused for new parses.
 @end deftypefun
 
-@node Parser Create Function
-@section The Parser Create Function @code{yystate_new}
-@findex yypstate_new
+@deftypefun int yypstate_expected_tokens (@code{const yypstate *}yyps, @code{yysymbol_kind_t} @var{argv}@code{[]}, @code{int} @var{argc})
+Fill @var{argv} with the expected tokens, which never includes
+@code{YYSYMBOL_YYEMPTY}, @code{YYSYMBOL_YYerror}, or
+@code{YYSYMBOL_YYUNDEF}.
 
-You call the function @code{yypstate_new} to create a new parser instance.
-This function is available if either the @samp{%define api.push-pull push} or
-@samp{%define api.push-pull both} declaration is used.
-@xref{Push Decl}.
+Never put more than @var{argc} elements into @var{argv}, and on success
+return the number of tokens stored in @var{argv}.  If there are more
+expected tokens than @var{argc}, fill @var{argv} up to @var{argc} and return
+0.  If there are no expected tokens, also return 0, but set @code{argv[0]}
+to @code{YYSYMBOL_YYEMPTY}.
 
-@deftypefun {yypstate*} yypstate_new (@code{void})
-The function will return a valid parser instance if there was memory available
-or 0 if no memory was available.
-In impure mode, it will also return 0 if a parser instance is currently
-allocated.
+When LAC is enabled, may return a negative number on errors,
+such as @code{YYENOMEM} on memory exhaustion.
+
+If @var{argv} is null, return the size needed to store all the possible
+values, which is always less than @code{YYNTOKENS}.
 @end deftypefun
 
-@node Parser Delete Function
-@section The Parser Delete Function @code{yystate_delete}
-@findex yypstate_delete
-
-You call the function @code{yypstate_delete} to delete a parser instance.
-function is available if either the @samp{%define api.push-pull push} or
-@samp{%define api.push-pull both} declaration is used.
-@xref{Push Decl}.
-
-@deftypefun void yypstate_delete (@code{yypstate *}@var{yyps})
-This function will reclaim the memory associated with a parser instance.
-After this call, you should no longer attempt to use the parser instance.
-@end deftypefun
 
 @node Lexical
 @section The Lexical Analyzer Function @code{yylex}
@@ -7546,9 +7557,12 @@ Fill @var{argv} with the expected tokens, which never includes
 @code{YYSYMBOL_YYUNDEF}.
 
 Never put more than @var{argc} elements into @var{argv}, and on success
-return the effective number of tokens stored in @var{argv}.  Return 0 if
-there are more than @var{argc} expected tokens, yet fill @var{argv} up to
-@var{argc}.  When LAC is enabled, may return a negative number on errors,
+return the number of tokens stored in @var{argv}.  If there are more
+expected tokens than @var{argc}, fill @var{argv} up to @var{argc} and return
+0.  If there are no expected tokens, also return 0, but set @code{argv[0]}
+to @code{YYSYMBOL_YYEMPTY}.
+
+When LAC is enabled, may return a negative number on errors,
 such as @code{YYENOMEM} on memory exhaustion.
 
 If @var{argv} is null, return the size needed to store all the possible
@@ -7655,11 +7669,11 @@ recovery.
 In either case, the rest of the action is not executed.
 @end deffn
 
-@deffn {Macro} YYEMPTY
+@deffn {Value} YYEMPTY
 Value stored in @code{yychar} when there is no lookahead token.
 @end deffn
 
-@deffn {Macro} YYEOF
+@deffn {Value} YYEOF
 Value stored in @code{yychar} when the lookahead is the end of the input
 stream.
 @end deffn
@@ -9645,10 +9659,10 @@ and understand the parser run-time traces (@pxref{Tracing}).
 @node Understanding
 @section Understanding Your Parser
 
-As documented elsewhere (@pxref{Algorithm})
-Bison parsers are @dfn{shift/reduce automata}.  In some cases (much more
-frequent than one would hope), looking at this automaton is required to
-tune or simply fix a parser.
+As documented elsewhere (@pxref{Algorithm}) Bison parsers are
+@dfn{shift/reduce automata}.  In some cases (much more frequent than one
+would hope), looking at this automaton is required to tune or simply fix a
+parser.
 
 The textual file is generated when the options @option{--report} or
 @option{--verbose} are specified, see @ref{Invocation}.  Its name is made by
@@ -10604,6 +10618,26 @@ For compatibility with POSIX, the standard Bison distribution also contains
 a shell script called @command{yacc} that invokes Bison with the @option{-y}
 option.
 
+@sp 1
+
+The exit status of @command{bison} is:
+@table @asis
+@item 0 (success)
+when there were no errors.  Warnings, which are diagnostics about dubious
+constructs, do not change the exit status, unless they are turned into
+errors (@pxref{-Werror,,@option{-Werror}}).
+
+@item 1 (failure)
+when there were errors.  No file was generated (except the reports generated
+by @option{--verbose}, etc.).  In particular, the output files that possibly
+existed were not changed.
+
+@item 63 (mismatch)
+when @command{bison} does not meet the version requirements of the grammar
+file. @xref{Require Decl}.  No file was generated or changed.
+@end table
+
+
 @menu
 * Bison Options::     All the options described in detail,
                         in alphabetical order by short options.
@@ -10997,6 +11031,7 @@ instance, @option{-Wno-yacc} will hide the warnings about
 POSIX Yacc incompatibilities.
 
 @item -Werror
+@anchor{-Werror}
 Turn enabled warnings for every @var{category} into errors, unless they are
 explicitly disabled by @option{-Wno-error=@var{category}}.
 
@@ -12111,9 +12146,10 @@ Fill @var{argv} with the expected tokens, which never includes
 @code{symbol_kind::S_YYUNDEF}.
 
 Never put more than @var{argc} elements into @var{argv}, and on success
-return the effective number of tokens stored in @var{argv}.  Return 0 if
-there are more than @var{argc} expected tokens, yet fill @var{argv} up to
-@var{argc}.
+return the number of tokens stored in @var{argv}.  If there are more
+expected tokens than @var{argc}, fill @var{argv} up to @var{argc} and return
+0.  If there are no expected tokens, also return 0, but set @code{argv[0]}
+to @code{symbol_kind::S_YYEMPTY}.
 
 If @var{argv} is null, return the size needed to store all the possible
 values, which is always less than @code{YYNTOKENS}.
@@ -12121,6 +12157,8 @@ values, which is always less than @code{YYNTOKENS}.
 
 @deftypemethod {parser} {const char *} symbol_name (@code{symbol_kind_t} @var{symbol}) @code{const}
 The name of the symbol whose kind is @var{symbol}, possibly translated.
+
+Returns a @code{std::string} when @code{parse.error} is @code{verbose}.
 @end deftypemethod
 
 A custom syntax error function looks as follows.  This implementation is
@@ -12251,6 +12289,12 @@ applicable) location.
 
 @deftypemethod {symbol_type} {symbol_kind_type} kind () @code{const}
 The kind of this symbol.
+@end deftypemethod
+
+@deftypemethod {symbol_type} {const char *} name () @code{const}
+The name of the kind of this symbol.
+
+Returns a @code{std::string} when @code{parse.error} is @code{verbose}.
 @end deftypemethod
 
 @sp 1
@@ -13001,9 +13045,6 @@ of the parser is always local to an instance of the parser class.
 Therefore, all Java parsers are ``pure'', and the @code{%define api.pure}
 directive does nothing when used in Java.
 
-Push parsers are currently unsupported in Java and @code{%define
-api.push-pull} have no effect.
-
 GLR parsers are currently unsupported in Java.  Do not use the
 @code{glr-parser} directive.
 
@@ -13275,9 +13316,10 @@ Fill @var{argv} with the expected tokens, which never includes
 @code{SymbolKind.S_YYERROR}, or @code{SymbolKind.S_YYUNDEF}.
 
 Never put more than @var{argc} elements into @var{argv}, and on success
-return the effective number of tokens stored in @var{argv}.  Return 0 if
-there are more than @var{argc} expected tokens, yet fill @var{argv} up to
-@var{argc}.
+return the number of tokens stored in @var{argv}.  If there are more
+expected tokens than @var{argc}, fill @var{argv} up to @var{argc} and return
+0.  If there are no expected tokens, also return 0, but set @code{argv[0]}
+to @code{null}.
 
 If @var{argv} is null, return the size needed to store all the possible
 values, which is always less than @code{YYNTOKENS}.
@@ -13318,9 +13360,9 @@ changed using @code{%define api.location.type @{@var{class-name}@}}.
 @end deftypemethod
 
 @deftypemethod {Lexer} {int} yylex ()
-Return the next token.  Its type is the return value, its semantic
-value and location are saved and returned by the their methods in the
-interface.
+Return the next token.  Its type is the return value, its semantic value and
+location are saved and returned by the their methods in the interface.  Not
+needed for push-only parsers.
 
 Use @samp{%define lex_throws} to specify any uncaught exceptions.
 Default is @code{java.io.IOException}.
@@ -13330,7 +13372,7 @@ Default is @code{java.io.IOException}.
 @deftypemethodx {Lexer} {Position} getEndPos ()
 Return respectively the first position of the last token that @code{yylex}
 returned, and the first position beyond it.  These methods are not needed
-unless location tracking is active.
+unless location tracking and pull parsing are active.
 
 They should return new objects for each call, to avoid that all the symbol
 share the same Position boundaries.
@@ -13340,7 +13382,8 @@ The return type can be changed using @code{%define api.position.type
 @end deftypemethod
 
 @deftypemethod {Lexer} {Object} getLVal ()
-Return the semantic value of the last token that yylex returned.
+Return the semantic value of the last token that yylex returned.  Not needed
+for push-only parsers.
 
 The return type can be changed using @samp{%define api.value.type
 @{@var{class-name}@}}.
@@ -14668,6 +14711,14 @@ is given a nonzero value, the parser will output information on input
 symbols and parser action.  @xref{Tracing}.
 @end deffn
 
+@deffn {Value} YYEMPTY
+The pseudo token kind when there is no lookahead token.
+@end deffn
+
+@deffn {Value} YYEOF
+The token kind denoting is the end of the input stream.
+@end deffn
+
 @deffn {Macro} yyerrok
 Macro to cause parser to recover immediately to its normal mode
 after a syntax error.  @xref{Error Recovery}.
@@ -14717,8 +14768,8 @@ In semantic actions, it stores the location of the lookahead token.
 @end deffn
 
 @deffn {Type} YYLTYPE
-Data type of @code{yylloc}; by default, a structure with four
-members.  @xref{Location Type}.
+Data type of @code{yylloc}.  By default in C, a structure with four members
+(start/end line/column).  @xref{Location Type}.
 @end deffn
 
 @deffn {Variable} yylval
@@ -14757,24 +14808,26 @@ Deprecated, use @code{%printer} instead (@pxref{Printer Decl}).
 @deffn {Function} yypstate_delete
 The function to delete a parser instance, produced by Bison in push mode;
 call this function to delete the memory associated with a parser.
-@xref{Parser Delete Function}.  Does nothing when called with a null pointer.
+@xref{yypstate_delete,,@code{yypstate_delete}}.  Does nothing when called
+with a null pointer.
 @end deffn
 
 @deffn {Function} yypstate_new
 The function to create a parser instance, produced by Bison in push mode;
 call this function to create a new parser.
-@xref{Parser Create Function}.
+@xref{yypstate_new,,@code{yypstate_new}}.
 @end deffn
 
 @deffn {Function} yypull_parse
 The parser function produced by Bison in push mode; call this function to
 parse the rest of the input stream.
-@xref{Pull Parser Function}.
+@xref{yypull_parse,,@code{yypull_parse}}.
 @end deffn
 
 @deffn {Function} yypush_parse
 The parser function produced by Bison in push mode; call this function to
-parse a single token.  @xref{Push Parser Function}.
+parse a single token.
+@xref{yypush_parse,,@code{yypush_parse}}.
 @end deffn
 
 @deffn {Macro} YYRECOVERING
@@ -14820,6 +14873,10 @@ An enum of all the @dfn{token kinds} declared with @code{%token}
 (@pxref{Token Decl}).  These are the return values for @code{yylex}.  They
 should not be confused with the @emph{symbol kinds}, used internally by the
 parser.
+@end deffn
+
+@deffn {Value} YYUNDEF
+The token kind denoting an unknown token.
 @end deffn
 
 
@@ -14908,12 +14965,21 @@ A continuous flow of data between devices or programs.
 @item Kind
 ``Token'' and ``symbol'' are each overloaded to mean either a grammar symbol
 (kind) or all parse info (kind, value, location) associated with occurrences
-of that grammar symbol from the input.  To disambiguate, we use ``token
-kind'' and ``symbol kind'' to mean both grammar symbols and the types that
-represent them in a base programming language (C, C++, etc.). However, we
-use ``token'' and ``symbol'' without the word ``kind'' to mean parsed
+of that grammar symbol from the input.  To disambiguate,
+
+@itemize
+@item
+we use ``token kind'' and ``symbol kind'' to mean both grammar symbols and
+the values that represent them in a base programming language (C, C++,
+etc.).  The names of the types of these values are typically
+@code{token_kind_t}, or @code{token_kind_type}, or @code{TokenKind},
+depending on the programming language.
+
+@item
+we use ``token'' and ``symbol'' without the word ``kind'' to mean parsed
 occurrences, and we append the word ``type'' to refer to the types that
 represent them in a base programming language.
+@end itemize
 
 In summary: When you see ``kind'', interpret ``symbol'' or ``token'' to mean
 a @emph{grammar symbol}.  When you don't see ``kind'' (including when you
@@ -15206,6 +15272,7 @@ London, Department of Computer Science, TR-00-12 (December 2000).
 @c LocalWords: YYUNDEF SymbolKind yypcontext YYENOMEM TOKENMAX getBundle
 @c LocalWords: ResourceBundle myResources getString getName getToken
 @c LocalWords: getLocation getExpectedTokens reportSyntaxError bistromathic
+@c LocalWords: TokenKind
 
 @c Local Variables:
 @c ispell-dictionary: "american"

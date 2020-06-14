@@ -1,4 +1,15 @@
-* Bison 3.6
+* Bison 3.7
+** Bistromathic
+- Hitting tab on a line with a syntax error is ugly
+
+- Be robust to existing ~/.inputrc
+
+- How about not evaluating incomplete lines when the text is not finished
+  (as shells do).
+
+** Doc
+*** api.header.include
+
 ** Questions
 *** Java
 - Should i18n be part of the Lexer?  Currently it's a static method of
@@ -25,13 +36,9 @@ should be updated to not use YYERRCODE.  Returning an undef token is good
 enough.
 
 ** Java
-*** Examples
-Have an example with a push parser.  Use autocompletion in that case.
-
 *** calc.at
 Stop hard-coding "Calc".  Adjust local.at (look for FIXME).
 
-* Bison 3.7
 ** Counter example generation
 See https://github.com/akimd/bison/pull/15.
 
@@ -71,6 +78,74 @@ a bad feature.  On the other hand, that would make it much harder to sit
 push parsers on top of pull parser.  Which is currently not relevant, since
 push parsers are measurably slower.
 
+** %define parse.error formatted
+How about pushing bistromathics' yyreport_syntax_error as another standard
+way to generate the error message, and leave to the user the task of
+providing the message formats?  Currently in bistro, it reads:
+
+    const char *
+    error_format_string (int argc)
+    {
+      switch (argc)
+        {
+        default: /* Avoid compiler warnings. */
+        case 0: return _("%@: syntax error");
+        case 1: return _("%@: syntax error: unexpected %u");
+          // TRANSLATORS: '%@' is a location in a file, '%u' is an
+          // "unexpected token", and '%0e', '%1e'... are expected tokens
+          // at this point.
+          //
+          // For instance on the expression "1 + * 2", you'd get
+          //
+          // 1.5: syntax error: expected - or ( or number or function or variable before *
+        case 2: return _("%@: syntax error: expected %0e before %u");
+        case 3: return _("%@: syntax error: expected %0e or %1e before %u");
+        case 4: return _("%@: syntax error: expected %0e or %1e or %2e before %u");
+        case 5: return _("%@: syntax error: expected %0e or %1e or %2e or %3e before %u");
+        case 6: return _("%@: syntax error: expected %0e or %1e or %2e or %3e or %4e before %u");
+        case 7: return _("%@: syntax error: expected %0e or %1e or %2e or %3e or %4e or %5e before %u");
+        case 8: return _("%@: syntax error: expected %0e or %1e or %2e or %3e or %4e or %5e or %6e before %u");
+        }
+    }
+
+The message would have to be generated in a string, and pushed to yyerror.
+Which will be a pain in the neck in yacc.c.
+
+If we want to do that, we should think very carefully about the syntax of
+the format string.
+
+** yyclearin does not invoke the lookahead token's %destructor
+https://lists.gnu.org/r/bug-bison/2018-02/msg00000.html
+Rici:
+
+> Modifying yyclearin so that it calls yydestruct seems like the simplest
+> solution to this issue, but it is conceivable that such a change would
+> break programs which already perform some kind of workaround in order to
+> destruct the lookahead symbol. So it might be necessary to use some kind of
+> compatibility %define, or to create a new replacement macro with a
+> different name such as yydiscardin.
+>
+> At a minimum, the fact that yyclearin does not invoke the %destructor
+> should be highlighted in the documentation, since it is not at all obvious.
+
+** Issues in i18n
+
+Les catégories d'avertissements incluent :
+  conflicts-sr      conflits S/R (activé par défaut)
+  conflicts-rr      conflits R/R (activé par défaut)
+  dangling-alias    l'alias chaîne n'est pas attaché à un symbole
+  deprecated        construction obsolète
+  empty-rule        règle vide sans %empty
+  midrule-values    valeurs de règle intermédiaire non définies ou inutilisées
+  precedence        priorité et associativité inutiles
+  yacc              incompatibilités avec POSIX Yacc
+  other             tous les autres avertissements (activé par défaut)
+  all               tous les avertissements sauf « dangling-alias » et « yacc »
+  no-CATEGORY       désactiver les avertissements dans CATEGORIE
+  none              désactiver tous les avertissements
+  error[=CATEGORY]  traiter les avertissements comme des erreurs
+
+Line -1 and -3 should mention CATEGORIE, not CATEGORY.
 
 * Bison 3.8
 ** Unit rules / Injection rules (Akim Demaille)
@@ -146,10 +221,10 @@ define it to the same type as the C ptrdiff_t type.
 * Completion
 Several features are not available in all the backends.
 
-- push parsers: glr.c, glr.cc, lalr1.cc
-- lac: D, Java
-- glr: D, Java
-- token constructors: Java, C, D
+- lac: D, Java (easy)
+- push parsers: glr.c, glr.cc, lalr1.cc (not very difficult)
+- token constructors: Java, C, D (a bit difficult)
+- glr: D, Java (super difficult)
 
 * Bugs
 ** Autotest has quotation issues
@@ -353,7 +428,11 @@ LORIA, INRIA Nancy - Grand Est, Nancy, France
 ** More languages?
 Well, only if there is really some demand for it.
 
+*** PHP
 https://github.com/scfc/bison-php/blob/master/data/lalr1.php
+
+*** Python
+https://lists.gnu.org/r/bison-patches/2013-09/msg00000.html and following
 
 ** Multiple start symbols
 Would be very useful when parsing closely related languages.  The idea is to

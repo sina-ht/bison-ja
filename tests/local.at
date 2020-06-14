@@ -83,6 +83,16 @@ set x `LC_ALL=C ls -l '$1'` &&
 ## ------------- ##
 
 
+# AT_DIFF_U_CHECK(DIFF-ARGS, EXPECTED-DIFF)
+# -----------------------------------------
+# If diff -u works as we expect, use it, with headers stripped.
+m4_define([AT_DIFF_U_CHECK],
+[if $DIFF_U_WORKS; then
+  AT_CHECK([diff -u $1 | sed -n '/^@@/,$p' | sed 's/^ $//'], [0], [$2])
+fi
+])
+
+
 # AT_PERL_CHECK(PERL-ARGS, ...)
 # -----------------------------
 # If Perl is available, run this test.
@@ -490,7 +500,7 @@ m4_define([AT_DATA_SOURCE_PROLOGUE],
 # The prologue that should be included in any grammar whose parser is
 # meant to be compiled.
 m4_define([AT_DATA_GRAMMAR_PROLOGUE],
-[[%code top {
+[[%code top { /* -*- ]AT_LANG[ -*- */
 ]AT_DATA_SOURCE_PROLOGUE[]dnl
 [}
 ]])

@@ -2,6 +2,7 @@
 
 %define api.parser.class {Calc}
 %define api.parser.public
+%define api.push-pull push
 
 %define parse.error custom
 %define parse.trace
@@ -20,12 +21,19 @@
 
 %code {
   public static void main(String[] args) throws IOException {
-    CalcLexer l = new CalcLexer(System.in);
-    Calc p = new Calc(l);
+    CalcLexer scanner = new CalcLexer(System.in);
+    Calc parser = new Calc(scanner);
     for (String arg : args)
       if (arg.equals("-p"))
-        p.setDebugLevel(1);
-    if (!p.parse())
+        parser.setDebugLevel(1);
+    int status;
+    do {
+      int token = scanner.getToken();
+      Object lval = scanner.getValue();
+      Calc.Location yyloc = scanner.getLocation();
+      status = parser.push_parse(token, lval, yyloc);
+    } while (status == Calc.YYPUSH_MORE);
+    if (status != Calc.YYACCEPT)
       System.exit(1);
   }
 
@@ -105,14 +113,17 @@ class CalcLexer implements Calc.Lexer {
   Position start = new Position(1, 0);
   Position end = new Position(1, 0);
 
-  public Position getStartPos() {
-    return new Position(start);
+  /**
+   * The location of the last token read.
+   * Implemented with getStartPos and getEndPos in pull parsers.
+   */
+  public Calc.Location getLocation() {
+    return new Calc.Location(new Position(start), new Position(end));
   }
 
-  public Position getEndPos() {
-    return new Position(end);
-  }
-
+  /**
+   * Build and emit a syntax error message.
+   */
   public void reportSyntaxError(Calc.Context ctx) {
     System.err.print(ctx.getLocation() + ": syntax error");
     {
@@ -131,20 +142,33 @@ class CalcLexer implements Calc.Lexer {
     System.err.println("");
   }
 
-  public void yyerror(Calc.Location l, String s) {
-    if (l == null)
-      System.err.println(s);
+  /**
+   * Emit an error referring to the given location in a user-defined way.
+   *
+   * @@param loc The location of the element to which the
+   *                error message is related.
+   * @@param msg The string for the error message.
+   */
+  public void yyerror(Calc.Location loc, String msg) {
+    if (loc == null)
+      System.err.println(msg);
     else
-      System.err.println(l + ": " + s);
+      System.err.println(loc + ": " + msg);
   }
 
   Integer yylval;
 
-  public Object getLVal() {
+  /**
+   * The value of the last token read.  Called getLVal in pull parsers.
+   */
+  public Object getValue() {
     return yylval;
   }
 
-  public int yylex() throws IOException {
+  /**
+   * Fetch the next token.  Called yylex in pull parsers.
+   */
+  public int getToken() throws IOException {
     start.set(reader.getPosition());
     int ttype = st.nextToken();
     end.set(reader.getPosition());
@@ -160,7 +184,7 @@ class CalcLexer implements Calc.Lexer {
       end.set(reader.getPreviousPosition());
       return NUM;
     case ' ': case '\t':
-      return yylex();
+      return getToken();
     case '!':
       return BANG;
     case '+':
@@ -185,7 +209,9 @@ class CalcLexer implements Calc.Lexer {
   }
 }
 
-
+/**
+ * A class defining a point in the input.
+ */
 class Position {
   public int line = 1;
   public int column = 1;
@@ -227,6 +253,9 @@ class Position {
   }
 }
 
+/**
+ * A Stream reader that keeps track of the current Position.
+ */
 class PositionReader extends BufferedReader {
 
   private Position position = new Position();

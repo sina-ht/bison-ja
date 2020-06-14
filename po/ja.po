@@ -1,16 +1,16 @@
 # Japanese message for GNU bison
-# Copyright (C) 2001-2020 Free Software Foundation, Inc.
+# Copyright (C) 2001, 2020 Free Software Foundation, Inc.
 # This file is distributed under the same license as the bison package.
 # Daisuke Yamashita <yamad@mb.infoweb.ne.jp>, 2001.
 # Yasuaki Taniguchi <yasuakit@gmail.com>, 2010
 # Takeshi Hamasaki <hmatrjp@users.sourceforge.jp>, 2012, 2018
-# Hiroshi Takekawa <sian@big.or.jp>, <sian.ht@gmail.com>, 2019-2020
+# Hiroshi Takekawa <sian@big.or.jp>, <sian.ht@gmail.com>, 2019, 2020
 msgid ""
 msgstr ""
-"Project-Id-Version: GNU bison 3.5.90.9-aa3e0\n"
+"Project-Id-Version: GNU bison 3.6.3\n"
 "Report-Msgid-Bugs-To: bug-bison@gnu.org\n"
-"POT-Creation-Date: 2020-04-30 19:13+0900\n"
-"PO-Revision-Date: 2020-04-30 19:23+0900\n"
+"POT-Creation-Date: 2020-06-14 20:18+0900\n"
+"PO-Revision-Date: 2020-06-14 20:19+0900\n"
 "Last-Translator: Hiroshi Takekawa <sian@big.or.jp>\n"
 "Language-Team: Japanese <translation-team-ja@lists.sourceforge.net>\n"
 "Language: ja\n"
@@ -21,23 +21,23 @@ msgstr ""
 "Plural-Forms: nplurals=1; plural=0;\n"
 "X-Generator: Poedit 2.1.1\n"
 
-#: examples/c/bistromathic/parse.y:105 examples/java/calc/Calc.y:50
+#: examples/c/bistromathic/parse.y:106 examples/java/calc/Calc.y:58
 msgid "number"
 msgstr "number"
 
-#: examples/c/bistromathic/parse.y:107
+#: examples/c/bistromathic/parse.y:108
 msgid "function"
 msgstr "function"
 
-#: examples/c/bistromathic/parse.y:108
+#: examples/c/bistromathic/parse.y:109
 msgid "variable"
 msgstr "variable"
 
-#: examples/c/bistromathic/parse.y:319
+#: examples/c/bistromathic/parse.y:320
 msgid "%@: syntax error"
 msgstr "%@: 文法エラー"
 
-#: examples/c/bistromathic/parse.y:320
+#: examples/c/bistromathic/parse.y:321
 msgid "%@: syntax error: unexpected %u"
 msgstr "%@: 文法エラー: %u があるべきではありません"
 
@@ -48,43 +48,43 @@ msgstr "%@: 文法エラー: %u があるべきではありません"
 #. For instance on the expression "1 + * 2", you'd get
 #.
 #. 1.5: syntax error: expected - or ( or number or function or variable before *
-#: examples/c/bistromathic/parse.y:328
+#: examples/c/bistromathic/parse.y:329
 msgid "%@: syntax error: expected %0e before %u"
 msgstr "%@: 文法エラー: %u の前に %0e があるべきです"
 
-#: examples/c/bistromathic/parse.y:329
+#: examples/c/bistromathic/parse.y:330
 msgid "%@: syntax error: expected %0e or %1e before %u"
 msgstr "%@: 文法エラー: %u の前に %0e か %1e があるべきです"
 
-#: examples/c/bistromathic/parse.y:330
+#: examples/c/bistromathic/parse.y:331
 msgid "%@: syntax error: expected %0e or %1e or %2e before %u"
 msgstr "%@: 文法エラー: %u の前に %0e か %1e か %2e があるべきです"
 
-#: examples/c/bistromathic/parse.y:331
+#: examples/c/bistromathic/parse.y:332
 msgid "%@: syntax error: expected %0e or %1e or %2e or %3e before %u"
 msgstr "%@: 文法エラー: %u の前に %0e か %1e か %2e か %3e があるべきです"
 
-#: examples/c/bistromathic/parse.y:332
+#: examples/c/bistromathic/parse.y:333
 msgid "%@: syntax error: expected %0e or %1e or %2e or %3e or %4e before %u"
 msgstr ""
 "%@: 文法エラー: %u の前に %0e か %1e か %2e か %3e か %4e があるべきです"
 
-#: examples/c/bistromathic/parse.y:333
+#: examples/c/bistromathic/parse.y:334
 msgid ""
 "%@: syntax error: expected %0e or %1e or %2e or %3e or %4e or %5e before %u"
 msgstr ""
 "%@: 文法エラー: %u の前に %0e か %1e か %2e か %3e か %4e か %5e があるべきで"
 "す"
 
-#: examples/c/bistromathic/parse.y:334
+#: examples/c/bistromathic/parse.y:335
 msgid ""
-"%@: syntax error: expected %0e or %1e or %2e or %3e or %4e or %5e or %6e "
+"%@: syntax error: expected %0e or %1e or %2e or %3e or %4e or %5e etc., "
 "before %u"
 msgstr ""
-"%@: 文法エラー: %u の前に %0e か %1e か %2e か %3e か %4e か %5e か %6e があ"
-"るべきです"
+"%@: 文法エラー: %u の前に %0e か %1e か %2e か %3e か %4e か %5e などがあるべ"
+"きです"
 
-#: examples/java/calc/Calc.y:48
+#: examples/java/calc/Calc.y:56
 msgid "end of line"
 msgstr "end of line"
 
@@ -365,47 +365,47 @@ msgstr "レポートをしない"
 msgid "THINGS is a list of comma separated words that can include:"
 msgstr "THINGS は以下の単語をコンマ(,)で区切ったリストです:"
 
-#: src/getargs.c:294
+#: src/getargs.c:296
 msgid "TRACES is a list of comma separated words that can include:"
 msgstr "TRACES は以下の単語をコンマ(,)で区切ったリストです:"
 
-#: src/getargs.c:306
+#: src/getargs.c:308
 msgid "show errors with carets"
 msgstr "エラーを ^ つきで表示"
 
-#: src/getargs.c:307
+#: src/getargs.c:309
 msgid "show machine-readable fixes"
 msgstr "修正を出力"
 
-#: src/getargs.c:308
+#: src/getargs.c:310
 msgid "do not generate any file"
 msgstr "ファイルを生成しない"
 
-#: src/getargs.c:309
+#: src/getargs.c:311
 msgid "all of the above"
 msgstr "上記全て有効化"
 
-#: src/getargs.c:310
+#: src/getargs.c:312
 msgid "disable all of the above"
 msgstr "上記全て無効化"
 
 #. TRANSLATORS: Use the same translation for FEATURES as in the
 #. --feature=FEATURES help message.
-#: src/getargs.c:332
+#: src/getargs.c:334
 msgid "FEATURES is a list of comma separated words that can include:"
 msgstr "FEATURES は以下の単語をコンマ(,)で区切ったリストです:"
 
-#: src/getargs.c:346
+#: src/getargs.c:348
 #, c-format
 msgid "Try '%s --help' for more information.\n"
 msgstr "`%s --help' で詳細情報を参照してください\n"
 
-#: src/getargs.c:355
+#: src/getargs.c:357
 #, c-format
 msgid "Usage: %s [OPTION]... FILE\n"
 msgstr "使い方: %s [オプション]... ファイル\n"
 
-#: src/getargs.c:356
+#: src/getargs.c:358
 msgid ""
 "Generate a deterministic LR or generalized LR (GLR) parser employing\n"
 "LALR(1), IELR(1), or canonical LR(1) parser tables.\n"
@@ -415,16 +415,16 @@ msgstr ""
 "LALR(1), IELR(1), または canonical LR(1) パーサテーブルを用いて生成する。\n"
 "\n"
 
-#: src/getargs.c:362
+#: src/getargs.c:364
 msgid ""
 "Mandatory arguments to long options are mandatory for short options too.\n"
 msgstr "長いオプションに必須の引数は短いオプションにも必須です.\n"
 
-#: src/getargs.c:365
+#: src/getargs.c:367
 msgid "The same is true for optional arguments.\n"
 msgstr "オプションの引数についても同様です。\n"
 
-#: src/getargs.c:370
+#: src/getargs.c:372
 msgid ""
 "Operation Modes:\n"
 "  -h, --help                 display this help and exit\n"
@@ -450,7 +450,7 @@ msgstr ""
 "  -f, --feature[=FEATURES]   機能を有効にする\n"
 "\n"
 
-#: src/getargs.c:386
+#: src/getargs.c:388
 msgid ""
 "Diagnostics:\n"
 "  -W, --warnings[=CATEGORY]  report the warnings falling in CATEGORY\n"
@@ -464,7 +464,7 @@ msgstr ""
 "      --style=FILE           診断結果に色をつける CSS に FILE を使う\n"
 "\n"
 
-#: src/getargs.c:400
+#: src/getargs.c:402
 #, c-format
 msgid ""
 "Tuning the Parser:\n"
@@ -495,7 +495,7 @@ msgstr ""
 "  -k, --token-table          トークン名のテーブルを含める\n"
 "  -y, --yacc                 POSIX Yacc をエミュレートする\n"
 
-#: src/getargs.c:419
+#: src/getargs.c:421
 msgid ""
 "Output Files:\n"
 "      --defines[=FILE]       also produce a header file\n"
@@ -521,17 +521,17 @@ msgstr ""
 "  -g, --graph[=FILE]         オートマトンのグラフも出力\n"
 "  -x, --xml[=FILE]           オートマトンを XML 形式で出力\n"
 
-#: src/getargs.c:436
+#: src/getargs.c:438
 #, c-format
 msgid "Report bugs to <%s>.\n"
 msgstr "バグを発見したら <%s> 宛に報告して下さい。\n"
 
-#: src/getargs.c:437
+#: src/getargs.c:439
 #, c-format
 msgid "%s home page: <%s>.\n"
 msgstr "%s のホームページ: <%s>\n"
 
-#: src/getargs.c:438
+#: src/getargs.c:440
 msgid "General help using GNU software: <http://www.gnu.org/gethelp/>.\n"
 msgstr ""
 "GNU ソフトウェアを使用する際の一般的なヘルプ: <http://www.gnu.org/gethelp/>\n"
@@ -541,31 +541,31 @@ msgstr ""
 #. form one of the URLs at http://translationproject.org/team/.
 #. Otherwise, replace the entire URL with your translation team's
 #. email address.
-#: src/getargs.c:453
+#: src/getargs.c:455
 msgid "Report translation bugs to <http://translationproject.org/team/>.\n"
 msgstr ""
 "翻訳に関するバグは<translation-team-ja@lists.sourceforge.net>に報告してくださ"
 "い。\n"
 
-#: src/getargs.c:456
+#: src/getargs.c:458
 msgid "For complete documentation, run: info bison.\n"
 msgstr "充実したドキュメントは次のコマンドで表示できます: info bison\n"
 
-#: src/getargs.c:472
+#: src/getargs.c:474
 #, c-format
 msgid "bison (GNU Bison) %s"
 msgstr "bison (GNU Bison) %s"
 
-#: src/getargs.c:474
+#: src/getargs.c:476
 msgid "Written by Robert Corbett and Richard Stallman.\n"
 msgstr "Robert Corbett と Richard Stallman によって書かれました\n"
 
-#: src/getargs.c:478
+#: src/getargs.c:480
 #, c-format
 msgid "Copyright (C) %d Free Software Foundation, Inc.\n"
 msgstr "Copyright (C) %d Free Software Foundation, Inc.\n"
 
-#: src/getargs.c:481
+#: src/getargs.c:483
 msgid ""
 "This is free software; see the source for copying conditions.  There is NO\n"
 "warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n"
@@ -576,31 +576,31 @@ msgstr ""
 "これはフリーソフトウェアです -- 複製についての条件はソースを見ましょう。\n"
 "一切の保証はありません -- 商業性や目的適合性についての保証すらありません。\n"
 
-#: src/getargs.c:503
+#: src/getargs.c:505
 #, c-format
 msgid "multiple skeleton declarations are invalid"
 msgstr "複数のスケルトンの宣言は無効です"
 
-#: src/getargs.c:520
+#: src/getargs.c:522
 #, c-format
 msgid "%s: invalid language"
 msgstr "%s: 無効な言語"
 
-#: src/getargs.c:523
+#: src/getargs.c:525
 msgid "multiple language declarations are invalid"
 msgstr "複数の言語の宣言は無効です"
 
-#: src/getargs.c:816
+#: src/getargs.c:818
 #, c-format
 msgid "deprecated option: %s, use %s"
 msgstr "%s は非推奨のオプションです。%s を使ってください"
 
-#: src/getargs.c:850
+#: src/getargs.c:852
 #, c-format
 msgid "missing operand"
 msgstr "オペランドがありません"
 
-#: src/getargs.c:852
+#: src/getargs.c:854
 #, c-format
 msgid "extra operand %s"
 msgstr "余分なオペランド %s"

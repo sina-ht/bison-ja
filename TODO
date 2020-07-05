@@ -1,14 +1,42 @@
 * Bison 3.7
+** Cex
+*** Improve gnulib
+Don't do this (counterexample.c):
+
+// This is the fastest way to get the tail node from the gl_list API.
+gl_list_node_t
+list_get_end (gl_list_t list)
+{
+  gl_list_node_t sentinel = gl_list_add_last (list, NULL);
+  gl_list_node_t res = gl_list_previous_node (list, sentinel);
+  gl_list_remove_node (list, sentinel);
+  return res;
+}
+
+*** Ambiguous rewriting
+If the user is stupid enough to have equal rules, then the derivations are
+harder to read:
+
+    Reduce/reduce conflict on tokens $end, "+", "⊕":
+        2 exp: exp "+" exp .
+        3 exp: exp "+" exp .
+      Example                  exp "+" exp •
+      First derivation         exp ::=[ exp "+" exp • ]
+      Example                  exp "+" exp •
+      Second derivation        exp ::=[ exp "+" exp • ]
+
+Do we care about this?  In color, we use twice the same color here, but we
+could try to use the same color for the same rule.
+
+*** XML reports
+Show the counterexamples.  This is going to be really hard and/or painful.
+Unless we play it dumb (little structure).
+
 ** Bistromathic
-- Hitting tab on a line with a syntax error is ugly
-
-- Be robust to existing ~/.inputrc
-
 - How about not evaluating incomplete lines when the text is not finished
   (as shells do).
 
-** Doc
-*** api.header.include
+- Caret diagnostics
 
 ** Questions
 *** Java
@@ -39,23 +67,6 @@ enough.
 *** calc.at
 Stop hard-coding "Calc".  Adjust local.at (look for FIXME).
 
-** Counter example generation
-See https://github.com/akimd/bison/pull/15.
-
-** Clean up
-Rename user_token_number for tokens as "code".  It's not a "user number",
-it's the token code, and the user can control it, but this code always
-exists.
-
-See also USER_NUMBER_UNDEFINED and NUMBER_UNDEFINED.
-
-Rename endtoken as eoftoken.
-
-Also do it in data/skeletons.
-
-Don't rename in Bison 3.6 (it would be logical to do so) because that
-would probably create many conflicts in Vincent's work (see previous point).
-
 ** A dev warning for b4_
 Maybe we should check for m4_ and b4_ leaking out of the m4 processing, as
 Autoconf does.  It would have caught overquotation issues.
@@ -66,7 +77,7 @@ generates tons of white space in the page, and may contribute to bad page
 breaks.
 
 ** consistency
-token vs terminal, variable vs non terminal.
+token vs terminal.
 
 ** api.token.raw
 The YYUNDEFTOK could be assigned a semantic value so that yyerror could be
@@ -148,6 +159,9 @@ Les catégories d'avertissements incluent :
 Line -1 and -3 should mention CATEGORIE, not CATEGORY.
 
 * Bison 3.8
+** Rewrite glr.cc
+Get rid of scaffolding in glr.c.
+
 ** Unit rules / Injection rules (Akim Demaille)
 Maybe we could expand unit rules (or "injections", see
 https://homepages.cwi.nl/~daybuild/daily-books/syntax/2-sdf/sdf.html), i.e.,
@@ -414,16 +428,6 @@ undocumented ''features''.  Maybe an empty action ought to be
 presented too.  Shall we try to make a single grammar with all these
 features, or should we have several very small grammars?
 
-** --report=conflict-path
-Provide better assistance for understanding the conflicts by providing
-a sample text exhibiting the (LALR) ambiguity.  See the paper from
-DeRemer and Penello: they already provide the algorithm.
-
-** Statically check for potential ambiguities in GLR grammars
-See <http://www.lsv.fr/~schmitz/pub/expamb.pdf> for an approach.
-An Experimental Ambiguity Detection Tool ∗ Sylvain Schmitz
-LORIA, INRIA Nancy - Grand Est, Nancy, France
-
 * Extensions
 ** More languages?
 Well, only if there is really some demand for it.
@@ -514,13 +518,6 @@ XML output for GNU Bison and gcc
 XML output for GNU Bison
    http://yaxx.sourceforge.net/
 
-** Counterexample generation
-https://lists.gnu.org/archive/html/bug-bison/2016-06/msg00000.html
-http://www.cs.cornell.edu/andru/papers/cupex/
-
-Andrew Myers and Vincent Imbimbo are working on this item, see
-https://github.com/akimd/bison/issues/12
-
 * Coding system independence
 Paul notes:
 
@@ -597,15 +594,9 @@ Foundation, Inc.
 
 This file is part of Bison, the GNU Compiler Compiler.
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+Texts.  A copy of the license is included in the "GNU Free
+Documentation License" file as part of this distribution.

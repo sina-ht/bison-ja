@@ -498,7 +498,8 @@ yylex (void)
     case '5': case '6': case '7': case '8': case '9':
       {
         int nchars = 0;
-        sscanf (input - 1, "%d%n", &yylval.NUM, &nchars);
+        int n = sscanf (input - 1, "%d%n", &yylval.NUM, &nchars);
+        assert (n == 1);
         input += nchars - 1;
         return NUM;
       }
@@ -775,7 +776,31 @@ sub run ($)
 
 ##################################################################
 
-=item C<compile ($base)>
+=item C<language ($base)>
+
+The language to use depending on the %language specification in
+C<$base.y>: C<c> or C<c++>.
+
+=cut
+
+sub language ($)
+{
+  my ($base) = @_;
+  if ($gbench)
+    {
+      "c++";
+    }
+  else
+    {
+      my $language = `sed -ne '/%language "\\(.*\\)"/{s//\\1/;p;q;}' $base.y`;
+      chomp $language;
+      $language eq 'C++' ? "c++" : "c";
+    }
+}
+
+##################################################################
+
+=item C<compiler ($base)>
 
 The compiler to use depending on the %language specification in
 C<$base.y>.
@@ -785,16 +810,12 @@ C<$base.y>.
 sub compiler ($)
 {
   my ($base) = @_;
-  if ($gbench)
-    {
-      $cxx;
-    }
-  else
-    {
-      my $language = `sed -ne '/%language "\\(.*\\)"/{s//\\1/;p;q;}' $base.y`;
-      chomp $language;
-      $language eq 'C++' ? $cxx : $cc;
-    }
+  my %compiler =
+    (
+      'c++' => $cxx,
+      'c'   => $cc,
+    );
+  $compiler{language ($base)};
 }
 
 ##################################################################
@@ -805,21 +826,38 @@ Compile C<$base.y> to an executable.
 
 =cut
 
-sub compile ($)
+sub compile ($$)
 {
-  my ($base) = @_;
+  my ($makefile, $base) = @_;
   my $compiler = compiler ($base);
 
   my $my_bison = `sed -ne '/[/][/] %bison "\\(.*\\)"/{s//\\1/;p;q;}' $base.y`;
   chop $my_bison;
-  run ((length $my_bison ? $my_bison : $bison) . " $base.y -o $base.c");
+  my %ext =
+    (
+      'c++' => 'cc',
+      'c'   => 'c',
+    );
+  my $ext = $ext{language ($base)};
   if ($gbench)
     {
-      run "$compiler -c -o $base.o $cflags $base.c";
+      print $makefile <<EOF;
+$base.$ext: $base.y
+\t@{[length $my_bison ? $my_bison : $bison]} $base.y -o $base.$ext
+
+$base.o: $base.$ext
+\t$compiler -c -o $base.o $cflags $base.$ext
+EOF
     }
   else
     {
-      run "$compiler -o $base $cflags $base.c";
+      print $makefile <<EOF;
+$base.$ext: $base.y
+\t@{[length $my_bison ? $my_bison : $bison]} $base.y -o $base.$ext
+
+$base: $base.$ext
+\t$compiler -o $base $cflags $base.$ext
+EOF
     }
 }
 
@@ -849,11 +887,13 @@ sub bench_with_timethese ($@)
   # For each bench, capture the size.
   my %size;
 
+  my $makefile = new IO::File ">Makefile";
   while (my ($name, $directives) = each %bench)
     {
       generate_grammar ($grammar, $name, $directives);
       # Compile the executable.
-      compile ($name);
+      compile ($makefile, $name);
+      run "make $name";
       $bench{$name} = "system ('./$name');";
       chop($size{$name} = `wc -c <$name`);
     }
@@ -908,6 +948,20 @@ sub bench_with_gbenchmark ($@)
 compiler: $compiler $cflags
 EOF
 
+  my $makefile = new IO::File ">Makefile";
+  print $makefile <<EOF;
+.PHONY: bench
+bench: main
+\t./main \$(BENCHFLAGS) | tee -a README.md
+
+# Link the bench cases in a different order to run the bench case in a
+# different order.
+.PHONY: rand
+rand:
+\t-rm main
+\tmake bench OBJECTS="\$\$(shuf -e \$(OBJECTS) | xargs)"
+EOF
+
   my @obj = ();
   for my $i (0 .. $#directive)
     {
@@ -916,19 +970,24 @@ EOF
       print $m;
       print $readme $m;
       generate_grammar ($grammar, $base, $directive[$i]);
-      compile ($base);
+      compile ($makefile, $base);
       push @obj, "$base.o";
     }
 
-  my $out = new IO::File ">main.c";
+  my $out = new IO::File ">main.cc";
   print $out <<EOF;
 #include <benchmark/benchmark.h>
 
 BENCHMARK_MAIN();
 EOF
 
-  run "$compiler -o main $cflags main.c @obj -lbenchmark";
-  run "./main | tee -a README.md";
+  print $makefile <<EOF;
+OBJECTS = @{obj}
+main: \$(OBJECTS)
+\t$compiler -o main $cflags main.cc \$(OBJECTS) -lbenchmark
+EOF
+
+  run "make";
 }
 
 ######################################################################

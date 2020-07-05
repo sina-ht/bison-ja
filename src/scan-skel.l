@@ -26,13 +26,13 @@
 #include <path-join.h>
 #include <quotearg.h>
 
-#include <src/complain.h>
-#include <src/files.h>
-#include <src/getargs.h>
-#include <src/scan-skel.h>
+#include "src/complain.h"
+#include "src/files.h"
+#include "src/getargs.h"
+#include "src/scan-skel.h"
 
 #define FLEX_PREFIX(Id) skel_ ## Id
-#include <src/flex-scanner.h>
+#include "src/flex-scanner.h"
 
 /* Work around a bug in flex 2.5.31.  See Debian bug 333231
    <http://bugs.debian.org/cgi-bin/bugreport.cgi?bug=333231>.  */
@@ -50,6 +50,7 @@ static void at_output (int argc, char *argv[], char **name, int *lineno);
 static void fail_for_at_directive_too_many_args (char const *at_directive_name);
 static void fail_for_at_directive_too_few_args (char const *at_directive_name);
 static void fail_for_invalid_at (char const *at);
+static void output_mapped_file (char const *name);
 %}
 
 %x SC_AT_DIRECTIVE_ARGS
@@ -77,7 +78,7 @@ static void fail_for_invalid_at (char const *at);
 @\n  continue;
 
 "@oline@"  fprintf (yyout, "%d", out_lineno + 1);
-"@ofile@"  fputs (quotearg_style (c_quoting_style, out_name), yyout);
+"@ofile@"  output_mapped_file (out_name);
 
 "@basename("    at_init (&argc, argv, &at_ptr, &at_basename);
 "@complain("    at_init (&argc, argv, &at_ptr, &at_complain);
@@ -99,11 +100,11 @@ static void fail_for_invalid_at (char const *at);
 
 <SC_AT_DIRECTIVE_ARGS>
 {
-  [^@]+  STRING_GROW;
+  [^@]+  STRING_GROW ();
 
-  "@@"   obstack_1grow (&obstack_for_string, '@');
-  "@{"   obstack_1grow (&obstack_for_string, '[');
-  "@}"   obstack_1grow (&obstack_for_string, ']');
+  "@@"   STRING_1GROW ('@');
+  "@{"   STRING_1GROW ('[');
+  "@}"   STRING_1GROW (']');
   "@'"   continue; /* For starting an argument that begins with whitespace. */
   @\n    continue;
 
@@ -263,4 +264,12 @@ static void
 fail_for_invalid_at (char const *at)
 {
   complain (NULL, fatal, "invalid @ in skeleton: %s", at);
+}
+
+static void
+output_mapped_file (char const *name)
+{
+  char *f = map_file_name (name);
+  fputs (quotearg_style (c_quoting_style, f), yyout);
+  free (f);
 }

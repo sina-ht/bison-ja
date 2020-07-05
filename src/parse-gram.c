@@ -1,4 +1,4 @@
-/* A Bison parser, made by GNU Bison 3.6.  */
+/* A Bison parser, made by GNU Bison 3.6.4.130-76c4d.  */
 
 /* Bison implementation for Yacc-like parsers in C
 
@@ -49,7 +49,7 @@
 #define YYBISON 1
 
 /* Bison version.  */
-#define YYBISON_VERSION "3.6"
+#define YYBISON_VERSION "3.6.4.130-76c4d"
 
 /* Skeleton name.  */
 #define YYSKELETON_NAME "yacc.c"
@@ -257,16 +257,19 @@ typedef enum yysymbol_kind_t yysymbol_kind_t;
   static char *strip_braces (char *code);
 
   /* Convert CODE by calling code_props_plain_init if PLAIN, otherwise
-     code_props_symbol_action_init.  Call
+     code_props_symbol_action_init.  Calls
      gram_scanner_last_string_free to release the latest string from
      the scanner (should be CODE). */
   static char const *translate_code (char *code, location loc, bool plain);
 
   /* Convert CODE by calling code_props_plain_init after having
      stripped the first and last characters (expected to be '{', and
-     '}').  Call gram_scanner_last_string_free to release the latest
+     '}').  Calls gram_scanner_last_string_free to release the latest
      string from the scanner (should be CODE). */
   static char const *translate_code_braceless (char *code, location loc);
+
+  /* Handle a %defines directive.  */
+  static void handle_defines (char const *value);
 
   /* Handle a %error-verbose directive.  */
   static void handle_error_verbose (location const *loc, char const *directive);
@@ -275,6 +278,9 @@ typedef enum yysymbol_kind_t yysymbol_kind_t;
   static void handle_file_prefix (location const *loc,
                                   location const *dir_loc,
                                   char const *directive, char const *value);
+
+  /* Handle a %language directive.  */
+  static void handle_language (location const *loc, char const *lang);
 
   /* Handle a %name-prefix directive.  */
   static void handle_name_prefix (location const *loc,
@@ -301,6 +307,13 @@ typedef enum yysymbol_kind_t yysymbol_kind_t;
   /* Add style to semantic values in traces.  */
   static void tron (FILE *yyo);
   static void troff (FILE *yyo);
+
+  /* Interpret a quoted string (such as `"Hello, \"World\"\n\""`).
+     Manages the memory of the result.  */
+  static char *unquote (const char *str);
+
+  /* Discard the latest unquoted string.  */
+  static void unquote_free (char *last_string);
 
   /** Add a lex-param and/or a parse-param.
    *
@@ -621,19 +634,19 @@ union yyalloc
   /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,   287,   287,   296,   297,   301,   302,   308,   312,   317,
-     318,   323,   324,   325,   326,   327,   332,   337,   338,   339,
-     340,   341,   342,   342,   343,   344,   345,   346,   347,   348,
-     349,   350,   354,   355,   364,   365,   369,   380,   384,   388,
-     396,   406,   407,   417,   418,   424,   437,   437,   442,   442,
-     447,   451,   461,   462,   463,   464,   468,   469,   474,   475,
-     479,   480,   484,   485,   486,   499,   508,   512,   516,   524,
-     525,   529,   542,   543,   548,   549,   550,   568,   572,   576,
-     584,   586,   591,   598,   608,   612,   616,   624,   629,   641,
-     642,   648,   649,   650,   657,   657,   665,   666,   667,   672,
-     675,   677,   679,   681,   683,   685,   687,   689,   691,   696,
-     697,   706,   730,   731,   732,   733,   745,   747,   771,   776,
-     777,   782,   790,   791
+       0,   308,   308,   317,   318,   322,   323,   329,   333,   338,
+     339,   340,   341,   342,   343,   344,   349,   354,   355,   356,
+     357,   358,   359,   359,   360,   361,   362,   363,   364,   365,
+     366,   367,   371,   372,   381,   382,   386,   397,   401,   405,
+     413,   423,   424,   434,   435,   441,   454,   454,   459,   459,
+     464,   468,   478,   479,   480,   481,   485,   486,   491,   492,
+     496,   497,   501,   502,   503,   516,   525,   529,   533,   541,
+     542,   546,   559,   560,   565,   566,   567,   585,   589,   593,
+     601,   603,   608,   615,   625,   629,   633,   641,   646,   658,
+     659,   665,   666,   667,   674,   674,   682,   683,   684,   689,
+     692,   694,   696,   698,   700,   702,   704,   706,   708,   713,
+     714,   723,   747,   748,   749,   750,   762,   764,   788,   793,
+     794,   799,   807,   808
 };
 #endif
 
@@ -1057,75 +1070,75 @@ tron (yyo);
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   switch (yykind)
     {
-    case 3: /* "string"  */
+    case YYSYMBOL_STRING: /* "string"  */
          { fputs (((*yyvaluep).STRING), yyo); }
         break;
 
-    case 4: /* "translatable string"  */
+    case YYSYMBOL_TSTRING: /* "translatable string"  */
          { fputs (((*yyvaluep).TSTRING), yyo); }
         break;
 
-    case 21: /* "%error-verbose"  */
+    case YYSYMBOL_PERCENT_ERROR_VERBOSE: /* "%error-verbose"  */
          { fputs (((*yyvaluep).PERCENT_ERROR_VERBOSE), yyo); }
         break;
 
-    case 24: /* "%<flag>"  */
+    case YYSYMBOL_PERCENT_FLAG: /* "%<flag>"  */
          { fprintf (yyo, "%%%s", ((*yyvaluep).PERCENT_FLAG)); }
         break;
 
-    case 25: /* "%file-prefix"  */
+    case YYSYMBOL_PERCENT_FILE_PREFIX: /* "%file-prefix"  */
          { fputs (((*yyvaluep).PERCENT_FILE_PREFIX), yyo); }
         break;
 
-    case 29: /* "%name-prefix"  */
+    case YYSYMBOL_PERCENT_NAME_PREFIX: /* "%name-prefix"  */
          { fputs (((*yyvaluep).PERCENT_NAME_PREFIX), yyo); }
         break;
 
-    case 34: /* "%pure-parser"  */
+    case YYSYMBOL_PERCENT_PURE_PARSER: /* "%pure-parser"  */
          { fputs (((*yyvaluep).PERCENT_PURE_PARSER), yyo); }
         break;
 
-    case 41: /* "{...}"  */
+    case YYSYMBOL_BRACED_CODE: /* "{...}"  */
          { fputs (((*yyvaluep).BRACED_CODE), yyo); }
         break;
 
-    case 42: /* "%?{...}"  */
+    case YYSYMBOL_BRACED_PREDICATE: /* "%?{...}"  */
          { fputs (((*yyvaluep).BRACED_PREDICATE), yyo); }
         break;
 
-    case 43: /* "[identifier]"  */
+    case YYSYMBOL_BRACKETED_ID: /* "[identifier]"  */
          { fprintf (yyo, "[%s]", ((*yyvaluep).BRACKETED_ID)); }
         break;
 
-    case 44: /* "character literal"  */
+    case YYSYMBOL_CHAR: /* "character literal"  */
          { fputs (char_name (((*yyvaluep).CHAR)), yyo); }
         break;
 
-    case 46: /* "epilogue"  */
+    case YYSYMBOL_EPILOGUE: /* "epilogue"  */
          { fputs (((*yyvaluep).EPILOGUE), yyo); }
         break;
 
-    case 48: /* "identifier"  */
+    case YYSYMBOL_ID: /* "identifier"  */
          { fputs (((*yyvaluep).ID), yyo); }
         break;
 
-    case 49: /* "identifier:"  */
+    case YYSYMBOL_ID_COLON: /* "identifier:"  */
          { fprintf (yyo, "%s:", ((*yyvaluep).ID_COLON)); }
         break;
 
-    case 52: /* "%{...%}"  */
+    case YYSYMBOL_PROLOGUE: /* "%{...%}"  */
          { fputs (((*yyvaluep).PROLOGUE), yyo); }
         break;
 
-    case 54: /* "<tag>"  */
+    case YYSYMBOL_TAG: /* "<tag>"  */
          { fprintf (yyo, "<%s>", ((*yyvaluep).TAG)); }
         break;
 
-    case 57: /* "integer literal"  */
+    case YYSYMBOL_INT: /* "integer literal"  */
          { fprintf (yyo, "%d", ((*yyvaluep).INT)); }
         break;
 
-    case 58: /* "%param"  */
+    case YYSYMBOL_PERCENT_PARAM: /* "%param"  */
 {
   switch (((*yyvaluep).PERCENT_PARAM))
     {
@@ -1140,75 +1153,75 @@ tron (yyo);
 }
         break;
 
-    case 68: /* code_props_type  */
+    case YYSYMBOL_code_props_type: /* code_props_type  */
          { fprintf (yyo, "%s", code_props_type_string (((*yyvaluep).code_props_type))); }
         break;
 
-    case 74: /* tag.opt  */
+    case YYSYMBOL_74_tag_opt: /* tag.opt  */
          { fputs (((*yyvaluep).yykind_74), yyo); }
         break;
 
-    case 75: /* generic_symlist  */
+    case YYSYMBOL_generic_symlist: /* generic_symlist  */
          { symbol_list_syms_print (((*yyvaluep).generic_symlist), yyo); }
         break;
 
-    case 76: /* generic_symlist_item  */
+    case YYSYMBOL_generic_symlist_item: /* generic_symlist_item  */
          { symbol_list_syms_print (((*yyvaluep).generic_symlist_item), yyo); }
         break;
 
-    case 77: /* tag  */
+    case YYSYMBOL_tag: /* tag  */
          { fprintf (yyo, "<%s>", ((*yyvaluep).tag)); }
         break;
 
-    case 78: /* nterm_decls  */
+    case YYSYMBOL_nterm_decls: /* nterm_decls  */
          { symbol_list_syms_print (((*yyvaluep).nterm_decls), yyo); }
         break;
 
-    case 79: /* token_decls  */
+    case YYSYMBOL_token_decls: /* token_decls  */
          { symbol_list_syms_print (((*yyvaluep).token_decls), yyo); }
         break;
 
-    case 80: /* token_decl.1  */
+    case YYSYMBOL_80_token_decl_1: /* token_decl.1  */
          { symbol_list_syms_print (((*yyvaluep).yykind_80), yyo); }
         break;
 
-    case 81: /* token_decl  */
+    case YYSYMBOL_token_decl: /* token_decl  */
          { fprintf (yyo, "%s", ((*yyvaluep).token_decl) ? ((*yyvaluep).token_decl)->tag : "<NULL>"); }
         break;
 
-    case 82: /* int.opt  */
+    case YYSYMBOL_82_int_opt: /* int.opt  */
          { fprintf (yyo, "%d", ((*yyvaluep).yykind_82)); }
         break;
 
-    case 83: /* alias  */
+    case YYSYMBOL_alias: /* alias  */
          { fprintf (yyo, "%s", ((*yyvaluep).alias) ? ((*yyvaluep).alias)->tag : "<NULL>"); }
         break;
 
-    case 84: /* token_decls_for_prec  */
+    case YYSYMBOL_token_decls_for_prec: /* token_decls_for_prec  */
          { symbol_list_syms_print (((*yyvaluep).token_decls_for_prec), yyo); }
         break;
 
-    case 85: /* token_decl_for_prec.1  */
+    case YYSYMBOL_85_token_decl_for_prec_1: /* token_decl_for_prec.1  */
          { symbol_list_syms_print (((*yyvaluep).yykind_85), yyo); }
         break;
 
-    case 86: /* token_decl_for_prec  */
+    case YYSYMBOL_token_decl_for_prec: /* token_decl_for_prec  */
          { fprintf (yyo, "%s", ((*yyvaluep).token_decl_for_prec) ? ((*yyvaluep).token_decl_for_prec)->tag : "<NULL>"); }
         break;
 
-    case 87: /* symbol_decls  */
+    case YYSYMBOL_symbol_decls: /* symbol_decls  */
          { symbol_list_syms_print (((*yyvaluep).symbol_decls), yyo); }
         break;
 
-    case 88: /* symbol_decl.1  */
+    case YYSYMBOL_88_symbol_decl_1: /* symbol_decl.1  */
          { symbol_list_syms_print (((*yyvaluep).yykind_88), yyo); }
         break;
 
-    case 96: /* variable  */
+    case YYSYMBOL_variable: /* variable  */
          { fputs (((*yyvaluep).variable), yyo); }
         break;
 
-    case 97: /* value  */
+    case YYSYMBOL_value: /* value  */
 {
   switch (((*yyvaluep).value).kind)
     {
@@ -1219,19 +1232,19 @@ tron (yyo);
 }
         break;
 
-    case 98: /* id  */
+    case YYSYMBOL_id: /* id  */
          { fprintf (yyo, "%s", ((*yyvaluep).id) ? ((*yyvaluep).id)->tag : "<NULL>"); }
         break;
 
-    case 99: /* id_colon  */
+    case YYSYMBOL_id_colon: /* id_colon  */
          { fprintf (yyo, "%s:", ((*yyvaluep).id_colon)->tag); }
         break;
 
-    case 100: /* symbol  */
+    case YYSYMBOL_symbol: /* symbol  */
          { fprintf (yyo, "%s", ((*yyvaluep).symbol) ? ((*yyvaluep).symbol)->tag : "<NULL>"); }
         break;
 
-    case 101: /* string_as_id  */
+    case YYSYMBOL_string_as_id: /* string_as_id  */
          { fprintf (yyo, "%s", ((*yyvaluep).string_as_id) ? ((*yyvaluep).string_as_id)->tag : "<NULL>"); }
         break;
 
@@ -1681,39 +1694,39 @@ yydestruct (const char *yymsg,
   YY_IGNORE_MAYBE_UNINITIALIZED_BEGIN
   switch (yykind)
     {
-    case 75: /* generic_symlist  */
+    case YYSYMBOL_generic_symlist: /* generic_symlist  */
             { symbol_list_free (((*yyvaluep).generic_symlist)); }
         break;
 
-    case 76: /* generic_symlist_item  */
+    case YYSYMBOL_generic_symlist_item: /* generic_symlist_item  */
             { symbol_list_free (((*yyvaluep).generic_symlist_item)); }
         break;
 
-    case 78: /* nterm_decls  */
+    case YYSYMBOL_nterm_decls: /* nterm_decls  */
             { symbol_list_free (((*yyvaluep).nterm_decls)); }
         break;
 
-    case 79: /* token_decls  */
+    case YYSYMBOL_token_decls: /* token_decls  */
             { symbol_list_free (((*yyvaluep).token_decls)); }
         break;
 
-    case 80: /* token_decl.1  */
+    case YYSYMBOL_80_token_decl_1: /* token_decl.1  */
             { symbol_list_free (((*yyvaluep).yykind_80)); }
         break;
 
-    case 84: /* token_decls_for_prec  */
+    case YYSYMBOL_token_decls_for_prec: /* token_decls_for_prec  */
             { symbol_list_free (((*yyvaluep).token_decls_for_prec)); }
         break;
 
-    case 85: /* token_decl_for_prec.1  */
+    case YYSYMBOL_85_token_decl_for_prec_1: /* token_decl_for_prec.1  */
             { symbol_list_free (((*yyvaluep).yykind_85)); }
         break;
 
-    case 87: /* symbol_decls  */
+    case YYSYMBOL_symbol_decls: /* symbol_decls  */
             { symbol_list_free (((*yyvaluep).symbol_decls)); }
         break;
 
-    case 88: /* symbol_decl.1  */
+    case YYSYMBOL_88_symbol_decl_1: /* symbol_decl.1  */
             { symbol_list_free (((*yyvaluep).yykind_88)); }
         break;
 
@@ -1754,41 +1767,36 @@ static YYLTYPE yyloc_default
 YYLTYPE yylloc = yyloc_default;
 
     /* Number of syntax errors so far.  */
-    int yynerrs;
+    int yynerrs = 0;
 
-    yy_state_fast_t yystate;
+    yy_state_fast_t yystate = 0;
     /* Number of tokens to shift before error messages enabled.  */
-    int yyerrstatus;
+    int yyerrstatus = 0;
 
-    /* The stacks and their tools:
-       'yyss': related to states.
-       'yyvs': related to semantic values.
-       'yyls': related to locations.
-
-       Refer to the stacks through separate pointers, to allow yyoverflow
+    /* Refer to the stacks through separate pointers, to allow yyoverflow
        to reallocate them elsewhere.  */
 
     /* Their size.  */
-    YYPTRDIFF_T yystacksize;
+    YYPTRDIFF_T yystacksize = YYINITDEPTH;
 
-    /* The state stack.  */
+    /* The state stack: array, bottom, top.  */
     yy_state_t yyssa[YYINITDEPTH];
-    yy_state_t *yyss;
-    yy_state_t *yyssp;
+    yy_state_t *yyss = yyssa;
+    yy_state_t *yyssp = yyss;
 
-    /* The semantic value stack.  */
+    /* The semantic value stack: array, bottom, top.  */
     YYSTYPE yyvsa[YYINITDEPTH];
-    YYSTYPE *yyvs;
-    YYSTYPE *yyvsp;
+    YYSTYPE *yyvs = yyvsa;
+    YYSTYPE *yyvsp = yyvs;
 
-    /* The location stack.  */
+    /* The location stack: array, bottom, top.  */
     YYLTYPE yylsa[YYINITDEPTH];
-    YYLTYPE *yyls;
-    YYLTYPE *yylsp;
+    YYLTYPE *yyls = yylsa;
+    YYLTYPE *yylsp = yyls;
 
     yy_state_t yyesa[20];
-    yy_state_t *yyes;
-    YYPTRDIFF_T yyes_capacity;
+    yy_state_t *yyes = yyesa;
+    YYPTRDIFF_T yyes_capacity = 20 < YYMAXDEPTH ? 20 : YYMAXDEPTH;
 
   /* Whether LAC context is established.  A Boolean.  */
   int yy_lac_established = 0;
@@ -1812,21 +1820,6 @@ YYLTYPE yylloc = yyloc_default;
   /* The number of symbols on the RHS of the reduced rule.
      Keep to zero when no symbol should be popped.  */
   int yylen = 0;
-
-  yynerrs = 0;
-  yystate = 0;
-  yyerrstatus = 0;
-
-  yystacksize = YYINITDEPTH;
-  yyssp = yyss = yyssa;
-  yyvsp = yyvs = yyvsa;
-  yylsp = yyls = yylsa;
-
-  yyes = yyesa;
-  yyes_capacity = 20;
-  if (YYMAXDEPTH < yyes_capacity)
-    yyes_capacity = YYMAXDEPTH;
-
 
   YYDPRINTF ((stderr, "Starting parse\n"));
 
@@ -2055,7 +2048,7 @@ yyreduce:
     int yychar_backup = yychar;
     switch (yyn)
       {
-  case 6:
+  case 6: /* prologue_declaration: "%{...%}"  */
     {
       muscle_code_grow (union_seen ? "post_prologue" : "pre_prologue",
                         translate_code ((yyvsp[0].PROLOGUE), (yylsp[0]), true), (yylsp[0]));
@@ -2063,131 +2056,128 @@ yyreduce:
     }
     break;
 
-  case 7:
+  case 7: /* prologue_declaration: "%<flag>"  */
     {
       muscle_percent_define_ensure ((yyvsp[0].PERCENT_FLAG), (yylsp[0]), true);
     }
     break;
 
-  case 8:
+  case 8: /* prologue_declaration: "%define" variable value  */
     {
       muscle_percent_define_insert ((yyvsp[-1].variable), (yyloc), (yyvsp[0].value).kind, (yyvsp[0].value).chars,
                                     MUSCLE_PERCENT_DEFINE_GRAMMAR_FILE);
     }
     break;
 
-  case 9:
+  case 9: /* prologue_declaration: "%defines"  */
                                    { defines_flag = true; }
     break;
 
-  case 10:
-    {
-      defines_flag = true;
-      spec_header_file = xstrdup ((yyvsp[0].STRING));
-    }
+  case 10: /* prologue_declaration: "%defines" "string"  */
+                                   { handle_defines ((yyvsp[0].STRING)); }
     break;
 
-  case 11:
+  case 11: /* prologue_declaration: "%error-verbose"  */
                                    { handle_error_verbose (&(yyloc), (yyvsp[0].PERCENT_ERROR_VERBOSE)); }
     break;
 
-  case 12:
+  case 12: /* prologue_declaration: "%expect" "integer literal"  */
                                    { expected_sr_conflicts = (yyvsp[0].INT); }
     break;
 
-  case 13:
+  case 13: /* prologue_declaration: "%expect-rr" "integer literal"  */
                                    { expected_rr_conflicts = (yyvsp[0].INT); }
     break;
 
-  case 14:
+  case 14: /* prologue_declaration: "%file-prefix" "string"  */
                                    { handle_file_prefix (&(yyloc), &(yylsp[-1]), (yyvsp[-1].PERCENT_FILE_PREFIX), (yyvsp[0].STRING)); }
     break;
 
-  case 15:
+  case 15: /* prologue_declaration: "%glr-parser"  */
     {
       nondeterministic_parser = true;
       glr_parser = true;
     }
     break;
 
-  case 16:
+  case 16: /* prologue_declaration: "%initial-action" "{...}"  */
     {
       muscle_code_grow ("initial_action", translate_code ((yyvsp[0].BRACED_CODE), (yylsp[0]), false), (yylsp[0]));
       code_scanner_last_string_free ();
     }
     break;
 
-  case 17:
-                                { language_argmatch ((yyvsp[0].STRING), grammar_prio, (yylsp[-1])); }
+  case 17: /* prologue_declaration: "%language" "string"  */
+                                { handle_language (&(yylsp[-1]), (yyvsp[0].STRING)); }
     break;
 
-  case 18:
+  case 18: /* prologue_declaration: "%name-prefix" "string"  */
                                 { handle_name_prefix (&(yyloc), (yyvsp[-1].PERCENT_NAME_PREFIX), (yyvsp[0].STRING)); }
     break;
 
-  case 19:
+  case 19: /* prologue_declaration: "%no-lines"  */
                                 { no_lines_flag = true; }
     break;
 
-  case 20:
+  case 20: /* prologue_declaration: "%nondeterministic-parser"  */
                                 { nondeterministic_parser = true; }
     break;
 
-  case 21:
-                                { spec_outfile = (yyvsp[0].STRING); }
+  case 21: /* prologue_declaration: "%output" "string"  */
+                                { spec_outfile = unquote ((yyvsp[0].STRING)); gram_scanner_last_string_free (); }
     break;
 
-  case 22:
+  case 22: /* $@1: %empty  */
            { current_param = (yyvsp[0].PERCENT_PARAM); }
     break;
 
-  case 23:
+  case 23: /* prologue_declaration: "%param" $@1 params  */
                                           { current_param = param_none; }
     break;
 
-  case 24:
+  case 24: /* prologue_declaration: "%pure-parser"  */
                                 { handle_pure_parser (&(yyloc), (yyvsp[0].PERCENT_PURE_PARSER)); }
     break;
 
-  case 25:
+  case 25: /* prologue_declaration: "%require" "string"  */
                                 { handle_require (&(yylsp[0]), (yyvsp[0].STRING)); }
     break;
 
-  case 26:
+  case 26: /* prologue_declaration: "%skeleton" "string"  */
                                 { handle_skeleton (&(yylsp[0]), (yyvsp[0].STRING)); }
     break;
 
-  case 27:
+  case 27: /* prologue_declaration: "%token-table"  */
                                 { token_table_flag = true; }
     break;
 
-  case 28:
+  case 28: /* prologue_declaration: "%verbose"  */
                                 { report_flag |= report_states; }
     break;
 
-  case 29:
+  case 29: /* prologue_declaration: "%yacc"  */
                                 { handle_yacc (&(yyloc)); }
     break;
 
-  case 30:
+  case 30: /* prologue_declaration: error ";"  */
                                 { current_class = unknown_sym; yyerrok; }
     break;
 
-  case 32:
+  case 32: /* params: params "{...}"  */
                    { add_param (current_param, (yyvsp[0].BRACED_CODE), (yylsp[0])); }
     break;
 
-  case 33:
+  case 33: /* params: "{...}"  */
                    { add_param (current_param, (yyvsp[0].BRACED_CODE), (yylsp[0])); }
     break;
 
-  case 35:
+  case 35: /* grammar_declaration: "%start" symbol  */
     {
       grammar_start_symbol_set ((yyvsp[0].symbol), (yylsp[0]));
     }
     break;
 
-  case 36:
+  case 36: /* grammar_declaration: code_props_type "{...}" generic_symlist  */
     {
       code_props code;
       code_props_symbol_action_init (&code, (yyvsp[-1].BRACED_CODE), (yylsp[-1]));
@@ -2200,19 +2190,19 @@ yyreduce:
     }
     break;
 
-  case 37:
+  case 37: /* grammar_declaration: "%default-prec"  */
     {
       default_prec = true;
     }
     break;
 
-  case 38:
+  case 38: /* grammar_declaration: "%no-default-prec"  */
     {
       default_prec = false;
     }
     break;
 
-  case 39:
+  case 39: /* grammar_declaration: "%code" "{...}"  */
     {
       /* Do not invoke muscle_percent_code_grow here since it invokes
          muscle_user_name_list_grow.  */
@@ -2222,32 +2212,32 @@ yyreduce:
     }
     break;
 
-  case 40:
+  case 40: /* grammar_declaration: "%code" "identifier" "{...}"  */
     {
       muscle_percent_code_grow ((yyvsp[-1].ID), (yylsp[-1]), translate_code_braceless ((yyvsp[0].BRACED_CODE), (yylsp[0])), (yylsp[0]));
       code_scanner_last_string_free ();
     }
     break;
 
-  case 41:
+  case 41: /* code_props_type: "%destructor"  */
                  { (yyval.code_props_type) = destructor; }
     break;
 
-  case 42:
+  case 42: /* code_props_type: "%printer"  */
                  { (yyval.code_props_type) = printer; }
     break;
 
-  case 43:
+  case 43: /* union_name: %empty  */
          {}
     break;
 
-  case 44:
+  case 44: /* union_name: "identifier"  */
          { muscle_percent_define_insert ("api.value.union.name",
                                          (yylsp[0]), muscle_keyword, (yyvsp[0].ID),
                                          MUSCLE_PERCENT_DEFINE_GRAMMAR_FILE); }
     break;
 
-  case 45:
+  case 45: /* grammar_declaration: "%union" union_name "{...}"  */
     {
       union_seen = true;
       muscle_code_grow ("union_members", translate_code_braceless ((yyvsp[0].BRACED_CODE), (yylsp[0])), (yylsp[0]));
@@ -2255,35 +2245,35 @@ yyreduce:
     }
     break;
 
-  case 46:
+  case 46: /* $@2: %empty  */
            { current_class = nterm_sym; }
     break;
 
-  case 47:
+  case 47: /* symbol_declaration: "%nterm" $@2 nterm_decls  */
     {
       current_class = unknown_sym;
       symbol_list_free ((yyvsp[0].nterm_decls));
     }
     break;
 
-  case 48:
+  case 48: /* $@3: %empty  */
            { current_class = token_sym; }
     break;
 
-  case 49:
+  case 49: /* symbol_declaration: "%token" $@3 token_decls  */
     {
       current_class = unknown_sym;
       symbol_list_free ((yyvsp[0].token_decls));
     }
     break;
 
-  case 50:
+  case 50: /* symbol_declaration: "%type" symbol_decls  */
     {
       symbol_list_free ((yyvsp[0].symbol_decls));
     }
     break;
 
-  case 51:
+  case 51: /* symbol_declaration: precedence_declarator token_decls_for_prec  */
     {
       ++current_prec;
       for (symbol_list *list = (yyvsp[0].token_decls_for_prec); list; list = list->next)
@@ -2292,269 +2282,269 @@ yyreduce:
     }
     break;
 
-  case 52:
+  case 52: /* precedence_declarator: "%left"  */
                 { (yyval.precedence_declarator) = left_assoc; }
     break;
 
-  case 53:
+  case 53: /* precedence_declarator: "%right"  */
                 { (yyval.precedence_declarator) = right_assoc; }
     break;
 
-  case 54:
+  case 54: /* precedence_declarator: "%nonassoc"  */
                 { (yyval.precedence_declarator) = non_assoc; }
     break;
 
-  case 55:
+  case 55: /* precedence_declarator: "%precedence"  */
                 { (yyval.precedence_declarator) = precedence_assoc; }
     break;
 
-  case 56:
+  case 56: /* tag.opt: %empty  */
          { (yyval.yykind_74) = NULL; }
     break;
 
-  case 57:
+  case 57: /* tag.opt: "<tag>"  */
          { (yyval.yykind_74) = (yyvsp[0].TAG); }
     break;
 
-  case 59:
+  case 59: /* generic_symlist: generic_symlist generic_symlist_item  */
                                          { (yyval.generic_symlist) = symbol_list_append ((yyvsp[-1].generic_symlist), (yyvsp[0].generic_symlist_item)); }
     break;
 
-  case 60:
+  case 60: /* generic_symlist_item: symbol  */
             { (yyval.generic_symlist_item) = symbol_list_sym_new ((yyvsp[0].symbol), (yylsp[0])); }
     break;
 
-  case 61:
+  case 61: /* generic_symlist_item: tag  */
             { (yyval.generic_symlist_item) = symbol_list_type_new ((yyvsp[0].tag), (yylsp[0])); }
     break;
 
-  case 63:
+  case 63: /* tag: "<*>"  */
         { (yyval.tag) = uniqstr_new ("*"); }
     break;
 
-  case 64:
+  case 64: /* tag: "<>"  */
         { (yyval.tag) = uniqstr_new (""); }
     break;
 
-  case 66:
+  case 66: /* token_decls: token_decl.1  */
     {
       (yyval.token_decls) = (yyvsp[0].yykind_80);
     }
     break;
 
-  case 67:
+  case 67: /* token_decls: "<tag>" token_decl.1  */
     {
       (yyval.token_decls) = symbol_list_type_set ((yyvsp[0].yykind_80), (yyvsp[-1].TAG), (yylsp[-1]));
     }
     break;
 
-  case 68:
+  case 68: /* token_decls: token_decls "<tag>" token_decl.1  */
     {
       (yyval.token_decls) = symbol_list_append ((yyvsp[-2].token_decls), symbol_list_type_set ((yyvsp[0].yykind_80), (yyvsp[-1].TAG), (yylsp[-1])));
     }
     break;
 
-  case 69:
+  case 69: /* token_decl.1: token_decl  */
                             { (yyval.yykind_80) = symbol_list_sym_new ((yyvsp[0].token_decl), (yylsp[0])); }
     break;
 
-  case 70:
+  case 70: /* token_decl.1: token_decl.1 token_decl  */
                             { (yyval.yykind_80) = symbol_list_append ((yyvsp[-1].yykind_80), symbol_list_sym_new ((yyvsp[0].token_decl), (yylsp[0]))); }
     break;
 
-  case 71:
+  case 71: /* token_decl: id int.opt alias  */
     {
       (yyval.token_decl) = (yyvsp[-2].id);
       symbol_class_set ((yyvsp[-2].id), current_class, (yylsp[-2]), true);
       if (0 <= (yyvsp[-1].yykind_82))
-        symbol_user_token_number_set ((yyvsp[-2].id), (yyvsp[-1].yykind_82), (yylsp[-1]));
+        symbol_code_set ((yyvsp[-2].id), (yyvsp[-1].yykind_82), (yylsp[-1]));
       if ((yyvsp[0].alias))
         symbol_make_alias ((yyvsp[-2].id), (yyvsp[0].alias), (yylsp[0]));
     }
     break;
 
-  case 72:
+  case 72: /* int.opt: %empty  */
           { (yyval.yykind_82) = -1; }
     break;
 
-  case 74:
+  case 74: /* alias: %empty  */
                  { (yyval.alias) = NULL; }
     break;
 
-  case 75:
+  case 75: /* alias: string_as_id  */
                  { (yyval.alias) = (yyvsp[0].string_as_id); }
     break;
 
-  case 76:
+  case 76: /* alias: "translatable string"  */
     {
-      (yyval.alias) = symbol_get (quotearg_style (c_quoting_style, (yyvsp[0].TSTRING)), (yylsp[0]));
+      (yyval.alias) = symbol_get ((yyvsp[0].TSTRING), (yylsp[0]));
       symbol_class_set ((yyval.alias), token_sym, (yylsp[0]), false);
       (yyval.alias)->translatable = true;
     }
     break;
 
-  case 77:
+  case 77: /* token_decls_for_prec: token_decl_for_prec.1  */
     {
       (yyval.token_decls_for_prec) = (yyvsp[0].yykind_85);
     }
     break;
 
-  case 78:
+  case 78: /* token_decls_for_prec: "<tag>" token_decl_for_prec.1  */
     {
       (yyval.token_decls_for_prec) = symbol_list_type_set ((yyvsp[0].yykind_85), (yyvsp[-1].TAG), (yylsp[-1]));
     }
     break;
 
-  case 79:
+  case 79: /* token_decls_for_prec: token_decls_for_prec "<tag>" token_decl_for_prec.1  */
     {
       (yyval.token_decls_for_prec) = symbol_list_append ((yyvsp[-2].token_decls_for_prec), symbol_list_type_set ((yyvsp[0].yykind_85), (yyvsp[-1].TAG), (yylsp[-1])));
     }
     break;
 
-  case 80:
+  case 80: /* token_decl_for_prec.1: token_decl_for_prec  */
     { (yyval.yykind_85) = symbol_list_sym_new ((yyvsp[0].token_decl_for_prec), (yylsp[0])); }
     break;
 
-  case 81:
+  case 81: /* token_decl_for_prec.1: token_decl_for_prec.1 token_decl_for_prec  */
     { (yyval.yykind_85) = symbol_list_append ((yyvsp[-1].yykind_85), symbol_list_sym_new ((yyvsp[0].token_decl_for_prec), (yylsp[0]))); }
     break;
 
-  case 82:
+  case 82: /* token_decl_for_prec: id int.opt  */
     {
       (yyval.token_decl_for_prec) = (yyvsp[-1].id);
       symbol_class_set ((yyvsp[-1].id), token_sym, (yylsp[-1]), false);
       if (0 <= (yyvsp[0].yykind_82))
-        symbol_user_token_number_set ((yyvsp[-1].id), (yyvsp[0].yykind_82), (yylsp[0]));
+        symbol_code_set ((yyvsp[-1].id), (yyvsp[0].yykind_82), (yylsp[0]));
     }
     break;
 
-  case 84:
+  case 84: /* symbol_decls: symbol_decl.1  */
     {
       (yyval.symbol_decls) = (yyvsp[0].yykind_88);
     }
     break;
 
-  case 85:
+  case 85: /* symbol_decls: "<tag>" symbol_decl.1  */
     {
       (yyval.symbol_decls) = symbol_list_type_set ((yyvsp[0].yykind_88), (yyvsp[-1].TAG), (yylsp[-1]));
     }
     break;
 
-  case 86:
+  case 86: /* symbol_decls: symbol_decls "<tag>" symbol_decl.1  */
     {
       (yyval.symbol_decls) = symbol_list_append ((yyvsp[-2].symbol_decls), symbol_list_type_set ((yyvsp[0].yykind_88), (yyvsp[-1].TAG), (yylsp[-1])));
     }
     break;
 
-  case 87:
+  case 87: /* symbol_decl.1: symbol  */
     {
       symbol_class_set ((yyvsp[0].symbol), pct_type_sym, (yylsp[0]), false);
       (yyval.yykind_88) = symbol_list_sym_new ((yyvsp[0].symbol), (yylsp[0]));
     }
     break;
 
-  case 88:
+  case 88: /* symbol_decl.1: symbol_decl.1 symbol  */
     {
       symbol_class_set ((yyvsp[0].symbol), pct_type_sym, (yylsp[0]), false);
       (yyval.yykind_88) = symbol_list_append ((yyvsp[-1].yykind_88), symbol_list_sym_new ((yyvsp[0].symbol), (yylsp[0])));
     }
     break;
 
-  case 93:
+  case 93: /* rules_or_grammar_declaration: error ";"  */
     {
       yyerrok;
     }
     break;
 
-  case 94:
+  case 94: /* $@4: %empty  */
                          { current_lhs ((yyvsp[-1].id_colon), (yylsp[-1]), (yyvsp[0].yykind_95)); }
     break;
 
-  case 95:
+  case 95: /* rules: id_colon named_ref.opt $@4 ":" rhses.1  */
     {
       /* Free the current lhs. */
       current_lhs (0, (yylsp[-4]), 0);
     }
     break;
 
-  case 96:
+  case 96: /* rhses.1: rhs  */
                      { grammar_current_rule_end ((yylsp[0])); }
     break;
 
-  case 97:
+  case 97: /* rhses.1: rhses.1 "|" rhs  */
                      { grammar_current_rule_end ((yylsp[0])); }
     break;
 
-  case 99:
+  case 99: /* rhs: %empty  */
     { grammar_current_rule_begin (current_lhs_symbol, current_lhs_loc,
                                   current_lhs_named_ref); }
     break;
 
-  case 100:
+  case 100: /* rhs: rhs symbol named_ref.opt  */
     { grammar_current_rule_symbol_append ((yyvsp[-1].symbol), (yylsp[-1]), (yyvsp[0].yykind_95)); }
     break;
 
-  case 101:
+  case 101: /* rhs: rhs tag.opt "{...}" named_ref.opt  */
     { grammar_current_rule_action_append ((yyvsp[-1].BRACED_CODE), (yylsp[-1]), (yyvsp[0].yykind_95), (yyvsp[-2].yykind_74)); }
     break;
 
-  case 102:
+  case 102: /* rhs: rhs "%?{...}"  */
     { grammar_current_rule_predicate_append ((yyvsp[0].BRACED_PREDICATE), (yylsp[0])); }
     break;
 
-  case 103:
+  case 103: /* rhs: rhs "%empty"  */
     { grammar_current_rule_empty_set ((yylsp[0])); }
     break;
 
-  case 104:
+  case 104: /* rhs: rhs "%prec" symbol  */
     { grammar_current_rule_prec_set ((yyvsp[0].symbol), (yylsp[0])); }
     break;
 
-  case 105:
+  case 105: /* rhs: rhs "%dprec" "integer literal"  */
     { grammar_current_rule_dprec_set ((yyvsp[0].INT), (yylsp[0])); }
     break;
 
-  case 106:
+  case 106: /* rhs: rhs "%merge" "<tag>"  */
     { grammar_current_rule_merge_set ((yyvsp[0].TAG), (yylsp[0])); }
     break;
 
-  case 107:
+  case 107: /* rhs: rhs "%expect" "integer literal"  */
     { grammar_current_rule_expect_sr ((yyvsp[0].INT), (yylsp[0])); }
     break;
 
-  case 108:
+  case 108: /* rhs: rhs "%expect-rr" "integer literal"  */
     { grammar_current_rule_expect_rr ((yyvsp[0].INT), (yylsp[0])); }
     break;
 
-  case 109:
+  case 109: /* named_ref.opt: %empty  */
                  { (yyval.yykind_95) = NULL; }
     break;
 
-  case 110:
+  case 110: /* named_ref.opt: "[identifier]"  */
                  { (yyval.yykind_95) = named_ref_new ((yyvsp[0].BRACKETED_ID), (yylsp[0])); }
     break;
 
-  case 112:
+  case 112: /* value: %empty  */
           { (yyval.value).kind = muscle_keyword; (yyval.value).chars = ""; }
     break;
 
-  case 113:
+  case 113: /* value: "identifier"  */
           { (yyval.value).kind = muscle_keyword; (yyval.value).chars = (yyvsp[0].ID); }
     break;
 
-  case 114:
-          { (yyval.value).kind = muscle_string;  (yyval.value).chars = (yyvsp[0].STRING); }
+  case 114: /* value: "string"  */
+          { (yyval.value).kind = muscle_string;  (yyval.value).chars = unquote ((yyvsp[0].STRING)); gram_scanner_last_string_free ();}
     break;
 
-  case 115:
-          { (yyval.value).kind = muscle_code;    (yyval.value).chars = strip_braces ((yyvsp[0].BRACED_CODE)); }
+  case 115: /* value: "{...}"  */
+          { (yyval.value).kind = muscle_code;    (yyval.value).chars = strip_braces ((yyvsp[0].BRACED_CODE)); gram_scanner_last_string_free (); }
     break;
 
-  case 116:
+  case 116: /* id: "identifier"  */
     { (yyval.id) = symbol_from_uniqstr ((yyvsp[0].ID), (yylsp[0])); }
     break;
 
-  case 117:
+  case 117: /* id: "character literal"  */
     {
       const char *var = "api.token.raw";
       if (current_class == nterm_sym)
@@ -2573,22 +2563,22 @@ yyreduce:
         }
       (yyval.id) = symbol_get (char_name ((yyvsp[0].CHAR)), (yylsp[0]));
       symbol_class_set ((yyval.id), token_sym, (yylsp[0]), false);
-      symbol_user_token_number_set ((yyval.id), (yyvsp[0].CHAR), (yylsp[0]));
+      symbol_code_set ((yyval.id), (yyvsp[0].CHAR), (yylsp[0]));
     }
     break;
 
-  case 118:
+  case 118: /* id_colon: "identifier:"  */
            { (yyval.id_colon) = symbol_from_uniqstr ((yyvsp[0].ID_COLON), (yylsp[0])); }
     break;
 
-  case 121:
+  case 121: /* string_as_id: "string"  */
     {
-      (yyval.string_as_id) = symbol_get (quotearg_style (c_quoting_style, (yyvsp[0].STRING)), (yylsp[0]));
+      (yyval.string_as_id) = symbol_get ((yyvsp[0].STRING), (yylsp[0]));
       symbol_class_set ((yyval.string_as_id), token_sym, (yylsp[0]), false);
     }
     break;
 
-  case 123:
+  case 123: /* epilogue.opt: "%%" "epilogue"  */
     {
       muscle_code_grow ("epilogue", translate_code ((yyvsp[0].EPILOGUE), (yylsp[0]), true), (yylsp[0]));
       code_scanner_last_string_free ();
@@ -2774,13 +2764,13 @@ yyabortlab:
 yyexhaustedlab:
   yyerror (&yylloc, YY_("memory exhausted"));
   yyresult = 2;
-  /* Fall through.  */
+  goto yyreturn;
 #endif
 
 
-/*-----------------------------------------------------.
-| yyreturn -- parsing is finished, return the result.  |
-`-----------------------------------------------------*/
+/*-------------------------------------------------------.
+| yyreturn -- parsing is finished, clean up and return.  |
+`-------------------------------------------------------*/
 yyreturn:
   if (yychar != GRAM_EMPTY)
     {
@@ -2941,6 +2931,17 @@ add_param (param_type type, char *decl, location loc)
 
 
 static void
+handle_defines (char const *value)
+{
+  defines_flag = true;
+  char *file = unquote (value);
+  spec_header_file = xstrdup (file);
+  gram_scanner_last_string_free ();
+  unquote_free (file);
+}
+
+
+static void
 handle_error_verbose (location const *loc, char const *directive)
 {
   bison_directive (loc, directive);
@@ -2952,8 +2953,9 @@ handle_error_verbose (location const *loc, char const *directive)
 static void
 handle_file_prefix (location const *loc,
                     location const *dir_loc,
-                    char const *directive, char const *value)
+                    char const *directive, char const *value_quoted)
 {
+  char *value = unquote (value_quoted);
   bison_directive (loc, directive);
   bool warned = false;
 
@@ -2973,11 +2975,18 @@ handle_file_prefix (location const *loc,
     deprecated_directive (dir_loc, directive, "%file-prefix");
 }
 
+static void
+handle_language (location const *loc, char const *lang)
+{
+  language_argmatch (unquote (lang), grammar_prio, *loc);
+}
+
 
 static void
 handle_name_prefix (location const *loc,
-                    char const *directive, char const *value)
+                    char const *directive, char const *value_quoted)
 {
+  char *value = unquote (value_quoted);
   bison_directive (loc, directive);
 
   char buf1[1024];
@@ -3049,34 +3058,39 @@ str_to_version (char const *version)
 
 
 static void
-handle_require (location const *loc, char const *version)
+handle_require (location const *loc, char const *version_quoted)
 {
+  char *version = unquote (version_quoted);
   required_version = str_to_version (version);
   if (required_version == -1)
     {
       complain (loc, complaint, _("invalid version requirement: %s"),
                 version);
       required_version = 0;
-      return;
     }
-
-  /* Pretend to be at least that version, to check features published
-     in that version while developping it.  */
-  const char* api_version = "3.6";
-  const char* package_version =
-    0 < strverscmp (api_version, PACKAGE_VERSION)
-    ? api_version : PACKAGE_VERSION;
-  if (0 < strverscmp (version, package_version))
+  else
     {
-      complain (loc, complaint, _("require bison %s, but have %s"),
-                version, package_version);
-      exit (EX_MISMATCH);
+      /* Pretend to be at least that version, to check features published
+         in that version while developping it.  */
+      const char* api_version = "3.6";
+      const char* package_version =
+        0 < strverscmp (api_version, PACKAGE_VERSION)
+        ? api_version : PACKAGE_VERSION;
+      if (0 < strverscmp (version, package_version))
+        {
+          complain (loc, complaint, _("require bison %s, but have %s"),
+                    version, package_version);
+          exit (EX_MISMATCH);
+        }
     }
+  unquote_free (version);
+  gram_scanner_last_string_free ();
 }
 
 static void
-handle_skeleton (location const *loc, char const *skel)
+handle_skeleton (location const *loc, char const *skel_quoted)
 {
+  char *skel = unquote (skel_quoted);
   char const *skeleton_user = skel;
   if (strchr (skeleton_user, '/'))
     {
@@ -3156,4 +3170,96 @@ static void tron (FILE *yyo)
 static void troff (FILE *yyo)
 {
   end_use_class ("value", yyo);
+}
+
+
+/*----------.
+| Unquote.  |
+`----------*/
+
+struct obstack obstack_for_unquote;
+
+void
+parser_init (void)
+{
+  obstack_init (&obstack_for_unquote);
+}
+
+void
+parser_free (void)
+{
+  obstack_free (&obstack_for_unquote, 0);
+}
+
+static void
+unquote_free (char *last_string)
+{
+  obstack_free (&obstack_for_unquote, last_string);
+}
+
+static char *
+unquote (const char *cp)
+{
+#define GROW(Char)                              \
+  obstack_1grow (&obstack_for_unquote, Char);
+  for (++cp; *cp && *cp != '"'; ++cp)
+    switch (*cp)
+      {
+      case '"':
+        break;
+      case '\\':
+        ++cp;
+        switch (*cp)
+          {
+          case '0': case '1': case '2': case '3': case '4':
+          case '5': case '6': case '7': case '8': case '9':
+            {
+              int c = cp[0] - '0';
+              if (c_isdigit (cp[1]))
+                {
+                  ++cp;
+                  c = c * 8 + cp[0] - '0';
+                }
+              if (c_isdigit (cp[1]))
+                {
+                  ++cp;
+                  c = c * 8 + cp[0] - '0';
+                }
+              GROW (c);
+            }
+            break;
+
+          case 'a': GROW ('\a'); break;
+          case 'b': GROW ('\b'); break;
+          case 'f': GROW ('\f'); break;
+          case 'n': GROW ('\n'); break;
+          case 'r': GROW ('\r'); break;
+          case 't': GROW ('\t'); break;
+          case 'v': GROW ('\v'); break;
+
+          case 'x':
+            {
+              int c = 0;
+              while (c_isxdigit (cp[1]))
+                {
+                  ++cp;
+                  c = (c * 16 + (c_isdigit (cp[0]) ? cp[0] - '0'
+                                 : c_isupper (cp[0]) ? cp[0] - 'A'
+                                 : cp[0] - '0'));
+                }
+              GROW (c);
+              break;
+            }
+          }
+        break;
+
+      default:
+        GROW (*cp);
+        break;
+      }
+  assert (*cp == '"');
+  ++cp;
+  assert (*cp == '\0');
+#undef GROW
+  return obstack_finish0 (&obstack_for_unquote);
 }

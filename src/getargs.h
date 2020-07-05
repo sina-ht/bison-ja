@@ -79,6 +79,7 @@ enum report
     report_itemsets         = 1 << 1,
     report_lookahead_tokens = 1 << 2,
     report_solved_conflicts = 1 << 3,
+    report_cex              = 1 << 4,
     report_all              = ~0
   };
 /** What appears in the *.output file.  */
@@ -106,6 +107,7 @@ enum trace
     trace_ielr      = 1 << 13, /**< IELR conversion. */
     trace_closure   = 1 << 14, /**< Input/output of closure(). */
     trace_locations = 1 << 15, /**< Full display of locations. */
+    trace_cex       = 1 << 16, /**< Counterexample generation */
     trace_all       = ~0       /**< All of the above.  */
   };
 /** What debug items bison displays during its run.  */

@@ -107,8 +107,7 @@ muscle_entry_new (char const *key)
   res->key = key;
   res->value = NULL;
   res->storage = NULL;
-  if (!hash_insert (muscle_table, res))
-    xalloc_die ();
+  hash_xinsert (muscle_table, res);
   return res;
 }
 
@@ -142,8 +141,7 @@ muscle_free (void)
 }
 
 /* Look for the muscle named KEY.  Return NULL if does not exist.  */
-static
-muscle_entry *
+static muscle_entry *
 muscle_lookup (char const *key)
 {
   muscle_entry probe;
@@ -449,6 +447,7 @@ muscle_percent_variable_update (char const *variable,
     { "api.push_pull",              "api.push-pull",             muscle_keyword },
     { "api.tokens.prefix",          "api.token.prefix",          muscle_code },
     { "extends",                    "api.parser.extends",        muscle_keyword },
+    { "filename_type",              "api.filename.type",         muscle_code },
     { "final",                      "api.parser.final",          muscle_keyword },
     { "implements",                 "api.parser.implements",     muscle_keyword },
     { "lex_symbol",                 "api.token.constructor",     -1 },
@@ -457,6 +456,7 @@ muscle_percent_variable_update (char const *variable,
     { "lr.keep-unreachable-states", "lr.keep-unreachable-state", muscle_keyword },
     { "lr.keep_unreachable_states", "lr.keep-unreachable-state", muscle_keyword },
     { "namespace",                  "api.namespace",             muscle_code },
+    { "package",                    "api.package",               muscle_code },
     { "parser_class_name",          "api.parser.class",          muscle_code },
     { "public",                     "api.parser.public",         muscle_keyword },
     { "strictfp",                   "api.parser.strictfp",       muscle_keyword },

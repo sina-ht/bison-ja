@@ -23,6 +23,7 @@
 
 #include <filename.h> /* IS_PATH_WITH_DIR */
 #include <get-errno.h>
+#include <mbswidth.h>
 #include <path-join.h>
 #include <quotearg.h>
 #include <spawn-pipe.h>
@@ -107,10 +108,8 @@ GENERATE_MUSCLE_INSERT_TABLE (muscle_insert_state_number_table, state_number)
 `----------------------------------------------------------------*/
 
 static void
-quoted_output (FILE *out, char const *cp)
+output_escaped (FILE *out, const char *cp)
 {
-  fprintf (out, "[[");
-
   for (; *cp; cp++)
     switch (*cp)
       {
@@ -120,7 +119,13 @@ quoted_output (FILE *out, char const *cp)
       case ']': fputs ("@}",  out); break;
       default:  fputc (*cp,   out); break;
       }
+}
 
+static void
+output_quoted (FILE *out, char const *cp)
+{
+  fprintf (out, "[[");
+  output_escaped (out, cp);
   fprintf (out, "]]");
 }
 
@@ -132,7 +137,7 @@ quoted_output (FILE *out, char const *cp)
 static void
 string_output (FILE *out, char const *string)
 {
-  quoted_output (out, quotearg_style (c_quoting_style, string));
+  output_quoted (out, quotearg_style (c_quoting_style, string));
 }
 
 
@@ -193,9 +198,9 @@ static const char *
 symbol_tag (const symbol *sym)
 {
   const bool eof_is_user_defined
-    = !endtoken->alias || STRNEQ (endtoken->alias->tag, "$end");
+    = !eoftoken->alias || STRNEQ (eoftoken->alias->tag, "$end");
 
-  if (!eof_is_user_defined && sym->content == endtoken->content)
+  if (!eof_is_user_defined && sym->content == eoftoken->content)
     return "\"end of file\"";
   else if (sym->content == undeftoken->content)
     return "\"invalid token\"";
@@ -232,7 +237,7 @@ prepare_symbol_names (char const *muscle_name)
       /* Width of the next token, including the two quotes, the
          comma and the space.  */
       int width
-        = strlen (cp) + 2
+        = mbswidth (cp, 0) + 2
         + (translatable ? strlen ("N_()") : 0);
 
       if (col + width > 75)
@@ -272,14 +277,14 @@ static void
 prepare_symbols (void)
 {
   MUSCLE_INSERT_INT ("tokens_number", ntokens);
-  MUSCLE_INSERT_INT ("nterms_number", nvars);
+  MUSCLE_INSERT_INT ("nterms_number", nnterms);
   MUSCLE_INSERT_INT ("symbols_number", nsyms);
-  MUSCLE_INSERT_INT ("user_token_number_max", max_user_token_number);
+  MUSCLE_INSERT_INT ("code_max", max_code);
 
   muscle_insert_symbol_number_table ("translate",
                                      token_translations,
                                      token_translations[0],
-                                     1, max_user_token_number + 1);
+                                     1, max_code + 1);
 
   /* tname -- token names.  */
   prepare_symbol_names ("tname");
@@ -309,7 +314,7 @@ prepare_symbols (void)
   {
     int *values = xnmalloc (ntokens, sizeof *values);
     for (int i = 0; i < ntokens; ++i)
-      values[i] = symbols[i]->content->user_token_number;
+      values[i] = symbols[i]->content->code;
     muscle_insert_int_table ("toknum", values,
                              values[0], 1, ntokens);
     free (values);
@@ -475,6 +480,21 @@ symbol_numbers_output (FILE *out)
 `-------------------------------------------*/
 
 static void
+rule_output (const rule *r, FILE *out)
+{
+  output_escaped (out, r->lhs->symbol->tag);
+  fputc (':', out);
+  if (0 <= *r->rhs)
+    for (item_number *rhsp = r->rhs; 0 <= *rhsp; ++rhsp)
+      {
+        fputc (' ', out);
+        output_escaped (out, symbols[*rhsp]->tag);
+      }
+  else
+    fputs (" %empty", out);
+}
+
+static void
 user_actions_output (FILE *out)
 {
   fputs ("m4_define([b4_actions], \n[", out);
@@ -492,9 +512,11 @@ user_actions_output (FILE *out)
             string_output (out, rules[r].action_loc.start.file);
             fprintf (out, ")dnl\n");
           }
-        fprintf (out, "[%*s%s]])\n\n",
+        fprintf (out, "[%*s%s]],\n[[",
                  rules[r].action_loc.start.column - 1, "",
                  rules[r].action);
+        rule_output (&rules[r], out);
+        fprintf (out, "]])\n\n");
       }
   fputs ("])\n\n", out);
 }
@@ -565,8 +587,8 @@ prepare_symbol_definitions (void)
       SET_KEY ("tag");
       MUSCLE_INSERT_STRING (key, symbol_tag (sym));
 
-      SET_KEY ("user_number");
-      MUSCLE_INSERT_INT (key, sym->content->user_token_number);
+      SET_KEY ("code");
+      MUSCLE_INSERT_INT (key, sym->content->code);
 
       SET_KEY ("is_token");
       MUSCLE_INSERT_INT (key, i < ntokens);
@@ -682,7 +704,7 @@ static void
 output_skeleton (void)
 {
   /* Compute the names of the package data dir and skeleton files.  */
-  char const *m4 = (m4 = getenv ("M4")) ? m4 : M4;
+  char const *m4 = m4path ();
   char const *datadir = pkgdatadir ();
   char *skeldir = xpath_join (datadir, "skeletons");
   char *m4sugar = xpath_join (datadir, "m4sugar/m4sugar.m4");
@@ -805,8 +827,10 @@ prepare (void)
 
 #define DEFINE(Name) MUSCLE_INSERT_STRING (#Name, Name ? Name : "")
   DEFINE (dir_prefix);
+  DEFINE (mapped_dir_prefix);
   DEFINE (parser_file_name);
   DEFINE (spec_header_file);
+  DEFINE (spec_mapped_header_file);
   DEFINE (spec_file_prefix);
   DEFINE (spec_graph_file);
   DEFINE (spec_name_prefix);

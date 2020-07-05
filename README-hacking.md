@@ -5,151 +5,6 @@ Everything related to the development of Bison is on Savannah:
 http://savannah.gnu.org/projects/bison/.
 
 
-Administrivia
-=============
-
-## If you incorporate a change from somebody on the net:
-First, if it is a large change, you must make sure they have signed the
-appropriate paperwork.  Second, be sure to add their name and email address
-to THANKS.
-
-## If a change fixes a test, mention the test in the commit message.
-
-## Bug reports
-If somebody reports a new bug, mention his name in the commit message and in
-the test case you write.  Put him into THANKS.
-
-The correct response to most actual bugs is to write a new test case which
-demonstrates the bug.  Then fix the bug, re-run the test suite, and check
-everything in.
-
-
-
-Hacking
-=======
-
-## Visible Changes
-Which include serious bug fixes, must be mentioned in NEWS.
-
-## Translations
-Only user visible strings are to be translated: error messages, bits of the
-.output file etc.  This excludes impossible error messages (comparable to
-assert/abort), and all the --trace output which is meant for the maintainers
-only.
-
-## Syntax highlighting
-It's quite nice to be in C++ mode when editing lalr1.cc for instance.
-However tools such as Emacs will be fooled by the fact that braces and
-parens do not nest, as in `[[}]]`.  As a consequence you might be misguided
-by its visual pairing to parens.  The m4-mode is safer.  Unfortunately the
-m4-mode is also fooled by `#` which is sees as a comment, stops pairing with
-parens/brackets that are inside...
-
-## Coding Style
-Do not add horizontal tab characters to any file in Bison's repository
-except where required.  For example, do not use tabs to format C code.
-However, make files, ChangeLog, and some regular expressions require tabs.
-Also, test cases might need to contain tabs to check that Bison properly
-processes tabs in its input.
-
-Prefer "res" as the name of the local variable that will be "return"ed by
-the function.
-
-### Bison
-Follow the GNU Coding Standards.
-
-Don't reinvent the wheel: we use gnulib, which features many components.
-Actually, Bison has legacy code that we should replace with gnulib modules
-(e.g., many ad hoc implementations of lists).
-
-### Skeletons
-We try to use the "typical" coding style for each language.
-
-#### CPP
-We indent the CPP directives this way:
-
-```
-#if FOO
-# if BAR
-#  define BAZ
-# endif
-#endif
-```
-
-Don't indent with leading spaces in the skeletons (it's ok in the grammar
-files though, e.g., in `%code {...}` blocks).
-
-On occasions, use `cppi -c` to see where we stand.  We don't aim at full
-correctness: depending `-d`, some bits can be in the *.c file, or the *.h
-file within the double-inclusion cpp-guards.  In that case, favor the case
-of the *.h file, but don't waste time on this.
-
-Don't hesitate to leave a comment on the `#endif` (e.g., `#endif /* FOO
-*/`), especially for long blocks.
-
-There is no conistency on `! defined` vs. `!defined`.  The day gnulib
-decides, we'll follow them.
-
-#### C/C++
-Follow the GNU Coding Standards.
-
-The `glr.c` skeleton was implemented with `camlCase`.  We are migrating it
-to `snake_case`.  Because we are standardizing the code, it is currently
-inconsistent.
-
-Use `YYFOO` and `yyfoo` for entities that are exposed to the user.  They are
-part of our contract with the users wrt backward compatibility.
-
-Use `YY_FOO` and `yy_foo` for private matters.  Users should not use them,
-we are free to change them without fear of backward compatibility issues.
-
-Use `*_t` for types, especially for `yy*_t` in which case we shouldn't worry
-about the C standard introducing such a name.
-
-#### C++
-Follow the C++ Core Guidelines
-(http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines).  The Google
-ones may be interesting too
-(https://google.github.io/styleguide/cppguide.html).
-
-Our enumerators, such as the kinds (symbol and token kinds), should be lower
-case, but it was too late to follow that track for token kinds, and symbol
-kind enumerators are made to be consistent with them.
-
-Use `*_type` for type aliases.  Use `foo_get()` and `foo_set(v)` for
-accessors, or simply `foo()` and `foo(v)`.
-
-Use the `yy` prefix for private stuff, but there's no need for it in the
-public API.  The `yy` prefix is already taken care of via the namespace.
-
-#### Java
-We follow https://www.oracle.com/technetwork/java/codeconventions-150003.pdf
-and https://google.github.io/styleguide/javaguide.html.  Unfortunately at
-some point some GNU Coding Style was installed in Java, but it's an error.
-So we should for instance stop putting spaces in function calls.  Because we
-are standardizing the code, it is currently inconsistent.
-
-Use a 2-space indentation (Google) rather than 4 (Oracle).
-
-Don't use the "yy" prefix for public members: "getExpectedTokens", not
-"yyexpectedTokens" or "yygetExpectedTokens".
-
-## Commit Messages
-Imitate the style we use.  Use `git log` to get sources of inspiration.
-
-If the changes have a small impact on Bison's generated parser, embed these
-changes in the commit itself.  If the impact is large, first push all the
-changes except those about src/parse-gram.[ch], and then another commit
-named "regen" which is only about them.
-
-## Debugging
-Bison supports tracing of its various steps, via the `--trace` option.
-Since it is not meant for the end user, it is not displayed by `bison
---help`, nor is it documented in the manual.  Instead, run `bison
---trace=help`.
-
-
-
 Working from the Repository
 ===========================
 
@@ -168,6 +23,7 @@ tools we depend upon, including:
 - Automake <http://www.gnu.org/software/automake/>
 - Flex <http://www.gnu.org/software/flex/>
 - Gettext <http://www.gnu.org/software/gettext/>
+- Gperf <http://www.gnu.org/software/gperf/>
 - Graphviz <http://www.graphviz.org>
 - Gzip <http://www.gnu.org/software/gzip/>
 - Help2man <http://www.gnu.org/software/help2man/>
@@ -184,7 +40,7 @@ above packages depends on your system.  The following shell command should
 work for Debian-based systems such as Ubuntu:
 
     sudo apt-get install \
-      autoconf automake autopoint flex graphviz help2man texinfo valgrind
+      autoconf automake autopoint flex gperf graphviz help2man texinfo valgrind
 
 Bison is written using Bison grammars, so there are bootstrapping issues.
 The bootstrap script attempts to discover when the C code generated from the
@@ -322,6 +178,199 @@ version, compile bison, then force it to recreate the files:
     $ make -C _build
 
 
+Administrivia
+=============
+
+## If you incorporate a change from somebody on the net:
+First, if it is a large change, you must make sure they have signed the
+appropriate paperwork.  Second, be sure to add their name and email address
+to THANKS.
+
+## If a change fixes a test, mention the test in the commit message.
+
+## Bug reports
+If somebody reports a new bug, mention his name in the commit message and in
+the test case you write.  Put him into THANKS.
+
+The correct response to most actual bugs is to write a new test case which
+demonstrates the bug.  Then fix the bug, re-run the test suite, and check
+everything in.
+
+
+
+Hacking
+=======
+
+## Visible Changes
+Which include serious bug fixes, must be mentioned in NEWS.
+
+## Translations
+Only user visible strings are to be translated: error messages, bits of the
+.output file etc.  This excludes impossible error messages (comparable to
+assert/abort), and all the --trace output which is meant for the maintainers
+only.
+
+## Vocabulary
+- "nonterminal", not "variable" or "non-terminal" or "non terminal".
+  Abbreviated as "nterm".
+- "shift/reduce" and "reduce/reduce", not "shift-reduce" or "shift reduce",
+  etc.
+
+## Syntax Highlighting
+It's quite nice to be in C++ mode when editing lalr1.cc for instance.
+However tools such as Emacs will be fooled by the fact that braces and
+parens do not nest, as in `[[}]]`.  As a consequence you might be misguided
+by its visual pairing to parens.  The m4-mode is safer.  Unfortunately the
+m4-mode is also fooled by `#` which is sees as a comment, stops pairing with
+parens/brackets that are inside...
+
+## Implementation Notes
+There are several places with interesting details about the implementation:
+- [Understanding C parsers generated by GNU
+Bison](https://www.cs.uic.edu/~spopuri/cparser.html) by Satya Kiran Popuri,
+is a wonderful piece of work that explains the implementation of Bison,
+- [src/gram.h](src/gram.h) documents the way the grammar is represented
+- [src/tables.h](src/tables.h) documents the generated tables
+- [data/README.md](data/README.md) contains details about the m4 implementation
+
+## Coding Style
+Do not add horizontal tab characters to any file in Bison's repository
+except where required.  For example, do not use tabs to format C code.
+However, make files, ChangeLog, and some regular expressions require tabs.
+Also, test cases might need to contain tabs to check that Bison properly
+processes tabs in its input.
+
+Prefer `res` as the name of the local variable that will be "return"ed by
+the function.
+
+In writing arithmetic comparisons, use "<" and "<=" rather than ">" and ">="
+(http://www.gelato.unsw.edu.au/archives/git/0505/4507.html).
+
+### Bison
+Follow the GNU Coding Standards.
+
+Don't reinvent the wheel: we use gnulib, which features many components.
+Actually, Bison has legacy code that we should replace with gnulib modules
+(e.g., many ad hoc implementations of lists).
+
+#### Includes
+The `#include` directives follow an order:
+- first section for *.c files is `<config.h>`.  Don't include it in header
+  files
+- then, for *.c files, the corresponding *.h file
+- then possibly the `"system.h"` header
+- then the system headers.
+  Consider headers from `lib/` like system headers (i.e., `#include
+  <verify.h>`, not `#include "verify.h"`).
+- then headers from src/ with double quotes (`#include "getargs.h"`).
+
+Keep headers sorted alphabetically in each section.
+
+See also the [Header
+files](https://www.gnu.org/software/gnulib/manual/html_node/Header-files.html)
+and the [Implementation
+files](https://www.gnu.org/software/gnulib/manual/html_node/Implementation-files.html#Implementation-files)
+nodes of the gnulib documentation.
+
+Some source files are in the build tree (e.g., `src/scan-gram.c` made from
+`src/scan-gram.l`).  For them to find the headers from `src/`, we actually
+use `#include "src/getargs.h"` instead of `#include "getargs.h"`---that
+saves us from additional `-I` flags.
+
+### Skeletons
+We try to use the "typical" coding style for each language.
+
+#### CPP
+We indent the CPP directives this way:
+
+```
+#if FOO
+# if BAR
+#  define BAZ
+# endif
+#endif
+```
+
+Don't indent with leading spaces in the skeletons (it's OK in the grammar
+files though, e.g., in `%code {...}` blocks).
+
+On occasions, use `cppi -c` to see where we stand.  We don't aim at full
+correctness: depending `-d`, some bits can be in the *.c file, or the *.h
+file within the double-inclusion cpp-guards.  In that case, favor the case
+of the *.h file, but don't waste time on this.
+
+Don't hesitate to leave a comment on the `#endif` (e.g., `#endif /* FOO
+*/`), especially for long blocks.
+
+There is no consistency on `! defined` vs. `!defined`.  The day gnulib
+decides, we'll follow them.
+
+#### C/C++
+Follow the GNU Coding Standards.
+
+The `glr.c` skeleton was implemented with `camlCase`.  We are migrating it
+to `snake_case`.  Because we are gradually standardizing the code, it is
+currently inconsistent.
+
+Use `YYFOO` and `yyfoo` for entities that are exposed to the user.  They are
+part of our contract with the users wrt backward compatibility.
+
+Use `YY_FOO` and `yy_foo` for private matters.  Users should not use them,
+we are free to change them without fear of backward compatibility issues.
+
+Use `*_t` for types, especially for `yy*_t` in which case we shouldn't worry
+about the C standard introducing such a name.
+
+#### C++
+Follow the [C++ Core
+Guidelines](http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines).
+The [Google ones](https://google.github.io/styleguide/cppguide.html) may be
+interesting too.
+
+Our enumerators, such as the kinds (symbol and token kinds), should be lower
+case, but it was too late to follow that track for token kinds, and symbol
+kind enumerators are made to be consistent with them.
+
+Use `*_type` for type aliases.  Use `foo_get()` and `foo_set(v)` for
+accessors, or simply `foo()` and `foo(v)`.
+
+Use the `yy` prefix for private stuff, but there's no need for it in the
+public API.  The `yy` prefix is already taken care of via the namespace.
+
+#### Java
+We follow the [Java Code
+Conventions](https://www.oracle.com/technetwork/java/codeconventions-150003.pdf)
+and [Google Java Style
+Guide](https://google.github.io/styleguide/javaguide.html).  Unfortunately
+at some point some GNU Coding Style was installed in Java, but it's an
+error.  So we should for instance stop putting spaces in function calls.
+Because we are standardizing the code, it is currently inconsistent.
+
+Use a 2-space indentation (Google) rather than 4 (Oracle).
+
+Don't use the "yy" prefix for public members: "getExpectedTokens", not
+"yyexpectedTokens" or "yygetExpectedTokens".
+
+## Commit Messages
+Imitate the style we use.  Use `git log` to get sources of inspiration.
+
+If the changes have a small impact on Bison's generated parser, embed these
+changes in the commit itself.  If the impact is large, first push all the
+changes except those about src/parse-gram.[ch], and then another commit
+named "regen" which is only about them.
+
+## Debugging
+Bison supports tracing of its various steps, via the `--trace` option.
+Since it is not meant for the end user, it is not displayed by `bison
+--help`, nor is it documented in the manual.  Instead, run `bison
+--trace=help`.
+
+## Documentation
+Use `@option` for options and options with their argument if they have no
+space (e.g., `@option{-Dfoo=bar}`).  However, use `@samp` elsewhere (e.g.,
+`@samp{-I foo}`).
+
+
 Test Suite
 ==========
 
@@ -331,9 +380,9 @@ examples, and the main test suite.
 
 ### The Examples
 In examples/, there is a number of ready-to-use examples (see
-examples/README.md).  These examples have small test suites run by `make
-check`.  The test results are in local `*.log` files (e.g.,
-`$build/examples/c/calc/calc.log`).
+[examples/README.md](examples/README.md)).  These examples have small test
+suites run by `make check`.  The test results are in local `*.log` files
+(e.g., `$build/examples/c/calc/calc.log`).
 
 ### The Main Test Suite
 The main test suite, in tests/, is written on top of GNU Autotest, which is
@@ -408,6 +457,31 @@ Use the `javaexec.sh` script.  For instance to run the parser of test case
 504:
 
     $ sh ./_build/javaexec.sh -cp ./_build/tests/testsuite.dir/504 Calc
+
+## Using Sanitizers
+Address sanitizer (ASAN) and undefined-behavior sanitizer (UBSAN) are very
+useful.  Here's one way to set ASAN up with GCC 10 on Mac Ports
+
+1. Configure with
+
+    $ ./configure -C --enable-gcc-warnings \
+        CPPFLAGS='-isystem /opt/local/include' \
+        CC='gcc-mp-10 -fsanitize=address' \
+        CFLAGS='-ggdb' \
+        CXX='g++-mp-10.0 -fsanitize=address' \
+        CXXFLAGS='-ggdb' \
+        LDFLAGS='-L/opt/local/lib'
+
+2. Compile
+
+3. Generate debug symbols:
+
+    $ dsymutil src/bison
+
+4. Run the tests with leak detection enabled
+   (`ASAN_OPTIONS=detect_leaks=1`).  E.g. for counterexamples:
+
+    $ make check-local TESTSUITEFLAGS='-j5 -k cex' ASAN_OPTIONS=detect_leaks=1
 
 ## make maintainer-check-valgrind
 This target uses valgrind both to check bison, and the generated parsers.
@@ -488,7 +562,8 @@ re-run the tests, run:
 Release Procedure
 =================
 
-See README-release.
+See the [README-release file](README-release), created when the package is
+bootstrapped.
 
 <!--
 
@@ -524,8 +599,10 @@ LocalWords:  symlinks vti html lt POSIX Cc'ed Graphviz Texinfo autoconf jN
 LocalWords:  automake autopoint graphviz texinfo PROG Wother parsers YYFOO
 LocalWords:  TESTSUITEFLAGS deprec struct gnulib's getopt config ggdb yyfoo
 LocalWords:  bitset fsanitize symlink CFLAGS MERCHANTABILITY ispell wrt YY
-LocalWords:  american Administrivia camlCase yy accessors namespace src
-LocalWords:  getExpectedTokens yyexpectedTokens yygetExpectedTokens
-LocalWords:  regen dogfooding Autotest testsuite
+LocalWords:  american Administrivia camlCase yy accessors namespace src hoc
+LocalWords:  getExpectedTokens yyexpectedTokens yygetExpectedTokens parens
+LocalWords:  regen dogfooding Autotest testsuite getargs CPP BAZ endif cppi
+LocalWords:  cpp javaexec cp Calc ASAN UBSAN CPPFLAGS isystem CXX cex Gperf
+LocalWords:  CXXFLAGS LDFLAGS dsymutil gperf
 
 -->

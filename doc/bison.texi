@@ -6,11 +6,58 @@
 @settitle Bison @value{VERSION}
 @xrefautomaticsectiontitle on
 
+@c cite a reference in text.  Could not find a means to have a single
+@c definition that looks nice in all the output formats.
+@iftex
+@macro tcite{ref}
+@ref{\ref\,,\ref\}
+@end macro
+@end iftex
+@ifnottex
+@macro tcite{ref}
+@ref{\ref\}
+@end macro
+@end ifnottex
+
+@c cite a reference in parentheses.
+@iftex
+@macro pcite{ref}
+(@pxref{\ref\,,\ref\})
+@end macro
+@end iftex
+@ifnottex
+@macro pcite{ref}
+(@pxref{\ref\})
+@end macro
+@end ifnottex
+
+
+@c ## ---------------------- ##
+@c ## Diagnostics in color.  ##
+@c ## ---------------------- ##
+
 @tex
-\gdef\rgbWarning{0.50 0 0.50}
-\gdef\colorWarning{%
- \setcolor{\rgbWarning}%
+\gdef\rgbGreen{0 .80 0}
+\gdef\colorGreen{%
+ \setcolor{\rgbGreen}%
 }
+\gdef\rgbYellow{1 .5 0}
+\gdef\colorYellow{%
+ \setcolor{\rgbYellow}%
+}
+\gdef\rgbRed{1 0 0}
+\gdef\colorRed{%
+ \setcolor{\rgbRed}%
+}
+\gdef\rgbBlue{0 0 1}
+\gdef\colorBlue{%
+ \setcolor{\rgbBlue}%
+}
+\gdef\rgbPurple{0.50 0 0.50}
+\gdef\colorPurple{%
+ \setcolor{\rgbPurple}%
+}
+
 \gdef\rgbError{0.80 0 0}
 \gdef\colorError{%
  \setcolor{\rgbError}%
@@ -25,9 +72,22 @@
 @end tex
 
 @ifnottex
-@macro colorWarning
+@macro colorGreen
+@inlineraw{html, <b style="color:green">}
+@end macro
+@macro colorYellow
+@inlineraw{html, <b style="color:#ff8000">}
+@end macro
+@macro colorRed
+@inlineraw{html, <b style="color:red">}
+@end macro
+@macro colorBlue
+@inlineraw{html, <b style="color:blue">}
+@end macro
+@macro colorPurple
 @inlineraw{html, <b style="color:darkviolet">}
 @end macro
+
 @macro colorError
 @inlineraw{html, <b style="color:red">}
 @end macro
@@ -39,8 +99,28 @@
 @end macro
 @end ifnottex
 
+@macro green{text}
+@colorGreen{}\text\@colorOff{}
+@end macro
+
+@macro yellow{text}
+@colorYellow{}\text\@colorOff{}
+@end macro
+
+@macro red{text}
+@colorRed{}\text\@colorOff{}
+@end macro
+
+@macro blue{text}
+@colorBlue{}\text\@colorOff{}
+@end macro
+
+@macro purple{text}
+@colorPurple{}\text\@colorOff{}
+@end macro
+
 @macro dwarning{text}
-@colorWarning{}\text\@colorOff{}
+@purple{\text\}
 @end macro
 
 @macro derror{text}
@@ -369,6 +449,7 @@ Handling Context Dependencies
 
 Debugging Your Parser
 
+* Counterexamples::   Understanding conflicts.
 * Understanding::     Understanding the structure of your parser.
 * Graphviz::          Getting a visual representation of the parser.
 * Xml::               Getting a markup representation of the parser.
@@ -2008,7 +2089,7 @@ rpcalc.tab.c  rpcalc.y
 
 @group
 # @r{Compile the Bison parser.}
-# @r{@samp{-lm} tells compiler to search math library for @code{pow}.}
+# @r{@option{-lm} tells compiler to search math library for @code{pow}.}
 $ @kbd{cc -lm -o rpcalc rpcalc.tab.c}
 @end group
 
@@ -2658,6 +2739,7 @@ found, a pointer to that symbol is returned; otherwise zero is returned.
    always succeed, and that integer calculations
    never overflow.  Production-quality code should
    not make these assumptions.  */
+#include <assert.h>
 #include <stdlib.h> /* malloc, realloc. */
 #include <string.h> /* strlen. */
 @end group
@@ -2833,13 +2915,13 @@ predefined variables such as @code{pi} or @code{e} as well.
 Add some new functions from @file{math.h} to the initialization list.
 
 @item
-Add another array that contains constants and their values.  Then
-modify @code{init_table} to add these constants to the symbol table.
-It will be easiest to give the constants type @code{VAR}.
+Add another array that contains constants and their values.  Then modify
+@code{init_table} to add these constants to the symbol table.  It will be
+easiest to give the constants type @code{VAR}.
 
 @item
-Make the program report an error if the user refers to an
-uninitialized variable in any way except to store a value in it.
+Make the program report an error if the user refers to an uninitialized
+variable in any way except to store a value in it.
 @end enumerate
 
 @node Grammar File
@@ -3419,8 +3501,8 @@ is why periods don't make sense in terminal symbols.)  @xref{Calling
 Convention}.
 
 If @code{yylex} is defined in a separate file, you need to arrange for the
-token-kind definitions to be available there.  Use the @samp{-d} option when
-you run Bison, so that it will write these definitions into a separate
+token-kind definitions to be available there.  Use the @option{-d} option
+when you run Bison, so that it will write these definitions into a separate
 header file @file{@var{name}.tab.h} which you can include in the other
 source files that need it.  @xref{Invocation}.
 
@@ -5329,7 +5411,7 @@ specification of expected conflicts.  To this end, you can also attach
 The interpretation of these modifiers differs from their use as
 declarations.  When attached to rules, they indicate the number of states
 in which the rule is involved in a conflict.  You will need to consult the
-output resulting from @samp{-v} to determine appropriate numbers to use.
+output resulting from @option{-v} to determine appropriate numbers to use.
 For example, for the following grammar fragment, the first rule for
 @code{empty_dims} appears in two states in which the @samp{[} token is a
 lookahead.  Having determined that, you can document this fact with an
@@ -5374,7 +5456,7 @@ In general, using @code{%expect} involves these steps:
 
 @itemize @bullet
 @item
-Compile your grammar without @code{%expect}.  Use the @samp{-v} option
+Compile your grammar without @code{%expect}.  Use the @option{-v} option
 to get a verbose list of where the conflicts occur.  Bison will also
 print the number of conflicts.
 
@@ -5512,12 +5594,12 @@ do @{
 yypstate_delete (ps);
 @end example
 
-If the user decided to use an impure push parser, a few things about
-the generated parser will change.  The @code{yychar} variable becomes
-a global variable instead of a variable in the @code{yypush_parse} function.
-For this reason, the signature of the @code{yypush_parse} function is
-changed to remove the token as a parameter.  A nonreentrant push parser
-example would thus look like this:
+If the user decided to use an impure push parser, a few things about the
+generated parser will change.  The @code{yychar} variable becomes a global
+variable instead of a local one in the @code{yypush_parse} function.  For
+this reason, the signature of the @code{yypush_parse} function is changed to
+remove the token as a parameter.  A nonreentrant push parser example would
+thus look like this:
 
 @example
 extern int yychar;
@@ -5617,13 +5699,13 @@ Specify the grammar's start symbol (@pxref{Start Decl}).
 @end deffn
 
 @deffn {Directive} %expect
-Declare the expected number of shift-reduce conflicts, either overall or
+Declare the expected number of shift/reduce conflicts, either overall or
 for a given rule
 (@pxref{Expect Decl}).
 @end deffn
 
 @deffn {Directive} %expect-rr
-Declare the expected number of reduce-reduce conflicts, either overall or
+Declare the expected number of reduce/reduce conflicts, either overall or
 for a given rule
 (@pxref{Expect Decl}).
 @end deffn
@@ -5921,44 +6003,83 @@ Unaccepted @var{variable}s produce an error.  Some of the accepted
 @var{variable}s are described below.
 
 
-@c ================================================== api.namespace
-@deffn Directive {%define api.namespace} @{@var{namespace}@}
-@itemize
-@item Languages(s): C++
+@c ================================================== api.filename.file
+@anchor{api-filename-type}
+@deffn {Directive} {%define api.filename.type} @{@var{type}@}
 
-@item Purpose: Specify the namespace for the parser class.
-For example, if you specify:
+@itemize @bullet
+@item Language(s): C++
 
-@example
-%define api.namespace @{foo::bar@}
-@end example
-
-Bison uses @code{foo::bar} verbatim in references such as:
-
-@example
-foo::bar::parser::semantic_type
-@end example
-
-However, to open a namespace, Bison removes any leading @code{::} and then
-splits on any remaining occurrences:
-
-@example
-namespace foo @{ namespace bar @{
-  class position;
-  class location;
-@} @}
-@end example
+@item Purpose:
+Define the type of file names in Bison's default location and position
+types. @xref{Exposing the Location Classes}.
 
 @item Accepted Values:
-Any absolute or relative C++ namespace reference without a trailing
-@code{"::"}.  For example, @code{"foo"} or @code{"::foo::bar"}.
+Any type that is printable (via streams) and comparable (with @code{==} and
+@code{!=}).
 
-@item Default Value:
-@code{yy}, unless you used the obsolete @samp{%name-prefix "@var{prefix}"}
-directive.
+@item Default Value: @code{const std::string}.
+
+@item History:
+Introduced in Bison 2.0 as @code{filename_type} (with @code{std::string} as
+default), renamed as @code{api.filename.type} in Bison 3.7 (with @code{const
+std::string} as default).
 @end itemize
 @end deffn
-@c api.namespace
+
+
+@c ================================================== api.header.include
+@deffn Directive {%define api.header.include} @{"header.h"@}
+@deffnx Directive {%define api.header.include} @{<header.h>@}
+@itemize
+@item Languages(s): C (@file{yacc.c})
+
+@item Purpose: Specify how the generated parser should include the generated header.
+
+Historically, when option @option{-D}/@option{--defines} was used,
+@command{bison} generated a header and pasted an exact copy of it into the
+generated parser implementation file.  Since Bison 3.6, it is
+@code{#include}d as @samp{"@var{basename}.h"}, instead of duplicated, unless
+@var{file} is @samp{y.tab}, see below.
+
+The @code{api.header.include} variable allows to control how the generated
+parser @code{#include}s the generated header.  For instance:
+
+@example
+%define api.header.include @{"parse.h"@}
+@end example
+
+@noindent
+or
+
+@example
+%define api.header.include @{<parser/parse.h>@}
+@end example
+
+Using @code{api.header.include} does not change the name of the generated
+header, only how it is included.
+
+To work around limitations of Automake's @command{ylwrap} (which runs
+@command{bison} with @option{--yacc}), @code{api.header.include} is
+@emph{not} predefined when the output file is @file{y.tab.c}.  Define it to
+avoid the duplication.
+
+@item Accepted Values:
+An argument for @code{#include}.
+
+@item Default Value:
+@samp{"@var{header-basename}"}, unless the header file is @file{y.tab.h},
+where @var{header-basename} is the name of the generated header, without
+directory part.  For instance with @command{bison -d calc/parse.y},
+@code{api.header.include} defaults to @samp{"parse.h"}, not
+@samp{"calc/parse.h"}.
+
+@item History:
+Introduced in Bison 3.4.  Defaults to @samp{"@var{basename}.h"} since Bison
+3.7, unless the header file is @file{y.tab.h}.
+@end itemize
+@end deffn
+@c api.header.include
 
 
 @c ================================================== api.location.file
@@ -6037,9 +6158,50 @@ Introduced in Bison 3.2.
 @item Default Value: none
 
 @item History:
-Introduced in Bison 2.7 for C++ and Java, in Bison 3.4 for C.
+Introduced in Bison 2.7 for C++ and Java, in Bison 3.4 for C.  Was
+originally named @code{location_type} in Bison 2.5 and 2.6.
 @end itemize
 @end deffn
+
+
+@c ================================================== api.namespace
+@deffn Directive {%define api.namespace} @{@var{namespace}@}
+@itemize
+@item Languages(s): C++
+
+@item Purpose: Specify the namespace for the parser class.
+For example, if you specify:
+
+@example
+%define api.namespace @{foo::bar@}
+@end example
+
+Bison uses @code{foo::bar} verbatim in references such as:
+
+@example
+foo::bar::parser::semantic_type
+@end example
+
+However, to open a namespace, Bison removes any leading @code{::} and then
+splits on any remaining occurrences:
+
+@example
+namespace foo @{ namespace bar @{
+  class position;
+  class location;
+@} @}
+@end example
+
+@item Accepted Values:
+Any absolute or relative C++ namespace reference without a trailing
+@code{"::"}.  For example, @code{"foo"} or @code{"::foo::bar"}.
+
+@item Default Value:
+@code{yy}, unless you used the obsolete @samp{%name-prefix "@var{prefix}"}
+directive.
+@end itemize
+@end deffn
+@c api.namespace
 
 
 @c ================================================== api.parser.class
@@ -6500,12 +6662,6 @@ Introduced in Bison 3.0.3.
 @c api.value.type
 
 
-@c ================================================== location_type
-@deffn Directive {%define location_type}
-Obsoleted by @code{api.location.type} since Bison 2.7.
-@end deffn
-
-
 @c ================================================== lr.default-reduction
 
 @deffn Directive {%define lr.default-reduction} @var{when}
@@ -6583,7 +6739,10 @@ In C, some important invariants in the implementation of the parser are
 checked when this option is enabled.
 
 In C++, when variants are used (@pxref{C++ Variants}), symbols must be
-constructed and destroyed properly.  This option checks these constraints.
+constructed and destroyed properly.  This option checks these constraints
+using runtime type information (RTTI).  Therefore the generated code cannot
+be compiled with RTTI disabled (via compiler options such as
+@option{-fno-rtti}).
 
 @item Accepted Values: Boolean
 
@@ -6817,7 +6976,7 @@ The easy way to do this is to define the @code{%define} variable
 @code{api.prefix}.  With different @code{api.prefix}s it is guaranteed that
 headers do not conflict when included together, and that compiled objects
 can be linked together too.  Specifying @samp{%define api.prefix
-@{@var{prefix}@}} (or passing the option @samp{-Dapi.prefix=@{@var{prefix}@}}, see
+@{@var{prefix}@}} (or passing the option @option{-Dapi.prefix=@{@var{prefix}@}}, see
 @ref{Invocation}) renames the interface functions and
 variables of the Bison parser to start with @var{prefix} instead of
 @samp{yy}, and all the macros to start by @var{PREFIX} (i.e., @var{prefix}
@@ -7068,6 +7227,10 @@ The value returned by @code{yypush_parse} is the same as for @code{yyparse}
 with the following exception: it returns @code{YYPUSH_MORE} if more input is
 required to finish parsing the grammar.
 
+After @code{yypush_parse} returned, the instance may be consulted.  For
+instance check @code{yynerrs} to see whether there were (possibly recovered)
+syntax errors.
+
 After @code{yypush_parse} returns a status other than @code{YYPUSH_MORE},
 the parser instance @code{yyps} may be reused for a new parse.
 @end deftypefun
@@ -7120,7 +7283,7 @@ call it.  The function is sometimes referred to as a lexical scanner.
 In simple programs, @code{yylex} is often defined at the end of the Bison
 grammar file.  If @code{yylex} is defined in a separate source file, you
 need to arrange for the token-kind definitions to be available there.  To do
-this, use the @samp{-d} option when you run Bison, so that it will write
+this, use the @option{-d} option when you run Bison, so that it will write
 these definitions into the separate parser header file,
 @file{@var{name}.tab.h}, which you can include in the other source files
 that need it.  @xref{Invocation}.
@@ -7507,7 +7670,11 @@ Declarations}), then the parser no longer passes syntax error messages to
 @code{yyerror}, rather it delegates that task to the user by calling the
 @code{yyreport_syntax_error} function.
 
-@deftypefun int yyreport_syntax_error (@code{const yypcontext_t *}@var{ctx})
+The following functions and types are ``@code{static}'': they are defined in
+the implementation file (@file{*.c}) and available only from there.  They
+are meant to be used from the grammar's epilogue.
+
+@deftypefun {static int} yyreport_syntax_error (@code{const yypcontext_t *}@var{ctx})
 Report a syntax error to the user.  Return 0 on success, @code{YYENOMEM} on
 memory exhaustion.  Whether it uses @code{yyerror} is up to the user.
 @end deftypefun
@@ -7542,16 +7709,16 @@ typedef enum yysymbol_kind_t yysymbol_kind_t;
 @end example
 @end deffn
 
-@deftypefun {yysymbol_kind_t} yypcontext_token (@code{const yypcontext_t *}@var{ctx})
+@deftypefun {static yysymbol_kind_t} yypcontext_token (@code{const yypcontext_t *}@var{ctx})
 The ``unexpected'' token: the symbol kind of the lookahead token that caused
-the syntax error.  Return @code{YYSYMBOL_YYEMPTY} if there is no lookahead.
+the syntax error.  Returns @code{YYSYMBOL_YYEMPTY} if there is no lookahead.
 @end deftypefun
 
-@deftypefun {YYLTYPE *} yypcontext_location (@code{const yypcontext_t *}@var{ctx})
+@deftypefun {static YYLTYPE *} yypcontext_location (@code{const yypcontext_t *}@var{ctx})
 The location of the syntax error (that of the unexpected token).
 @end deftypefun
 
-@deftypefun int yypcontext_expected_tokens (@code{const yypcontext_t *}ctx, @code{yysymbol_kind_t} @var{argv}@code{[]}, @code{int} @var{argc})
+@deftypefun {static int} yypcontext_expected_tokens (@code{const yypcontext_t *}ctx, @code{yysymbol_kind_t} @var{argv}@code{[]}, @code{int} @var{argc})
 Fill @var{argv} with the expected tokens, which never includes
 @code{YYSYMBOL_YYEMPTY}, @code{YYSYMBOL_YYerror}, or
 @code{YYSYMBOL_YYUNDEF}.
@@ -7569,10 +7736,8 @@ If @var{argv} is null, return the size needed to store all the possible
 values, which is always less than @code{YYNTOKENS}.
 @end deftypefun
 
-@deftypefun {@r{string type}} yysymbol_name (@code{symbol_kind_t} @var{symbol})
+@deftypefun {static const char *} yysymbol_name (@code{symbol_kind_t} @var{symbol})
 The name of the symbol whose kind is @var{symbol}, possibly translated.
-Depending on the options, may return a @code{const char*} or a
-@code{std::string}.
 @end deftypefun
 
 A custom syntax error function looks as follows.  This implementation is
@@ -7580,7 +7745,7 @@ inappropriate for internationalization, see the @file{c/bistromathic}
 example for a better alternative.
 
 @example
-int
+static int
 yyreport_syntax_error (const yypcontext_t *ctx)
 @{
   int res = 0;
@@ -8026,10 +8191,9 @@ doing so would produce on the stack the sequence of symbols @code{expr
 @vindex yychar
 @vindex yylval
 @vindex yylloc
-The lookahead token is stored in the variable @code{yychar}.
-Its semantic value and location, if any, are stored in the variables
-@code{yylval} and @code{yylloc}.
-@xref{Action Features}.
+The lookahead token is stored in the variable @code{yychar}.  Its semantic
+value and location, if any, are stored in the variables @code{yylval} and
+@code{yylloc}.  @xref{Action Features}.
 
 @node Shift/Reduce
 @section Shift/Reduce Conflicts
@@ -8246,7 +8410,7 @@ explicitly.  This shift/reduce conflicts occurs in the following situation,
 where the period denotes the current parsing state:
 
 @example
-if @var{e1} then if  @var{e2} then @var{s1} . else @var{s2}
+if @var{e1} then if  @var{e2} then @var{s1} • else @var{s2}
 @end example
 
 The conflict involves the reduction of the rule @samp{IF expr THEN
@@ -8305,7 +8469,7 @@ of the rule being considered with that of the lookahead token.  If the
 token's precedence is higher, the choice is to shift.  If the rule's
 precedence is higher, the choice is to reduce.  If they have equal
 precedence, the choice is made based on the associativity of that
-precedence level.  The verbose output file made by @samp{-v}
+precedence level.  The verbose output file made by @option{-v}
 (@pxref{Invocation}) says how each conflict was
 resolved.
 
@@ -8758,8 +8922,8 @@ return_spec:
 @end group
 @end example
 
-For a more detailed exposition of LALR(1) parsers and parser
-generators, @pxref{Bibliography}.
+For a more detailed exposition of LALR(1) parsers and parser generators, see
+@tcite{DeRemer 1982}.
 
 @node Tuning LR
 @section Tuning LR
@@ -8839,10 +9003,9 @@ LR.  Thus, by enabling IELR at the start of grammar development, you can
 safely and completely eliminate the need to consider LALR's shortcomings.
 
 While IELR is almost always preferable, there are circumstances where LALR
-or the canonical LR parser tables described by Knuth
-(@pxref{Bibliography}) can be useful.  Here we summarize the
-relative advantages of each parser table construction algorithm within
-Bison:
+or the canonical LR parser tables described by Knuth @pcite{Knuth 1965} can
+be useful.  Here we summarize the relative advantages of each parser table
+construction algorithm within Bison:
 
 @itemize
 @item LALR
@@ -8906,8 +9069,8 @@ default reductions.  For details and a few caveats of LAC, @pxref{LAC}.
 @end itemize
 
 For a more detailed exposition of the mysterious behavior in LALR parsers
-and the benefits of IELR, @pxref{Bibliography}, and
-@ref{Bibliography}.
+and the benefits of IELR, see @tcite{Denny 2008}, and @tcite{Denny 2010
+November}.
 
 @node Default Reductions
 @subsection Default Reductions
@@ -9109,8 +9272,8 @@ has proved insignificant for practical grammars.
 @end itemize
 
 While the LAC algorithm shares techniques that have been recognized in the
-parser community for years, for the publication that introduces LAC,
-@pxref{Bibliography}.
+parser community for years, for the publication that introduces LAC, see
+@tcite{Denny 2010 May}.
 
 @node Unreachable States
 @subsection Unreachable States
@@ -9171,7 +9334,7 @@ Ambiguous grammars, since they have strings with more than one possible
 sequence of reductions cannot have deterministic parsers in this sense.
 The same is true of languages that require more than one symbol of
 lookahead, since the parser lacks the information necessary to make a
-decision at the point it must be made in a shift-reduce parser.
+decision at the point it must be made in a shift/reduce parser.
 Finally, as previously mentioned (@pxref{Mysterious Conflicts}),
 there are languages where Bison's default choice of how to
 summarize the input seen so far loses necessary information.
@@ -9181,9 +9344,9 @@ Bison generates a parser that uses a different algorithm, called
 Generalized LR (or GLR).  A Bison GLR
 parser uses the same basic
 algorithm for parsing as an ordinary Bison parser, but behaves
-differently in cases where there is a shift-reduce conflict that has not
+differently in cases where there is a shift/reduce conflict that has not
 been resolved by precedence rules (@pxref{Precedence}) or a
-reduce-reduce conflict.  When a GLR parser encounters such a
+reduce/reduce conflict.  When a GLR parser encounters such a
 situation, it
 effectively @emph{splits} into a several parsers, one for each possible
 shift or reduction.  These parsers then proceed as usual, consuming
@@ -9234,7 +9397,7 @@ structure should generally be adequate.  On LR(1) portions of a
 grammar, in particular, it is only slightly slower than with the
 deterministic LR(1) Bison parser.
 
-For a more detailed exposition of GLR parsers, @pxref{Bibliography}.
+For a more detailed exposition of GLR parsers, see @tcite{Scott 2000}.
 
 @node Memory Management
 @section Memory Management, and How to Avoid Memory Exhaustion
@@ -9375,10 +9538,9 @@ Error recovery strategies are necessarily guesses.  When they guess wrong,
 one syntax error often leads to another.  In the above example, the error
 recovery rule guesses that an error is due to bad input within one
 @code{stmt}.  Suppose that instead a spurious semicolon is inserted in the
-middle of a valid @code{stmt}.  After the error recovery rule recovers
-from the first error, another syntax error will be found straightaway,
-since the text following the spurious semicolon is also an invalid
-@code{stmt}.
+middle of a valid @code{stmt}.  After the error recovery rule recovers from
+the first error, another syntax error will be found straight away, since the
+text following the spurious semicolon is also an invalid @code{stmt}.
 
 To prevent an outpouring of error messages, the parser will output no error
 message for another syntax error that happens shortly after the first; only
@@ -9628,12 +9790,18 @@ clear the flag.
 @chapter Debugging Your Parser
 
 Developing a parser can be a challenge, especially if you don't understand
-the algorithm (@pxref{Algorithm}).  This
-chapter explains how to understand and debug a parser.
+the algorithm (@pxref{Algorithm}).  This chapter explains how to understand
+and debug a parser.
 
-The first sections focus on the static part of the parser: its structure.
-They explain how to generate and read the detailed description of the
-automaton.  There are several formats available:
+The most frequent issue users face is solving their conflicts.  To fix them,
+the first step is understanding how they arise in a given grammar.  This is
+made much easier by automated generation of counterexamples, cover in the
+first section (@pxref{Counterexamples}).
+
+In most cases though, looking at the structure of the automaton is still
+needed.  The following sections explain how to generate and read the
+detailed structural description of the automaton.  There are several formats
+available:
 @itemize @minus
 @item
 as text, see @ref{Understanding};
@@ -9650,19 +9818,175 @@ The last section focuses on the dynamic part of the parser: how to enable
 and understand the parser run-time traces (@pxref{Tracing}).
 
 @menu
+* Counterexamples::   Understanding conflicts.
 * Understanding::     Understanding the structure of your parser.
 * Graphviz::          Getting a visual representation of the parser.
 * Xml::               Getting a markup representation of the parser.
 * Tracing::           Tracing the execution of your parser.
 @end menu
 
+@node Counterexamples
+@section Generation of Counterexamples
+
+Solving conflicts is probably the most delicate part of the design of an LR
+parser, as demonstrated by the number of sections devoted to them in this
+very documentation.  To solve a conflict, one must understand it: when does
+it occur?  Is it because of a flaw in the grammar?  Is it rather because
+LR(1) cannot cope with this grammar?
+
+On difficulty is that conflicts occur in the @emph{automaton}, and it can be
+tricky to related them to issues in the @emph{grammar} itself.  With
+experience and patience, analysis the detailed description of the automaton
+(@pxref{Understanding}) allows to find example strings that reach these conflicts.
+
+That task is made much easier thanks to the generation of counterexamples,
+initially developed by Chinawat Isradisaikul and Andrew Myers
+@pcite{Isradisaikul 2015}.
+
+As a first example, see the example grammar of @ref{Shift/Reduce}, which
+features on shift/reduce conflict:
+
+@example
+$ @kbd{bison if-then-else.y}
+if-then-else.y: warning: 1 shift/reduce conflict [-Wconflicts-sr]
+if-then-else.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
+@end example
+
+@noindent
+Let's rerun @command{bison} with the option
+@option{-Wcex}/@option{-Wcounterexamples}@inlinefmt{info, (the following
+output is actually in color)}:
+
+@ifhtml
+@example
+Shift/reduce conflict on token "else":
+@group
+  Example            @yellow{"if" expr "then"} @blue{"if" expr "then" stmt} @red{•} @yellow{"else" stmt}
+  First derivation   @yellow{if_stmt ::=[ "if" expr "then"} @green{stmt ::=[} @blue{if_stmt ::=[ "if" expr "then" stmt} @red{•} @blue{]} @green{]} @yellow{"else" stmt ]}
+  Example            @yellow{"if" expr "then"} @blue{"if" expr "then" stmt} @red{•} @blue{"else" stmt}
+  Second derivation  @yellow{if_stmt ::=[ "if" expr "then"} @green{stmt ::=[} @blue{if_stmt ::=[ "if" expr "then" stmt} @red{•} @blue{"else" stmt ]} @green{]} @yellow{]}
+@end group
+@end example
+@end ifhtml
+@ifnothtml
+@smallexample
+Shift/reduce conflict on token "else":
+@group
+  Example
+    @yellow{"if" expr "then"} @blue{"if" expr "then" stmt} @red{•} @yellow{"else" stmt}
+  First derivation
+    @yellow{if_stmt ::=[ "if" expr "then"} @green{stmt ::=[} @blue{if_stmt ::=[ "if" expr "then" stmt} @red{•} @blue{]} @green{]} @yellow{"else" stmt ]}
+  Example
+    @yellow{"if" expr "then"} @blue{"if" expr "then" stmt} @red{•} @blue{"else" stmt}
+  Second derivation
+    @yellow{if_stmt ::=[ "if" expr "then"} @green{stmt ::=[} @blue{if_stmt ::=[ "if" expr "then" stmt} @red{•} @blue{"else" stmt ]} @green{]} @yellow{]}
+@end group
+@end smallexample
+@end ifnothtml
+
+This shows two different derivations for one single expression.  That
+demonstrates that the grammar is ambiguous.
+
+@sp 1
+
+As a more delicate example, consider the example grammar of
+@ref{Reduce/Reduce}, which features a reduce/reduce conflict:
+
+@example
+%%
+sequence:
+  %empty
+| maybeword
+| sequence "word"
+;
+maybeword:
+  %empty
+| "word"
+;
+@end example
+
+Bison generates the following counterexamples:
+
+@example
+$ @kbd{bison -Wcex sequence.y}
+sequence.y: @dwarning{warning}: 1 shift/reduce conflict [@dwarning{-Wconflicts-sr}]
+sequence.y: @dwarning{warning}: 2 reduce/reduce conflicts [@dwarning{-Wconflicts-rr}]
+Shift/reduce conflict on token "word":
+  Example              @red{•} @yellow{"word"}
+  First derivation     @yellow{sequence ::=[} @green{sequence ::=[} @red{•} @green{]} @yellow{"word" ]}
+  Example              @red{•} @green{"word"}
+  Second derivation    @yellow{sequence ::=[} @green{maybeword ::=[} @red{•} @green{"word" ]} @yellow{]}
+
+Reduce/reduce conflict on tokens $end, "word":
+  Example              @red{•}
+  First derivation     @yellow{sequence ::=[} @red{•} @yellow{]}
+  Example              @red{•}
+  Second derivation    @yellow{sequence ::=[} @green{maybeword ::=[} @red{•} @green{]} @yellow{]}
+
+Shift/reduce conflict on token "word":
+  Example              @red{•} @yellow{"word"}
+  First derivation     @yellow{sequence ::=[} @green{sequence ::=[} @blue{maybeword ::=[} @red{•} @blue{]} @green{]} @yellow{"word" ]}
+  Example              @red{•} @green{"word"}
+  Second derivation    @yellow{sequence ::=[} @green{maybeword ::=[} @red{•} @green{"word" ]} @yellow{]}
+
+sequence.y:8.3-45: @dwarning{warning}: rule useless in parser due to conflicts [@dwarning{-Wother}]
+    8 |   @dwarning{%empty    @{ printf ("empty maybeword\n"); @}}
+      |   @dwarning{^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+@end example
+
+Each of these three conflicts, again, prove that the grammar is ambiguous.
+For instance, the second conflict (the reduce/reduce one) shows that the
+grammar accept the empty input in two different ways.
+
+@sp 1
+
+Sometimes, the search will not find an example that can be derived in two
+ways.  In these cases, counterexample generation will provide two examples
+that are the same up until the dot.  Most notably, this will happen when
+your grammar requires a stronger parser (more lookahead, LR instead of
+LALR).  The following example isn't LR(1):
+
+@example
+%token ID
+%%
+s: a ID
+a: expr
+expr: %empty | expr ID ','
+@end example
+
+@command{bison} reports:
+
+@smallexample
+Shift/reduce conflict on token ID:
+  First example        @blue{expr} @red{•} @green{ID} @yellow{$end}
+  First derivation     @yellow{$accept ::=[} @green{s ::=[} @blue{a ::=[ expr} @red{•} @blue{]} @green{ID ]} @yellow{$end ]}
+  Second example       @purple{expr} @red{•} @purple{ID ','} @green{ID} @yellow{$end}
+  Second derivation    @yellow{$accept ::=[} @green{s ::=[} @blue{a ::=[} @purple{expr ::=[ expr} @red{•} @purple{ID ',' ]} @blue{]} @green{ID ]} @yellow{$end ]}
+@end smallexample
+
+This conflict is caused by the parser not having enough information to know
+the difference between these two examples.  The parser would need an
+additional lookahead token to know whether or not a comma follows the
+@code{ID} after @code{expr}.  These types of conflicts tend to be more
+difficult to fix, and usually need a rework of the grammar.  In this case,
+it can be fixed by changing around the recursion: @code{expr: ID | ',' expr
+ID}.
+
+Alternatively, you might also want to consider using a GLR parser
+(@pxref{GLR Parsers}).
+
+@sp 1
+
+On occasions, it is useful to look at counterexamples @emph{in situ}: with
+the automaton report (@xref{Understanding}, in particular @ref{state-8,,
+State 8}).
+
 @node Understanding
 @section Understanding Your Parser
 
-As documented elsewhere (@pxref{Algorithm}) Bison parsers are
-@dfn{shift/reduce automata}.  In some cases (much more frequent than one
-would hope), looking at this automaton is required to tune or simply fix a
-parser.
+Bison parsers are @dfn{shift/reduce automata} (@pxref{Algorithm}).  In some
+cases (much more frequent than one would hope), looking at this automaton is
+required to tune or simply fix a parser.
 
 The textual file is generated when the options @option{--report} or
 @option{--verbose} are specified, see @ref{Invocation}.  Its name is made by
@@ -9710,19 +10034,20 @@ useless: STR;
 
 @command{bison} reports:
 
-@example
+@smallexample
 calc.y: @dwarning{warning}: 1 nonterminal useless in grammar [@dwarning{-Wother}]
 calc.y: @dwarning{warning}: 1 rule useless in grammar [@dwarning{-Wother}]
 calc.y:19.1-7: @dwarning{warning}: nonterminal useless in grammar: useless [@dwarning{-Wother}]
    19 | @dwarning{useless: STR;}
       | @dwarning{^~~~~~~}
 calc.y: @dwarning{warning}: 7 shift/reduce conflicts [@dwarning{-Wconflicts-sr}]
-@end example
+calc.y: @dwarning{warning}: rerun with option '-Wcounterexamples' to generate conflict counterexamples [@dwarning{-Wother}]
+@end smallexample
 
-When given @option{--report=state}, in addition to @file{calc.tab.c}, it
-creates a file @file{calc.output} with contents detailed below.  The
-order of the output and the exact presentation might vary, but the
-interpretation is the same.
+Going back to the calc example, when given @option{--report=state},
+in addition to @file{calc.tab.c}, it creates a file @file{calc.output}
+with contents detailed below.  The order of the output and the exact
+presentation might vary, but the interpretation is the same.
 
 @noindent
 @cindex token, useless
@@ -9779,39 +10104,40 @@ and reports the uses of the symbols:
 @group
 Terminals, with rules where they appear
 
-$end (0) 0
-'*' (42) 3
-'+' (43) 1
-'-' (45) 2
-'/' (47) 4
-error (256)
-NUM <ival> (258) 5
-STR <sval> (259)
+    $end (0) 0
+    '*' (42) 3
+    '+' (43) 1
+    '-' (45) 2
+    '/' (47) 4
+    error (256)
+    NUM <ival> (258) 5
+    STR <sval> (259)
 @end group
 
 @group
 Nonterminals, with rules where they appear
 
-$accept (9)
-    on left: 0
-exp <ival> (10)
-    on left: 1 2 3 4 5, on right: 0 1 2 3 4
+    $accept (9)
+        on left: 0
+    exp <ival> (10)
+        on left: 1 2 3 4 5
+        on right: 0 1 2 3 4
 @end group
 @end example
 
 @noindent
 @cindex item
-@cindex pointed rule
-@cindex rule, pointed
-Bison then proceeds onto the automaton itself, describing each state
-with its set of @dfn{items}, also known as @dfn{pointed rules}.  Each
-item is a production rule together with a point (@samp{.}) marking
-the location of the input cursor.
+@cindex dotted rule
+@cindex rule, dotted
+Bison then proceeds onto the automaton itself, describing each state with
+its set of @dfn{items}, also known as @dfn{dotted rules}.  Each item is a
+production rule together with a point (@samp{.}) marking the location of the
+input cursor.
 
 @example
 State 0
 
-    0 $accept: . exp $end
+    0 $accept: • exp $end
 
     NUM  shift, and go to state 1
 
@@ -9841,12 +10167,12 @@ you want to see more detail you can invoke @command{bison} with
 @example
 State 0
 
-    0 $accept: . exp $end
-    1 exp: . exp '+' exp
-    2    | . exp '-' exp
-    3    | . exp '*' exp
-    4    | . exp '/' exp
-    5    | . NUM
+    0 $accept: • exp $end
+    1 exp: • exp '+' exp
+    2    | • exp '-' exp
+    3    | • exp '*' exp
+    4    | • exp '/' exp
+    5    | • NUM
 
     NUM  shift, and go to state 1
 
@@ -9859,25 +10185,25 @@ In the state 1@dots{}
 @example
 State 1
 
-    5 exp: NUM .
+    5 exp: NUM •
 
     $default  reduce using rule 5 (exp)
 @end example
 
 @noindent
 the rule 5, @samp{exp: NUM;}, is completed.  Whatever the lookahead token
-(@samp{$default}), the parser will reduce it.  If it was coming from
-State 0, then, after this reduction it will return to state 0, and will
-jump to state 2 (@samp{exp: go to state 2}).
+(@samp{$default}), the parser will reduce it.  If it was coming from State
+0, then, after this reduction it will return to state 0, and will jump to
+state 2 (@samp{exp: go to state 2}).
 
 @example
 State 2
 
-    0 $accept: exp . $end
-    1 exp: exp . '+' exp
-    2    | exp . '-' exp
-    3    | exp . '*' exp
-    4    | exp . '/' exp
+    0 $accept: exp • $end
+    1 exp: exp • '+' exp
+    2    | exp • '-' exp
+    3    | exp • '*' exp
+    4    | exp • '/' exp
 
     $end  shift, and go to state 3
     '+'   shift, and go to state 4
@@ -9887,12 +10213,11 @@ State 2
 @end example
 
 @noindent
-In state 2, the automaton can only shift a symbol.  For instance,
-because of the item @samp{exp: exp . '+' exp}, if the lookahead is
-@samp{+} it is shifted onto the parse stack, and the automaton
-jumps to state 4, corresponding to the item @samp{exp: exp '+' . exp}.
-Since there is no default action, any lookahead not listed triggers a syntax
-error.
+In state 2, the automaton can only shift a symbol.  For instance, because of
+the item @samp{exp: exp • '+' exp}, if the lookahead is @samp{+} it is
+shifted onto the parse stack, and the automaton jumps to state 4,
+corresponding to the item @samp{exp: exp '+' • exp}.  Since there is no
+default action, any lookahead not listed triggers a syntax error.
 
 @cindex accepting state
 The state 3 is named the @dfn{final state}, or the @dfn{accepting
@@ -9901,7 +10226,7 @@ state}:
 @example
 State 3
 
-    0 $accept: exp $end .
+    0 $accept: exp $end •
 
     $default  accept
 @end example
@@ -9916,7 +10241,7 @@ the reader.
 @example
 State 4
 
-    1 exp: exp '+' . exp
+    1 exp: exp '+' • exp
 
     NUM  shift, and go to state 1
 
@@ -9925,7 +10250,7 @@ State 4
 
 State 5
 
-    2 exp: exp '-' . exp
+    2 exp: exp '-' • exp
 
     NUM  shift, and go to state 1
 
@@ -9934,7 +10259,7 @@ State 5
 
 State 6
 
-    3 exp: exp '*' . exp
+    3 exp: exp '*' • exp
 
     NUM  shift, and go to state 1
 
@@ -9943,24 +10268,25 @@ State 6
 
 State 7
 
-    4 exp: exp '/' . exp
+    4 exp: exp '/' • exp
 
     NUM  shift, and go to state 1
 
     exp  go to state 11
 @end example
 
+@anchor{state-8}
 As was announced in beginning of the report, @samp{State 8 conflicts:
 1 shift/reduce}:
 
 @example
 State 8
 
-    1 exp: exp . '+' exp
-    1    | exp '+' exp .
-    2    | exp . '-' exp
-    3    | exp . '*' exp
-    4    | exp . '/' exp
+    1 exp: exp • '+' exp
+    1    | exp '+' exp •
+    2    | exp • '-' exp
+    3    | exp • '*' exp
+    4    | exp • '/' exp
 
     '*'  shift, and go to state 6
     '/'  shift, and go to state 7
@@ -9998,11 +10324,11 @@ with some set of possible lookahead tokens.  When run with
 @example
 State 8
 
-    1 exp: exp . '+' exp
-    1    | exp '+' exp .  [$end, '+', '-', '/']
-    2    | exp . '-' exp
-    3    | exp . '*' exp
-    4    | exp . '/' exp
+    1 exp: exp • '+' exp
+    1    | exp '+' exp •  [$end, '+', '-', '/']
+    2    | exp • '-' exp
+    3    | exp • '*' exp
+    4    | exp • '/' exp
 
     '*'  shift, and go to state 6
     '/'  shift, and go to state 7
@@ -10023,6 +10349,27 @@ Conflict between rule 1 and token '-' resolved as reduce (%left '-').
 Conflict between rule 1 and token '*' resolved as shift ('+' < '*').
 @end example
 
+When given @option{--report=counterexamples}, @command{bison} will generate
+counterexamples within the report, augmented with the corresponding items
+(@pxref{Counterexamples}).
+
+@example
+Shift/reduce conflict on token '/':
+    1 exp: exp '+' exp •
+    4 exp: exp • '/' exp
+  Example              @green{exp '+' exp} @red{•} @yellow{'/' exp}
+  First derivation     @yellow{exp ::=[} @green{exp ::=[ exp '+' exp} @red{•} @green{]} @yellow{'/' exp ]}
+  Example              @yellow{exp '+'} @green{exp} @red{•} @green{'/' exp}
+  Second derivation    @yellow{exp ::=[ exp '+'} @green{exp ::=[ exp} @red{•} @green{'/' exp ]} @yellow{]}
+@end example
+
+This shows two separate derivations in the grammar for the same @code{exp}:
+@samp{e1 + e2 / e3}.  The derivations show how your rules would parse the
+given example. Here, the first derivation completes a reduction when seeing
+@samp{/}, causing @samp{e1 + e2} to be grouped as an @code{exp}. The second
+derivation shifts on @samp{/}, resulting in @samp{e2 / e3} being grouped as
+an @code{exp}. Therefore, it is easy to see that adding @code{%precedence}
+directives would fix this conflict.
 
 The remaining states are similar:
 
@@ -10030,11 +10377,11 @@ The remaining states are similar:
 @group
 State 9
 
-    1 exp: exp . '+' exp
-    2    | exp . '-' exp
-    2    | exp '-' exp .
-    3    | exp . '*' exp
-    4    | exp . '/' exp
+    1 exp: exp • '+' exp
+    2    | exp • '-' exp
+    2    | exp '-' exp •
+    3    | exp • '*' exp
+    4    | exp • '/' exp
 
     '*'  shift, and go to state 6
     '/'  shift, and go to state 7
@@ -10046,11 +10393,11 @@ State 9
 @group
 State 10
 
-    1 exp: exp . '+' exp
-    2    | exp . '-' exp
-    3    | exp . '*' exp
-    3    | exp '*' exp .
-    4    | exp . '/' exp
+    1 exp: exp • '+' exp
+    2    | exp • '-' exp
+    3    | exp • '*' exp
+    3    | exp '*' exp •
+    4    | exp • '/' exp
 
     '/'  shift, and go to state 7
 
@@ -10061,11 +10408,11 @@ State 10
 @group
 State 11
 
-    1 exp: exp . '+' exp
-    2    | exp . '-' exp
-    3    | exp . '*' exp
-    4    | exp . '/' exp
-    4    | exp '/' exp .
+    1 exp: exp • '+' exp
+    2    | exp • '-' exp
+    3    | exp • '*' exp
+    4    | exp • '/' exp
+    4    | exp '/' exp •
 
     '+'  shift, and go to state 4
     '-'  shift, and go to state 5
@@ -10138,9 +10485,9 @@ analysis of the textual report.
 
 @subheading Graphical Representation of States
 
-The items (pointed rules) for each state are grouped together in graph nodes.
-Their numbering is the same as in the verbose file. See the following points,
-about transitions, for examples
+The items (dotted rules) for each state are grouped together in graph nodes.
+Their numbering is the same as in the verbose file. See the following
+points, about transitions, for examples
 
 When invoked with @option{--report=lookaheads}, the lookahead tokens, when
 needed, are shown next to the relevant rule between square brackets as a
@@ -10161,7 +10508,7 @@ shift. The following describes a reduction in the @file{rr.output} file:
 @group
 State 3
 
-    1 exp: a . ";"
+    1 exp: a • ";"
 
     ";"  shift, and go to state 6
 @end group
@@ -10182,8 +10529,8 @@ This is how reductions are represented in the verbose file @file{rr.output}:
 @example
 State 1
 
-    3 a: "0" .  [";"]
-    4 b: "0" .  ["."]
+    3 a: "0" •  [";"]
+    4 b: "0" •  ["."]
 
     "."       reduce using rule 4 (b)
     $default  reduce using rule 3 (a)
@@ -10286,7 +10633,7 @@ Yacc portability matter to you, this is the preferred solution.
 
 @item the option @option{-t} (POSIX Yacc compliant)
 @itemx the option @option{--debug} (Bison extension)
-Use the @samp{-t} option when you run Bison (@pxref{Invocation}).  With
+Use the @option{-t} option when you run Bison (@pxref{Invocation}).  With
 @samp{%define api.prefix @{c@}}, it defines @code{CDEBUG} to 1, otherwise it
 defines @code{YYDEBUG} to 1.
 
@@ -10300,7 +10647,7 @@ Bison; use @code{%define parse.trace} instead.
 @findex YYDEBUG
 Define the macro @code{YYDEBUG} to a nonzero value when you compile the
 parser.  This is compliant with POSIX Yacc.  You could use
-@samp{-DYYDEBUG=1} as a compiler option or you could put @samp{#define
+@option{-DYYDEBUG=1} as a compiler option or you could put @samp{#define
 YYDEBUG 1} in the prologue of the grammar file (@pxref{Prologue}).
 
 If the @code{%define} variable @code{api.prefix} is used (@pxref{Multiple
@@ -10598,7 +10945,7 @@ you are writing C++ code instead of C in your grammar file, to name it
 @file{foo.ypp} or @file{foo.y++}.  Then, the output files will take an
 extension like the given one as input (respectively @file{foo.tab.cpp} and
 @file{foo.tab.c++}).  This feature takes effect with all options that
-manipulate file names like @samp{-o} or @samp{-d}.
+manipulate file names like @option{-o} or @option{-d}.
 
 For example:
 
@@ -10649,10 +10996,10 @@ file. @xref{Require Decl}.  No file was generated or changed.
 @section Bison Options
 
 Bison supports both traditional single-letter options and mnemonic long
-option names.  Long option names are indicated with @samp{--} instead of
-@samp{-}.  Abbreviations for option names are allowed as long as they
+option names.  Long option names are indicated with @option{--} instead of
+@option{-}.  Abbreviations for option names are allowed as long as they
 are unique.  When a long option takes an argument, like
-@samp{--file-prefix}, connect the option name and the argument with
+@option{--file-prefix}, connect the option name and the argument with
 @samp{=}.
 
 Here is a list of options that can be used with Bison.  It is followed by a
@@ -10869,6 +11216,13 @@ the @code{%expect} or @code{%expect-rr} directive is specified, an
 unexpected number of conflicts is an error, and an expected number of
 conflicts is not reported, so @option{-W} and @option{--warning} then have
 no effect on the conflict report.
+
+@item counterexamples
+@itemx cex
+Provide counterexamples for conflicts.  @xref{Counterexamples}.
+Counterexamples take time to compute.  The option @option{-Wcex} should be
+used by the developer when working on the grammar; it hardly makes sense to
+use it in a CI.
 
 @item dangling-alias
 Report string literals that are not bound to a token symbol.
@@ -11244,6 +11598,13 @@ each rule's lookahead set.
 Implies @code{state}.  Explain how conflicts were solved thanks to
 precedence and associativity directives.
 
+@item counterexamples
+@itemx cex
+Look for counterexamples for the conflicts.  @xref{Counterexamples}.
+Counterexamples take time to compute.  The option @option{-rcex} should be
+used by the developer when working on the grammar; it hardly makes sense to
+use it in a CI.
+
 @item all
 Enable all the items.
 
@@ -11264,8 +11625,8 @@ parser.  @xref{Decl Summary}.
 @itemx --output=@var{file}
 Specify the @var{file} for the parser implementation file.
 
-The other output files' names are constructed from @var{file} as
-described under the @samp{-v} and @samp{-d} options.
+The names of the other output files are constructed from @var{file} as
+described under the @option{-v} and @option{-d} options.
 
 @item -g [@var{file}]
 @itemx --graph[=@var{file}]
@@ -11282,6 +11643,10 @@ Output an XML report of the parser's automaton computed by Bison.
 @code{@var{file}} is optional.
 If omitted and the grammar file is @file{foo.y}, the output file will be
 @file{foo.xml}.
+
+@item -M @var{old}=@var{new}
+@itemx --file-prefix-map=@var{old}=@var{new}
+Replace prefix @var{old} with @var{new} when writing file paths in output files
 @end table
 
 @node Option Cross Key
@@ -11840,10 +12205,6 @@ is some time and/or some talented C++ hacker willing to contribute to Bison.
 
 @node C++ Location Values
 @subsection C++ Location Values
-@c - %locations
-@c - class position
-@c - class location
-@c - %define filename_type "const symbol::Symbol"
 
 When the directive @code{%locations} is used, the C++ parser supports
 location tracking, see @ref{Tracking Locations}.
@@ -11865,25 +12226,28 @@ generated, and the user defined type will be used.
 @node C++ position
 @subsubsection C++ @code{position}
 
+@defcv {Type} {position} {filename_type}
+The base type for file names. Defaults to @code{const std::string}.
+@xref{api-filename-type,,@code{api.filename.type}}, to change its definition.
+@end defcv
+
 @defcv {Type} {position} {counter_type}
 The type used to store line and column numbers.  Defined as @code{int}.
 @end defcv
 
-@deftypeop {Constructor} {position} {} position (@code{std::string*} @var{file} = nullptr, @code{counter_type} @var{line} = 1, @code{counter_type} @var{col} = 1)
+@deftypeop {Constructor} {position} {} position (@code{filename_type*} @var{file} = nullptr, @code{counter_type} @var{line} = 1, @code{counter_type} @var{col} = 1)
 Create a @code{position} denoting a given point.  Note that @code{file} is
 not reclaimed when the @code{position} is destroyed: memory managed must be
 handled elsewhere.
 @end deftypeop
 
-@deftypemethod {position} {void} initialize (@code{std::string*} @var{file} = nullptr, @code{counter_type} @var{line} = 1, @code{counter_type} @var{col} = 1)
+@deftypemethod {position} {void} initialize (@code{filename_type*} @var{file} = nullptr, @code{counter_type} @var{line} = 1, @code{counter_type} @var{col} = 1)
 Reset the position to the given values.
 @end deftypemethod
 
-@deftypeivar {position} {std::string*} file
+@deftypeivar {position} {filename_type*} file
 The name of the file.  It will always be handled as a pointer, the parser
-will never duplicate nor deallocate it.  As an experimental feature you may
-change it to @samp{@var{type}*} using @samp{%define filename_type
-"@var{type}"}.
+will never duplicate nor deallocate it.
 @end deftypeivar
 
 @deftypeivar {position} {counter_type} line
@@ -11930,11 +12294,11 @@ Create a @code{Location} from the endpoints of the range.
 @end deftypeop
 
 @deftypeop {Constructor} {location} {} location (@code{const position&} @var{pos} = position())
-@deftypeopx {Constructor} {location} {} location (@code{std::string*} @var{file}, @code{counter_type} @var{line}, @code{counter_type} @var{col})
+@deftypeopx {Constructor} {location} {} location (@code{filename_type*} @var{file}, @code{counter_type} @var{line}, @code{counter_type} @var{col})
 Create a @code{Location} denoting an empty range located at a given point.
 @end deftypeop
 
-@deftypemethod {location} {void} initialize (@code{std::string*} @var{file} = nullptr, @code{counter_type} @var{line} = 1, @code{counter_type} @var{col} = 1)
+@deftypemethod {location} {void} initialize (@code{filename_type*} @var{file} = nullptr, @code{counter_type} @var{line} = 1, @code{counter_type} @var{col} = 1)
 Reset the location to an empty range at the given values.
 @end deftypemethod
 
@@ -12132,7 +12496,7 @@ The ``unexpected'' token: the lookahead that caused the syntax error.
 @end deftypemethod
 
 @deftypemethod {context} {symbol_kind_type} token () @code{const}
-The symbol kind of the lookahead token that caused the syntax error.  Return
+The symbol kind of the lookahead token that caused the syntax error.  Returns
 @code{symbol_kind::S_YYEMPTY} if there is no lookahead.
 @end deftypemethod
 
@@ -13609,8 +13973,8 @@ The prologue declarations have a different meaning than in C/C++ code.
 @table @asis
 @item @code{%code imports}
 blocks are placed at the beginning of the Java source code.  They may
-include copyright notices.  For a @code{package} declarations, it is
-suggested to use @samp{%define package} instead.
+include copyright notices.  For a @code{package} declarations, use
+@samp{%define api.package} instead.
 
 @item unqualified @code{%code}
 blocks are placed inside the parser class.
@@ -13764,9 +14128,10 @@ Formerly named @code{location_type}.
 @xref{Java Location Values}.
 @end deffn
 
-@deffn {Directive} {%define package} @{@var{package}@}
+@deffn {Directive} {%define api.package} @{@var{package}@}
 The package to put the parser class in.  Default is none.
 @xref{Java Bison Interface}.
+Renamed from @code{package} in Bison 3.7.
 @end deffn
 
 @deffn {Directive} {%define api.position.type} @{@var{class}@}
@@ -13819,7 +14184,7 @@ According to the author
 @footnote{@url{https://lists.gnu.org/archive/html/bison-patches/2019-02/msg00061.html}},
 Yacc was first invented in 1971 and reached a form recognizably similar to
 the C version in 1973.  Johnson published @cite{A Portable Compiler: Theory
-and Practice} (@pxref{Bibliography}).
+and Practice} @pcite{Johnson 1978}.
 
 Yacc was not itself originally written in C but in its predecessor language,
 B.  This goes far to explain its odd interface, which exposes a large number
@@ -13850,16 +14215,15 @@ became available a few years later.
 @section Berkeley Yacc
 @cindex byacc
 
-Berkeley Yacc was originated in 1985 by Robert Corbett
-(@pxref{Bibliography}).  It was originally named ``zoo'', but
-by October 1989 it became known as Berkeley Yacc or byacc.
+Berkeley Yacc was originated in 1985 by Robert Corbett @pcite{Corbett
+1984}.  It was originally named ``zoo'', but by October 1989 it became
+known as Berkeley Yacc or byacc.
 
 Berkeley Yacc had three advantages over the ancestral Yacc: it generated
-faster parsers, it could generate reentrant parsers, and the source code
-was released to the public domain rather than being under an AT&T
-proprietary license.  The better performance came from implementing
-techniques from DeRemer and Penello's seminal paper on LALR parsing
-(@pxref{Bibliography}).
+faster parsers, it could generate reentrant parsers, and the source code was
+released to the public domain rather than being under an AT&T proprietary
+license.  The better performance came from implementing techniques from
+DeRemer and Penello's seminal paper on LALR parsing @pcite{DeRemer 1982}.
 
 Use of byacc spread rapidly due to its public domain license. However, once
 Bison became available, byacc itself passed out of general use.
@@ -13881,7 +14245,7 @@ associated with any of the symbols in the current rule).
 There was also the command @samp{%expect @var{n}} which said not to mention the
 conflicts if there are @var{n} shift/reduce conflicts and no reduce/reduce
 conflicts.  In more recent versions of Bison, @code{%expect} and its
-@code{%expect-rr} variant for reduce-reduce conflicts can be applied to
+@code{%expect-rr} variant for reduce/reduce conflicts can be applied to
 individual rules.
 
 Later versions of Bison added many more new features.
@@ -13890,8 +14254,8 @@ Bison error reporting has been improved in various ways. Notably. ancestral
 Yacc and Byson did not have carets in error messages.
 
 Compared to Yacc Bison uses a faster but less space-efficient encoding for
-the parse tables (@pxref{Bibliography}), and more modern techniques for
-generating the lookahead sets (@pxref{Bibliography}).  This approach is the
+the parse tables @pcite{Corbett 1984}, and more modern techniques for
+generating the lookahead sets @pcite{DeRemer 1982}.  This approach is the
 standard one since then.
 
 (It has also been plausibly alleged the differences in the algorithms stem
@@ -14183,14 +14547,13 @@ start:
 These tokens prevents the introduction of new conflicts.  As far as the
 parser goes, that is all that is needed.
 
-Now the difficult part is ensuring that the scanner will send these
-tokens first.  If your scanner is hand-written, that should be
-straightforward.  If your scanner is generated by Lex, them there is
-simple means to do it: recall that anything between @samp{%@{ ... %@}}
-after the first @code{%%} is copied verbatim in the top of the generated
-@code{yylex} function.  Make sure a variable @code{start_token} is
-available in the scanner (e.g., a global variable or using
-@code{%lex-param} etc.), and use the following:
+Now the difficult part is ensuring that the scanner will send these tokens
+first.  If your scanner is hand-written, that should be straightforward.  If
+your scanner is generated by Lex, them there is simple means to do it:
+recall that anything between @samp{%@{ ... %@}} after the first @code{%%} is
+copied verbatim in the top of the generated @code{yylex} function.  Make
+sure a variable @code{start_token} is available in the scanner (e.g., a
+global variable or using @code{%lex-param} etc.), and use the following:
 
 @example
   /* @r{Prologue.} */
@@ -14905,6 +15268,18 @@ Thus, if there is a rule which says that an integer can be used as an
 expression, integers are allowed @emph{anywhere} an expression is
 permitted.  @xref{Language and Grammar}.
 
+@item Counterexample
+A sequence of tokens and/or nonterminals, with one dot, that demonstrates a
+conflict.  The dot marks the place where the conflict occurs.
+
+A @emph{unifying} counterexample is a single string that has two different
+parses; its existence proves that the grammar is ambiguous.  When a unifying
+counterexample cannot be found in reasonable time, a @emph{nonunifying}
+counterexample is built: @emph{two} different string sharing the prefix up
+to the dot.
+
+@xref{Counterexamples}
+
 @item Default reduction
 The reduction that a parser should perform if the current parser state
 contains no other action for the lookahead token.  In permitted parser
@@ -15128,8 +15503,10 @@ resolution.  @xref{Unreachable States}.
 @unnumbered Bibliography
 
 @c Please follow the following canvas to add more references.
+@c And keep sorted alphabetically.
 
 @table @asis
+@anchor{Corbett 1984}
 @item [Corbett 1984]
 @c author
 Robert Paul Corbett,
@@ -15145,30 +15522,44 @@ Division, University of California, Berkeley, California
 @c url
 @uref{http://xtf.lib.berkeley.edu/reports/TRWebData/accessPages/CSD-85-251.html}
 
+@anchor{Denny 2008}
 @item [Denny 2008]
 Joel E. Denny and Brian A. Malloy, IELR(1): Practical LR(1) Parser Tables
 for Non-LR(1) Grammars with Conflict Resolution, in @cite{Proceedings of the
 2008 ACM Symposium on Applied Computing} (SAC'08), ACM, New York, NY, USA,
 pp.@: 240--245.  @uref{http://dx.doi.org/10.1145/1363686.1363747}
 
+@anchor{Denny 2010 May}
 @item [Denny 2010 May]
 Joel E. Denny, PSLR(1): Pseudo-Scannerless Minimal LR(1) for the
 Deterministic Parsing of Composite Languages, Ph.D. Dissertation, Clemson
 University, Clemson, SC, USA (May 2010).
 @uref{http://proquest.umi.com/pqdlink?did=2041473591&Fmt=7&clientId=79356&RQT=309&VName=PQD}
 
+@anchor{Denny 2010 November}
 @item [Denny 2010 November]
 Joel E. Denny and Brian A. Malloy, The IELR(1) Algorithm for Generating
 Minimal LR(1) Parser Tables for Non-LR(1) Grammars with Conflict Resolution,
 in @cite{Science of Computer Programming}, Vol.@: 75, Issue 11 (November
 2010), pp.@: 943--979.  @uref{http://dx.doi.org/10.1016/j.scico.2009.08.001}
 
+@anchor{DeRemer 1982}
 @item [DeRemer 1982]
 Frank DeRemer and Thomas Pennello, Efficient Computation of LALR(1)
 Look-Ahead Sets, in @cite{ACM Transactions on Programming Languages and
 Systems}, Vol.@: 4, No.@: 4 (October 1982), pp.@:
 615--649. @uref{http://dx.doi.org/10.1145/69622.357187}
 
+@anchor{Isradisaikul 2015}
+@item [Isradisaikul 2015]
+Chinawat Isradisaikul, Andrew Myers,
+Finding Counterexamples from Parsing Conflicts,
+in @cite{Proceedings of the 36th ACM SIGPLAN Conference on
+Programming Language Design and Implementation} (PLDI '15),
+ACM, pp.@: 555--564.
+@uref{https://www.cs.cornell.edu/andru/papers/cupex/cupex.pdf}
+
+@anchor{Johnson 1978}
 @item [Johnson 1978]
 Steven C. Johnson,
 A portable compiler: theory and practice,
@@ -15177,11 +15568,13 @@ Principles of programming languages} (POPL '78),
 pp.@: 97--104.
 @uref{https://dx.doi.org/10.1145/512760.512771}.
 
+@anchor{Knuth 1965}
 @item [Knuth 1965]
 Donald E. Knuth, On the Translation of Languages from Left to Right, in
 @cite{Information and Control}, Vol.@: 8, Issue 6 (December 1965), pp.@:
 607--639. @uref{http://dx.doi.org/10.1016/S0019-9958(65)90426-2}
 
+@anchor{Scott 2000}
 @item [Scott 2000]
 Elizabeth Scott, Adrian Johnstone, and Shamsa Sadaf Hussain,
 @cite{Tomita-Style Generalised LR Parsers}, Royal Holloway, University of
@@ -15262,17 +15655,20 @@ London, Department of Computer Science, TR-00-12 (December 2000).
 @c LocalWords: typename emplace Wconversion Wshorten yacchack reentrancy ou
 @c LocalWords: Relocatability exprs fixit Wyacc parseable fixits ffixit svg
 @c LocalWords: DNDEBUG cstring Wzero workalike POPL workalikes byacc UCB
-@c LocalWords: Penello's Penello Byson Byson's Corbett's CSD TOPLAS PDP
+@c LocalWords: Penello's Penello Byson Byson's Corbett's CSD TOPLAS PDP cex
 @c LocalWords: Beazley's goyacc ocamlyacc SIGACT SIGPLAN colorWarning exVal
 @c LocalWords: setcolor rgbError colorError rgbNotice colorNotice derror
 @c LocalWords: colorOff maincolor inlineraw darkviolet darkcyan dwarning
 @c LocalWords: dnotice copyable stdint ptrdiff bufsize yyreport invariants
-@c LocalWords: xrefautomaticsectiontitle yysyntax yysymbol ARGMAX cond
+@c LocalWords: xrefautomaticsectiontitle yysyntax yysymbol ARGMAX cond RTTI
 @c LocalWords: Wdangling yytoken erreur syntaxe inattendu attendait nombre
 @c LocalWords: YYUNDEF SymbolKind yypcontext YYENOMEM TOKENMAX getBundle
-@c LocalWords: ResourceBundle myResources getString getName getToken
+@c LocalWords: ResourceBundle myResources getString getName getToken ylwrap
 @c LocalWords: getLocation getExpectedTokens reportSyntaxError bistromathic
-@c LocalWords: TokenKind
+@c LocalWords: TokenKind Automake's rtti Wcounterexamples Chinawat PLDI
+@c LocalWords: Isradisaikul tcite pcite rgbGreen colorGreen rgbYellow Wcex
+@c LocalWords: colorYellow rgbRed colorRed rgbBlue colorBlue rgbPurple
+@c LocalWords: colorPurple ifhtml ifnothtml situ rcex
 
 @c Local Variables:
 @c ispell-dictionary: "american"

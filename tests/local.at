@@ -1102,7 +1102,7 @@ m4_define([AT_BISON_CHECK_WARNINGS_],
 # added after the grammar file name, so skip these checks in that
 # case.
 if test "$POSIXLY_CORRECT_IS_EXPORTED" = false; then
-          ]AT_SAVE_SPECIAL_FILES[
+  ]AT_SAVE_SPECIAL_FILES[
 
   # To avoid expanding it repeatedly, store specified stdout.
   ]AT_DATA([expout], [$3])[
@@ -1594,7 +1594,7 @@ yylex (void)
 
 m4_if(m4_index(m4_quote($3), [no-xml]), -1,
       [AT_BISON_CHECK],
-      [AT_BISON_CHECK_NO_XML])([[-Wall --report=all --defines -o input.c input.y]],
+      [AT_BISON_CHECK_NO_XML])([[-Wall --report=all,no-cex --defines -o input.c input.y]],
                                [0], [], m4_dquote($7))
 
 m4_if(m4_index(m4_quote($3), [last-state]), -1,

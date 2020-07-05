@@ -33,6 +33,13 @@
 #include "gram.h"
 #include "intprops.h"
 
+/** Undefined token code.  */
+#define CODE_UNDEFINED (-1)
+
+/* Undefined symbol number.  */
+#define NUMBER_UNDEFINED (-1)
+
+
 static struct hash_table *symbol_table = NULL;
 static struct hash_table *semantic_type_table = NULL;
 
@@ -51,7 +58,7 @@ static semantic_type **semantic_types_sorted = NULL;
 
 symbol *errtoken = NULL;
 symbol *undeftoken = NULL;
-symbol *endtoken = NULL;
+symbol *eoftoken = NULL;
 symbol *accept = NULL;
 symbol *startsymbol = NULL;
 location startsymbol_loc;
@@ -71,9 +78,9 @@ static bool
 symbol_is_user_defined (symbol *sym)
 {
   const bool eof_is_user_defined
-    = !endtoken->alias || STRNEQ (endtoken->alias->tag, "$end");
+    = !eoftoken->alias || STRNEQ (eoftoken->alias->tag, "$end");
   return sym->tag[0] != '$'
-    && (eof_is_user_defined || (sym != endtoken && sym->alias != errtoken))
+    && (eof_is_user_defined || (sym != eoftoken && sym->alias != errtoken))
     && sym != errtoken && sym->alias != errtoken
     && sym != undeftoken && sym->alias != undeftoken;
 }
@@ -99,7 +106,7 @@ sym_content_new (symbol *s)
   res->prec_loc = empty_loc;
   res->prec = 0;
   res->assoc = undef_assoc;
-  res->user_token_number = USER_NUMBER_UNDEFINED;
+  res->code = CODE_UNDEFINED;
 
   res->class = unknown_sym;
   res->status = undeclared;
@@ -542,7 +549,7 @@ symbol_class_set (symbol *sym, symbol_class class, location loc, bool declaring)
         complain_pct_type_on_token (&sym->location);
 
       if (class == nterm_sym && s->class != nterm_sym)
-        s->number = nvars++;
+        s->number = nnterms++;
       else if (class == token_sym && s->number == NUMBER_UNDEFINED)
         s->number = ntokens++;
       s->class = class;
@@ -571,31 +578,31 @@ symbol_class_set (symbol *sym, symbol_class class, location loc, bool declaring)
 `------------------------------------------------*/
 
 void
-symbol_user_token_number_set (symbol *sym, int user_token_number, location loc)
+symbol_code_set (symbol *sym, int code, location loc)
 {
-  int *user_token_numberp = &sym->content->user_token_number;
+  int *codep = &sym->content->code;
   if (sym->content->class != token_sym)
     complain (&loc, complaint,
               _("nonterminals cannot be given a token code"));
-  else if (*user_token_numberp != USER_NUMBER_UNDEFINED
-           && *user_token_numberp != user_token_number)
+  else if (*codep != CODE_UNDEFINED
+           && *codep != code)
     complain (&loc, complaint, _("redefining code of token %s"),
               sym->tag);
-  else if (user_token_number == INT_MAX)
+  else if (code == INT_MAX)
     complain (&loc, complaint, _("code of token %s too large"),
               sym->tag);
   else
     {
-      *user_token_numberp = user_token_number;
+      *codep = code;
       /* User defined $end token? */
-      if (user_token_number == 0 && !endtoken)
+      if (code == 0 && !eoftoken)
         {
-          endtoken = sym->content->symbol;
+          eoftoken = sym->content->symbol;
           /* It is always mapped to 0, so it was already counted in
              NTOKENS.  */
-          if (endtoken->content->number != NUMBER_UNDEFINED)
+          if (eoftoken->content->number != NUMBER_UNDEFINED)
             --ntokens;
-          endtoken->content->number = 0;
+          eoftoken->content->number = 0;
         }
     }
 }
@@ -614,7 +621,7 @@ symbol_check_defined (symbol *sym)
     {
       complain_symbol_undeclared (sym);
       s->class = nterm_sym;
-      s->number = nvars++;
+      s->number = nnterms++;
     }
 
   if (s->class == token_sym
@@ -735,7 +742,7 @@ symbol_pack (symbol *sym)
 }
 
 static void
-complain_user_token_number_redeclared (int num, symbol *first, symbol *second)
+complain_code_redeclared (int num, symbol *first, symbol *second)
 {
   symbols_sort (&first, &second);
   complain (&second->location, complaint,
@@ -758,13 +765,13 @@ symbol_translation (symbol *sym)
       && !sym->is_alias)
     {
       /* A token which translation has already been set?*/
-      if (token_translations[sym->content->user_token_number]
+      if (token_translations[sym->content->code]
           != undeftoken->content->number)
-        complain_user_token_number_redeclared
-          (sym->content->user_token_number,
-           symbols[token_translations[sym->content->user_token_number]], sym);
+        complain_code_redeclared
+          (sym->content->code,
+           symbols[token_translations[sym->content->code]], sym);
       else
-        token_translations[sym->content->user_token_number]
+        token_translations[sym->content->code]
           = sym->content->number;
     }
 }
@@ -845,7 +852,7 @@ symbols_new (void)
   /* Construct the accept symbol. */
   accept = symbol_get ("$accept", empty_loc);
   accept->content->class = nterm_sym;
-  accept->content->number = nvars++;
+  accept->content->number = nnterms++;
 
   /* Construct the YYerror/"error" token */
   errtoken = symbol_get ("YYerror", empty_loc);
@@ -887,17 +894,16 @@ symbol_from_uniqstr (const uniqstr key, location loc)
   symbol probe;
 
   probe.tag = key;
-  symbol *entry = hash_lookup (symbol_table, &probe);
+  symbol *res = hash_lookup (symbol_table, &probe);
 
-  if (!entry)
+  if (!res)
     {
       /* First insertion in the hash. */
       aver (!symbols_sorted);
-      entry = symbol_new (key, loc);
-      if (!hash_insert (symbol_table, entry))
-        xalloc_die ();
+      res = symbol_new (key, loc);
+      hash_xinsert (symbol_table, res);
     }
-  return entry;
+  return res;
 }
 
 
@@ -912,16 +918,15 @@ semantic_type_from_uniqstr (const uniqstr key, const location *loc)
   semantic_type probe;
 
   probe.tag = key;
-  semantic_type *entry = hash_lookup (semantic_type_table, &probe);
+  semantic_type *res = hash_lookup (semantic_type_table, &probe);
 
-  if (!entry)
+  if (!res)
     {
       /* First insertion in the hash. */
-      entry = semantic_type_new (key, loc);
-      if (!hash_insert (semantic_type_table, entry))
-        xalloc_die ();
+      res = semantic_type_new (key, loc);
+      hash_xinsert (semantic_type_table, res);
     }
-  return entry;
+  return res;
 }
 
 
@@ -964,7 +969,7 @@ dummy_symbol_get (location loc)
   assure (len < sizeof buf);
   symbol *sym = symbol_get (buf, loc);
   sym->content->class = nterm_sym;
-  sym->content->number = nvars++;
+  sym->content->number = nnterms++;
   return sym;
 }
 
@@ -1042,53 +1047,53 @@ symbols_check_defined (void)
 static void
 symbols_token_translations_init (void)
 {
-  bool num_256_available_p = true;
+  bool code_256_available_p = true;
 
   /* Find the highest token code, and whether 256, the POSIX preferred
      token code for the error token, is used.  */
-  max_user_token_number = 0;
+  max_code = 0;
   for (int i = 0; i < ntokens; ++i)
     {
       sym_content *sym = symbols[i]->content;
-      if (sym->user_token_number != USER_NUMBER_UNDEFINED)
+      if (sym->code != CODE_UNDEFINED)
         {
-          if (sym->user_token_number > max_user_token_number)
-            max_user_token_number = sym->user_token_number;
-          if (sym->user_token_number == 256)
-            num_256_available_p = false;
+          if (sym->code > max_code)
+            max_code = sym->code;
+          if (sym->code == 256)
+            code_256_available_p = false;
         }
     }
 
   /* If 256 is not used, assign it to error, to follow POSIX.  */
-  if (num_256_available_p
-      && errtoken->content->user_token_number == USER_NUMBER_UNDEFINED)
-    errtoken->content->user_token_number = 256;
+  if (code_256_available_p
+      && errtoken->content->code == CODE_UNDEFINED)
+    errtoken->content->code = 256;
 
-  /* Set the missing user numbers. */
-  if (max_user_token_number < 256)
-    max_user_token_number = 256;
+  /* Set the missing codes. */
+  if (max_code < 256)
+    max_code = 256;
 
   for (int i = 0; i < ntokens; ++i)
     {
       sym_content *sym = symbols[i]->content;
-      if (sym->user_token_number == USER_NUMBER_UNDEFINED)
+      if (sym->code == CODE_UNDEFINED)
         {
           IGNORE_TYPE_LIMITS_BEGIN
-          if (INT_ADD_WRAPV (max_user_token_number, 1, &max_user_token_number))
+          if (INT_ADD_WRAPV (max_code, 1, &max_code))
             complain (NULL, fatal, _("token number too large"));
           IGNORE_TYPE_LIMITS_END
-          sym->user_token_number = max_user_token_number;
+          sym->code = max_code;
         }
-      if (sym->user_token_number > max_user_token_number)
-        max_user_token_number = sym->user_token_number;
+      if (sym->code > max_code)
+        max_code = sym->code;
     }
 
-  token_translations = xnmalloc (max_user_token_number + 1,
+  token_translations = xnmalloc (max_code + 1,
                                  sizeof *token_translations);
 
   /* Initialize all entries for literal tokens to the internal token
      number for $undefined, which represents all invalid inputs.  */
-  for (int i = 0; i < max_user_token_number + 1; ++i)
+  for (int i = 0; i < max_code + 1; ++i)
     token_translations[i] = undeftoken->content->number;
   for (int i = 0; symbols_sorted[i]; ++i)
     symbol_translation (symbols_sorted[i]);
@@ -1158,9 +1163,9 @@ symbols_pack (void)
   if (has_translations ())
     {
       const bool eof_is_user_defined
-        = !endtoken->alias || STRNEQ (endtoken->alias->tag, "$end");
+        = !eoftoken->alias || STRNEQ (eoftoken->alias->tag, "$end");
       if (!eof_is_user_defined)
-        endtoken->alias->translatable = true;
+        eoftoken->alias->translatable = true;
       undeftoken->alias->translatable = true;
       errtoken->alias->translatable = true;
     }
@@ -1191,10 +1196,10 @@ init_prec_nodes (void)
 static symgraphlink *
 symgraphlink_new (graphid id, symgraphlink *next)
 {
-  symgraphlink *l = xmalloc (sizeof *l);
-  l->id = id;
-  l->next = next;
-  return l;
+  symgraphlink *res = xmalloc (sizeof *res);
+  res->id = id;
+  res->next = next;
+  return res;
 }
 
 

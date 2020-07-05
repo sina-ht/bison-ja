@@ -397,12 +397,12 @@ m4@&t@_define([b4_symbol_dump],
 b4_symbol_if([$1], [is_token], [Token], [Nonterminal]), d@&t@nl
 b4_symbol([$1], [tag]), d@&t@nl
 b4_symbol([$1], [id]), d@&t@nl
-b4_symbol([$1], [user_number]), d@&t@nl
+b4_symbol([$1], [code]), d@&t@nl
 b4_symbol([$1], [type]),
 ])
 
 b4_output_begin([symbols.csv])
-number, class, tag, id, user_number, type,
+number, class, tag, id, code, type,
 b4_symbol_foreach([b4_symbol_dump])d@&t@nl
 b4_output_end
 ]])
@@ -429,7 +429,7 @@ exp:;
 
 AT_BISON_CHECK([-Wno-other -S./dump-symbols.m4 input.y])
 AT_CHECK([cat symbols.csv], [],
-[[number, class, tag, id, user_number, type,
+[[number, class, tag, id, code, type,
 0, Token, "end of file", YYEOF, 0, ,
 1, Token, error, YYerror, 256, ,
 2, Token, "invalid token", YYUNDEF, 257, ,
@@ -1690,8 +1690,8 @@ AT_CLEANUP
 
 AT_SETUP([Unclosed constructs])
 
-# Bison's scan-gram.l once forgot to STRING_FINISH some unclosed
-# constructs, so they were prepended to whatever it STRING_GROW'ed
+# Bison's scan-gram.l once forgot to STRING_FINISH () some unclosed
+# constructs, so they were prepended to whatever it STRING_GROW ()'ed
 # next.  It also threw them away rather than returning them to the
 # parser.  The effect was confusing subsequent error messages.
 
@@ -2220,6 +2220,7 @@ AT_DATA([[input.y]],
 %define namespace "foo"
 %define variant
 %define parser_class_name {parser}
+%define filename_type {filename}
 %%
 start: %empty;
 ]])
@@ -2244,6 +2245,10 @@ input.y:5.1-34: warning: deprecated directive: '%define parser_class_name {parse
     5 | %define parser_class_name {parser}
       | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
       | %define api.parser.class {parser}
+input.y:6.1-32: warning: deprecated directive: '%define filename_type {filename}', use '%define api.filename.type {filename}' [-Wdeprecated]
+    6 | %define filename_type {filename}
+      | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      | %define api.filename.type {filename}
 input.y:2.1-40: error: invalid value for %define Boolean variable 'lr.keep-unreachable-state'
     2 | %define lr.keep_unreachable_states maybe
       | ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2882,6 +2887,7 @@ input.y:13.1-14: note: previous definition
 input.y:14.16-29: warning: %define variable 'parse.error' redefined [-Wother]
 input.y:13.16-29: note: previous definition
 input.y: error: reduce/reduce conflicts: 0 found, 42 expected
+input.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 input.y: warning: fix-its can be applied.  Rerun with option '--update'. [-Wother]
 ]])
 
@@ -3002,6 +3008,34 @@ AT_BISON_CHECK([[input.y]], [[1]], [[]],
 
 AT_TEST([%define parse.error custom %token-table],  [[input.y:1.1-26]])
 AT_TEST([%define parse.error detailed %token-table],[[input.y:1.1-28]])
+
+m4_popdef([AT_TEST])
+
+AT_CLEANUP
+
+## --------------------------------------- ##
+## Invalid file prefix mapping arguments.  ##
+## --------------------------------------- ##
+
+AT_SETUP([[Invalid file prefix mapping arguments]])
+
+# AT_TEST(DIRECTIVES, OPTIONS, ERROR-LOCATION)
+# --------------------------------------------
+m4_pushdef([AT_TEST],
+[AT_DATA([[input.y]],
+[[
+%%
+exp: %empty;
+]])
+AT_BISON_CHECK([[$1 input.y]], [[1]], [[]],
+[[$3: error: invalid argument for '--file-prefix-map': $2
+]])
+])
+
+AT_TEST([-M foo], [foo], [<command line>:4])
+AT_TEST([--file-prefix-map foo], [foo], [<command line>:4])
+AT_TEST([-M foo=bar -M baz], [baz], [<command line>:6])
+AT_TEST([-M foo= -M baz], [baz], [<command line>:6])
 
 m4_popdef([AT_TEST])
 

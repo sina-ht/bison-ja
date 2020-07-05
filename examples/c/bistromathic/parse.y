@@ -267,7 +267,8 @@ yylex (const char **line, YYSTYPE *yylval, YYLTYPE *yylloc)
     case '5': case '6': case '7': case '8': case '9':
       {
         int nchars = 0;
-        sscanf (*line - 1, "%lf%n", &yylval->TOK_NUM, &nchars);
+        if (sscanf (*line - 1, "%lf%n", &yylval->TOK_NUM, &nchars) != 1)
+          abort ();
         *line += nchars - 1;
         yylloc->last_column += nchars - 1;
         return TOK_NUM;
@@ -283,7 +284,8 @@ yylex (const char **line, YYSTYPE *yylval, YYLTYPE *yylloc)
       {
         int nchars = 0;
         char buf[100];
-        sscanf (*line - 1, "%99[a-z]%n", buf, &nchars);
+        if (sscanf (*line - 1, "%99[a-z]%n", buf, &nchars) != 1)
+          abort ();
         *line += nchars - 1;
         yylloc->last_column += nchars - 1;
         if (strcmp (buf, "exit") == 0)
@@ -445,7 +447,7 @@ expected_tokens (const char *input,
   yypstate *ps = yypstate_new ();
   int status = 0;
   do {
-    YYLTYPE lloc;
+    YYLTYPE lloc = { 1, 1, 1, 1 };
     YYSTYPE lval;
     int token = yylex (&input, &lval, &lloc);
     // Don't let the parse know when we reach the end of input.
@@ -454,10 +456,15 @@ expected_tokens (const char *input,
     status = yypush_parse (ps, token, &lval, &lloc);
   } while (status == YYPUSH_MORE);
 
-  // Then query for the accepted tokens at this point.
-  int res = yypstate_expected_tokens (ps, tokens, ntokens);
-  if (res < 0)
-    abort ();
+  int res = 0;
+  // If there were parse errors, don't propose completions.
+  if (!ps->yynerrs)
+    {
+      // Then query for the accepted tokens at this point.
+      res = yypstate_expected_tokens (ps, tokens, ntokens);
+      if (res < 0)
+        abort ();
+    }
   yypstate_delete (ps);
   return res;
 }

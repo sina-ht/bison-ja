@@ -726,6 +726,7 @@ AT_BISON_OPTION_POPDEFS
 AT_BISON_CHECK([[-Dlr.type=canonical-lr -o input.c input.y]],
                [[0]], [[]],
 [[input.y: warning: 2 shift/reduce conflicts [-Wconflicts-sr]
+input.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 ]])
 AT_COMPILE([[input]])
 AT_PARSER_CHECK([[input]], [[1]], [[]],
@@ -736,6 +737,7 @@ AT_PARSER_CHECK([[input]], [[1]], [[]],
 AT_BISON_CHECK([[-Dlr.type=canonical-lr -Dparse.lac=full \
                  -o input.c input.y]], [[0]], [[]],
 [[input.y: warning: 2 shift/reduce conflicts [-Wconflicts-sr]
+input.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 ]])
 AT_COMPILE([[input]])
 AT_PARSER_CHECK([[input]], [[1]], [[]],
@@ -746,6 +748,7 @@ AT_PARSER_CHECK([[input]], [[1]], [[]],
 AT_BISON_CHECK([[-Dlr.type=ielr -Dparse.lac=full -o input.c input.y]],
                [[0]], [[]],
 [[input.y: warning: 2 shift/reduce conflicts [-Wconflicts-sr]
+input.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 ]])
 AT_COMPILE([[input]])
 AT_PARSER_CHECK([[input]], [[1]], [[]],
@@ -760,7 +763,7 @@ AT_CLEANUP
 
 AT_SETUP([Unresolved SR Conflicts])
 
-AT_KEYWORDS([report])
+AT_KEYWORDS([cex report])
 
 AT_DATA([input.y],
 [[%token NUM OP
@@ -770,6 +773,7 @@ exp: exp OP exp | NUM;
 
 AT_BISON_CHECK([-o input.c --report=all input.y], 0, [],
 [[input.y: warning: 1 shift/reduce conflict [-Wconflicts-sr]
+input.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 ]])
 
 # Check the contents of the report.
@@ -856,6 +860,14 @@ State 5
 
     OP        [reduce using rule 1 (exp)]
     $default  reduce using rule 1 (exp)
+
+    Shift/reduce conflict on token OP:
+        1 exp: exp OP exp .
+        1 exp: exp . OP exp
+      Example                  exp OP exp . OP exp
+      First derivation         exp ::=[ exp ::=[ exp OP exp . ] OP exp ]
+      Second derivation        exp ::=[ exp OP exp ::=[ exp . OP exp ] ]
+
 ]])
 
 AT_CLEANUP
@@ -1014,6 +1026,7 @@ cond:
 
 AT_BISON_CHECK([-o input.c input.y], 0, [],
 [[input.y: warning: 1 shift/reduce conflict [-Wconflicts-sr]
+input.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 input.y:12.3-18: warning: rule useless in parser due to conflicts [-Wother]
 ]])
 
@@ -1118,6 +1131,7 @@ id : '0';
 
 AT_BISON_CHECK([-o input.c --report=all input.y], 0, [],
 [[input.y: warning: 1 reduce/reduce conflict [-Wconflicts-rr]
+input.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 input.y:4.6-8: warning: rule useless in parser due to conflicts [-Wother]
 ]])
 
@@ -1189,6 +1203,14 @@ State 1
     $end      [reduce using rule 4 (id)]
     $default  reduce using rule 3 (num)
 
+    Reduce/reduce conflict on token $end:
+        3 num: '0' .
+        4 id: '0' .
+      Example                  '0' .
+      First derivation         exp ::=[ num ::=[ '0' . ] ]
+      Second derivation        exp ::=[ id ::=[ '0' . ] ]
+
+
 
 State 2
 
@@ -1238,6 +1260,7 @@ exp: exp OP exp | NUM;
 
 AT_BISON_CHECK([-o input.c input.y], 1, [],
 [[input.y: error: shift/reduce conflicts: 1 found, 0 expected
+input.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 ]])
 AT_CLEANUP
 
@@ -1274,6 +1297,7 @@ exp: exp OP exp | NUM;
 
 AT_BISON_CHECK([-o input.c input.y], 1, [],
 [[input.y: error: shift/reduce conflicts: 1 found, 2 expected
+input.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 ]])
 AT_CLEANUP
 
@@ -1293,6 +1317,7 @@ a: 'a';
 
 AT_BISON_CHECK([-o input.c input.y], 1, [],
 [[input.y: error: reduce/reduce conflicts: 1 found, 0 expected
+input.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 ]])
 AT_CLEANUP
 
@@ -1493,6 +1518,7 @@ e:   e '+' e
 
 AT_BISON_CHECK([-Wall -o input.c input.y], 0, [],
 [[input.y: warning: 4 shift/reduce conflicts [-Wconflicts-sr]
+input.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 input.y:1.1-5: warning: useless precedence and associativity for '+' [-Wprecedence]
 input.y:2.1-5: warning: useless precedence and associativity for '*' [-Wprecedence]
 ]])
@@ -1598,6 +1624,7 @@ reported_conflicts:
 AT_BISON_CHECK([[--report=all input.y]], 0, [],
 [[input.y: warning: 1 shift/reduce conflict [-Wconflicts-sr]
 input.y: warning: 1 reduce/reduce conflict [-Wconflicts-rr]
+input.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 input.y:12.5-20: warning: rule useless in parser due to conflicts [-Wother]
 input.y:20.5-20: warning: rule useless in parser due to conflicts [-Wother]
 input.y:21.4: warning: rule useless in parser due to conflicts [-Wother]
@@ -1723,6 +1750,23 @@ State 4
 
     reported_conflicts  go to state 6
 
+    Shift/reduce conflict on token 'a':
+       10 reported_conflicts: . %empty
+        8 reported_conflicts: . 'a'
+      First example            resolved_conflict . 'a'
+      First derivation         start ::=[ resolved_conflict reported_conflicts ::=[ . ] 'a' ]
+      Second example           resolved_conflict . 'a' 'a'
+      Second derivation        start ::=[ resolved_conflict reported_conflicts ::=[ . 'a' ] 'a' ]
+
+    Shift/reduce conflict on token 'a':
+       10 reported_conflicts: . %empty
+        9 reported_conflicts: . 'a'
+      First example            resolved_conflict . 'a'
+      First derivation         start ::=[ resolved_conflict reported_conflicts ::=[ . ] 'a' ]
+      Second example           resolved_conflict . 'a' 'a'
+      Second derivation        start ::=[ resolved_conflict reported_conflicts ::=[ . 'a' ] 'a' ]
+
+
 
 State 5
 
@@ -1732,6 +1776,14 @@ State 5
     'a'       reduce using rule 8 (reported_conflicts)
     'a'       [reduce using rule 9 (reported_conflicts)]
     $default  reduce using rule 8 (reported_conflicts)
+
+    Reduce/reduce conflict on token 'a':
+        8 reported_conflicts: 'a' .
+        9 reported_conflicts: 'a' .
+      Example                  'a' .
+      First derivation         reported_conflicts ::=[ 'a' . ]
+      Second derivation        reported_conflicts ::=[ 'a' . ]
+
 
 
 State 6
@@ -1756,6 +1808,7 @@ AT_CHECK([[cat input.y >> input-keep.y]])
 AT_BISON_CHECK([[input-keep.y]], 0, [],
 [[input-keep.y: warning: 2 shift/reduce conflicts [-Wconflicts-sr]
 input-keep.y: warning: 2 reduce/reduce conflicts [-Wconflicts-rr]
+input-keep.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 input-keep.y:22.4: warning: rule useless in parser due to conflicts [-Wother]
 input-keep.y:26.16: warning: rule useless in parser due to conflicts [-Wother]
 input-keep.y:32.5-7: warning: rule useless in parser due to conflicts [-Wother]
@@ -1908,6 +1961,14 @@ AT_CHECK([[cat input.output | sed -n '/^State 0$/,/^State 1$/p']], 0,
     Conflict between rule 10 and token 'b' resolved as an error (%nonassoc 'b').
     Conflict between rule 11 and token 'c' resolved as an error (%nonassoc 'c').
 
+    Reduce/reduce conflict on token 'c':
+       12 empty_c2: . %empty
+       13 empty_c3: . %empty
+      Example                  . 'c'
+      First derivation         start ::=[ empty_c2 ::=[ . ] 'c' ]
+      Second derivation        start ::=[ empty_c3 ::=[ . ] 'c' ]
+
+
 
 State 1
 ]])
@@ -1939,6 +2000,7 @@ exp: 'a' | 'a';
 AT_BISON_CHECK([[2.y]], [[0]], [],
 [[2.y: warning: %expect-rr applies only to GLR parsers [-Wother]
 2.y: warning: 1 reduce/reduce conflict [-Wconflicts-rr]
+2.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 2.y:3.12-14: warning: rule useless in parser due to conflicts [-Wother]
 ]])
 
@@ -1975,12 +2037,15 @@ B: ;
 AT_BISON_CHECK([[sr-rr.y]], [[0]], [[]],
 [[sr-rr.y: warning: 1 shift/reduce conflict [-Wconflicts-sr]
 sr-rr.y: warning: 1 reduce/reduce conflict [-Wconflicts-rr]
+sr-rr.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 ]])
 AT_BISON_CHECK([[-Wno-conflicts-sr sr-rr.y]], [[0]], [[]],
 [[sr-rr.y: warning: 1 reduce/reduce conflict [-Wconflicts-rr]
+sr-rr.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 ]])
 AT_BISON_CHECK([[-Wno-conflicts-rr sr-rr.y]], [[0]], [[]],
 [[sr-rr.y: warning: 1 shift/reduce conflict [-Wconflicts-sr]
+sr-rr.y: warning: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Wother]
 ]])
 
 [
@@ -2049,6 +2114,7 @@ for gram in sr-rr sr rr; do
           fi
         } | sed -e "s/^/$file: /" > experr
         ]AT_BISON_CHECK([[-Wnone $file]], [[1]], [[]], [[experr]])[
+        echo "$file: error: rerun with option '-Wcounterexamples' to generate conflict counterexamples [-Werror=other]" >> experr
         ]AT_BISON_CHECK([[-Werror $file]], [[1]], [[]], [[experr]])[
       fi
     done

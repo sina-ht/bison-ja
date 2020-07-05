@@ -1,5 +1,147 @@
 GNU Bison NEWS
 
+* Noteworthy changes in release 3.6.90 (2020-07-04) [beta]
+
+** Deprecated features
+
+  The YYPRINT macro, which works only with yacc.c and only for tokens, was
+  obsoleted long ago by %printer, introduced in Bison 1.50 (November 2002).
+  It is deprecated and its support will be removed eventually.
+
+  In conformance with the recommendations of the Graphviz team, in the next
+  version Bison the option `--graph` will generate a *.gv file by default,
+  instead of *.dot.  A transition started in Bison 3.4.
+
+** New features
+
+*** Counterexample Generation
+
+  Contributed by Vincent Imbimbo.
+
+  When given `--report=counterexamples` or `-Wcounterexamples`, bison will
+  now output counterexamples for conflicts in the grammar.  These are
+  strings in the grammar which can be parsed in two ways due to the
+  conflict.  For example:
+
+    Example              exp '+' exp • '/' exp
+    First derivation     exp ::=[ exp ::=[ exp '+' exp • ] '/' exp ]
+    Second derivation    exp ::=[ exp '+' exp ::=[ exp • '/' exp ] ]
+
+  This is a shift/reduce conflict caused by none of the operators having
+  precedence, so the example can be parsed in the two ways shown.   When
+  bison cannot find an example that can be derived in two ways, it instead
+  generates two examples that are the same up until the dot:
+
+    First example        expr • ID $end
+    First derivation     $accept ::=[ s ::=[ a ::=[ expr • ] ID ] $end ]
+    Second example       expr • ID ',' ID $end
+    Second derivation    $accept ::=[ s ::=[ a ::=[ expr ::=[ expr • ID ',' ] ] ID ] $end ]
+
+  In these cases, the parser usually doesn't have enough lookahead to
+  differentiate the two given examples.
+
+*** File prefix mapping
+
+  Contributed by Joshua Watt.
+
+  Bison learned a new argument, `--file-prefix-map OLD=NEW`.  Any file path
+  in the output (specifically `#line` directives and `#ifdef` header guards)
+  that begins with the prefix OLD will have it replaced with the prefix NEW,
+  similar to the `-ffile-prefix-map` in GCC.  This option can be used to
+  make bison output reproducible.
+
+** Changes
+
+*** Relocatable installation
+
+  When installed to be relocatable (via `configure --enable-relocatable`),
+  bison will now also look for a relocated m4.
+
+*** C++ file names
+
+  The `filename_type` %define variable was renamed `api.filename.type`.
+  Instead of
+
+    %define filename_type "symbol"
+
+  write
+
+    %define api.filename.type {symbol}
+
+  (Or let `bison --update` do it for you).
+
+  It now defaults to `const std::string` instead of `std::string`.
+
+*** Deprecated %define variable names
+
+  The following variables have been renamed for consistency.  Backward
+  compatibility is ensured, but upgrading is recommended.
+
+    filename_type       -> api.filename.type
+    package             -> api.package
+
+*** Push parsers no longer clear their state when parsing is finished
+
+  Previously push-parsers cleared their state when parsing was finished (on
+  success and on failure).  This made it impossible to check if there were
+  parse errors, since `yynerrs` was also reset.  This can be especially
+  troublesome when used in autocompletion, since a parser with error
+  recovery would suggest (irrelevant) expected tokens even if there were
+  failure.
+
+  Now the parser state can be examined when parsing is finished.  The parser
+  state is reset when starting a new parse.
+
+** Bug fixes
+
+*** Include the generated header (yacc.c)
+
+  Historically, when --defines was used, bison generated a header and pasted
+  an exact copy of it into the generated parser implementation file.  Since
+  Bison 3.4 it is possible to specify that the header should be `#include`d,
+  and how.  For instance
+
+    %define api.header.include {"parse.h"}
+
+  or
+
+    %define api.header.include {<parser/parse.h>}
+
+  Now api.header.include defaults to `"header-basename"`, as was intended in
+  Bison 3.4, where `header-basename` is the basename of the generated
+  header.  This is disabled when the generated header is `y.tab.h`, to
+  comply with Automake's ylwrap.
+
+*** String aliases are faithfully propagated
+
+  Bison used to interpret user strings (i.e., decoding backslash escapes)
+  when reading them, and to escape them (i.e., issue non-printable
+  characters as backslash escapes, taking the locale into account) when
+  outputting them.  As a consequence non-ASCII strings (say in UTF-8) ended
+  up "ciphered" as sequences of backslash escapes.  This happened not only
+  in the generated sources (where the compiler will reinterpret them), but
+  also in all the generated reports (text, xml, html, dot, etc.).  Reports
+  were therefore not readable when string aliases were not pure ASCII.
+  Worse yet: the output depended on the user's locale.
+
+  Now Bison faithfully treats the string aliases exactly the way the user
+  spelled them.  This fixes all the aforementioned problems.  However, now,
+  string aliases semantically equivalent but syntactically different (e.g.,
+  "A", "\x41", "\101") are considered to be different.
+
+*** Crash when generating IELR
+
+  An old, well hidden, bug in the generation of IELR parsers was fixed.
+
+
+* Noteworthy changes in release 3.6.4 (2020-06-15) [stable]
+
+** Bug fixes
+
+  In glr.cc some internal macros leaked in the user's code, and could damage
+  access to the token kinds.
+
+
 * Noteworthy changes in release 3.6.3 (2020-06-03) [stable]
 
 ** Bug fixes
@@ -9,6 +151,7 @@ GNU Bison NEWS
   Warnings in push parsers (yacc.c).
 
   Incorrect display of gotos in LAC traces (lalr1.cc).
+
 
 * Noteworthy changes in release 3.6.2 (2020-05-17) [stable]
 
@@ -21,6 +164,7 @@ GNU Bison NEWS
     %token FOO "/* foo */"
 
   bison used to emit "nested" comments, which is invalid C.
+
 
 * Noteworthy changes in release 3.6.1 (2020-05-10) [stable]
 
@@ -35,6 +179,7 @@ GNU Bison NEWS
 ** New features
 
   In C++, yy::parser::symbol_type now has a public name() member function.
+
 
 * Noteworthy changes in release 3.6 (2020-05-08) [stable]
 
@@ -258,6 +403,7 @@ GNU Bison NEWS
   autocompletion on the existing variables, rather than of the word
   "variable".
 
+
 * Noteworthy changes in release 3.5.4 (2020-04-05) [stable]
 
 ** WARNING: Future backward-incompatibilities!
@@ -278,6 +424,7 @@ GNU Bison NEWS
 
   Fix api.token.raw support in Java.
 
+
 * Noteworthy changes in release 3.5.3 (2020-03-08) [stable]
 
 ** Bug fixes
@@ -288,6 +435,7 @@ GNU Bison NEWS
 
   Several unlikely crashes found by fuzzing have been fixed.
 
+
 * Noteworthy changes in release 3.5.2 (2020-02-13) [stable]
 
 ** Bug fixes
@@ -297,6 +445,7 @@ GNU Bison NEWS
   The lalr1.cc skeleton properly rejects unsupported values for parse.lac
   (as yacc.c does).
 
+
 * Noteworthy changes in release 3.5.1 (2020-01-19) [stable]
 
 ** Bug fixes
@@ -304,6 +453,7 @@ GNU Bison NEWS
   Portability fixes.
 
   Fix compiler warnings.
+
 
 * Noteworthy changes in release 3.5 (2019-12-11) [stable]
 
@@ -512,6 +662,7 @@ GNU Bison NEWS
 
   In Java, %define api.prefix was ignored.  It now behaves as expected.
 
+
 * Noteworthy changes in release 3.4.2 (2019-09-12) [stable]
 
 ** Bug fixes
@@ -529,11 +680,13 @@ GNU Bison NEWS
   When lone carriage-return characters appeared in the input file,
   diagnostics could hang forever.
 
+
 * Noteworthy changes in release 3.4.1 (2019-05-22) [stable]
 
 ** Bug fixes
 
   Portability fixes.
+
 
 * Noteworthy changes in release 3.4 (2019-05-19) [stable]
 
@@ -675,6 +828,7 @@ GNU Bison NEWS
   system, in December 1987.  See the NEWS of Bison 3.3 for the previous
   oldest bug.
 
+
 * Noteworthy changes in release 3.3.2 (2019-02-03) [stable]
 
 ** Bug fixes
@@ -682,12 +836,14 @@ GNU Bison NEWS
   Bison 3.3 failed to generate parsers for grammars with unused nonterminal
   symbols.
 
+
 * Noteworthy changes in release 3.3.1 (2019-01-27) [stable]
 
 ** Changes
 
   The option -y/--yacc used to imply -Werror=yacc, which turns uses of Bison
   extensions into errors.  It now makes them simple warnings (-Wyacc).
+
 
 * Noteworthy changes in release 3.3 (2019-01-26) [stable]
 
@@ -831,11 +987,11 @@ GNU Bison NEWS
 
       ...
 
-  Looking at the output from -v, one can see that the shift-reduce conflict
+  Looking at the output from -v, one can see that the shift/reduce conflict
   here is due to the fact that the parser does not know whether to reduce
   arguments to argument_list until it sees the token _after_ the following
   ','.  By marking the rule with %expect 1 (because there is a conflict in
-  one state), we document the source of the 1 overall shift-reduce conflict.
+  one state), we document the source of the 1 overall shift/reduce conflict.
 
   In GLR parsers, we can use %expect-rr in a rule for reduce/reduce
   conflicts.  In this case, we mark each of the conflicting rules.  For
@@ -950,7 +1106,7 @@ GNU Bison NEWS
 
 ** Bug fixes
 
-*** Incorrect number of reduce-reduce conflicts
+*** Incorrect number of reduce/reduce conflicts
 
   On a grammar such as
 
@@ -1004,6 +1160,7 @@ GNU Bison NEWS
   literal such as ‘"number"’.  The post-fix quantifiers are ‘?’ (zero or
   one), ‘*’ (zero or more) and ‘+’ (one or more).
 
+
 * Noteworthy changes in release 3.2.4 (2018-12-24) [stable]
 
 ** Bug fixes
@@ -1012,6 +1169,7 @@ GNU Bison NEWS
 
   Always provide a copy constructor for symbol_type, even in modern C++.
 
+
 * Noteworthy changes in release 3.2.3 (2018-12-18) [stable]
 
 ** Bug fixes
@@ -1019,11 +1177,13 @@ GNU Bison NEWS
   Properly support token constructors in C++ with types that include commas
   (e.g., std::pair<int, int>).  A regression introduced in Bison 3.2.
 
+
 * Noteworthy changes in release 3.2.2 (2018-11-21) [stable]
 
 ** Bug fixes
 
   C++ portability issues.
+
 
 * Noteworthy changes in release 3.2.1 (2018-11-09) [stable]
 
@@ -1031,6 +1191,7 @@ GNU Bison NEWS
 
   Several portability issues have been fixed in the build system, in the
   test suite, and in the generated parsers in C++.
+
 
 * Noteworthy changes in release 3.2 (2018-10-29) [stable]
 
@@ -1198,6 +1359,7 @@ GNU Bison NEWS
 
   Portability/warning issues with Flex.
 
+
 * Noteworthy changes in release 3.1 (2018-08-27) [stable]
 
 ** Backward incompatible changes
@@ -1338,6 +1500,7 @@ GNU Bison NEWS
   Useless code was removed from C++ parsers, and some of the generated
   constructors are more 'natural'.
 
+
 * Noteworthy changes in release 3.0.5 (2018-05-27) [stable]
 
 ** Bug fixes
@@ -1368,6 +1531,7 @@ GNU Bison NEWS
 
   On some platforms, some Java and/or C++ tests were failing.
 
+
 * Noteworthy changes in release 3.0.4 (2015-01-23) [stable]
 
 ** Bug fixes
@@ -1379,6 +1543,7 @@ GNU Bison NEWS
 *** Test suites
 
   Several portability issues in tests were fixed.
+
 
 * Noteworthy changes in release 3.0.3 (2015-01-15) [stable]
 
@@ -1436,6 +1601,7 @@ GNU Bison NEWS
    - calc++
      a calculator in C++ using variant support and token constructors.
 
+
 * Noteworthy changes in release 3.0.2 (2013-12-05) [stable]
 
 ** Bug fixes
@@ -1459,6 +1625,7 @@ GNU Bison NEWS
 
   When C++ variant support is enabled, an error triggered via YYERROR, but
   not caught via error recovery, resulted in a double deletion.
+
 
 * Noteworthy changes in release 3.0.1 (2013-11-12) [stable]
 
@@ -1490,6 +1657,7 @@ GNU Bison NEWS
 *** Fixes in the test suite
 
   Bugs and portability issues.
+
 
 * Noteworthy changes in release 3.0 (2013-07-25) [stable]
 
@@ -1861,7 +2029,7 @@ GNU Bison NEWS
   %error-verbose directive is deprecated in favor of "%define parse.error
   verbose".
 
-** Renamed %define variables
+** Deprecated %define variable names
 
   The following variables have been renamed for consistency.  Backward
   compatibility is ensured, but upgrading is recommended.
@@ -2087,6 +2255,7 @@ GNU Bison NEWS
   There are operator- and operator-= for 'location'.  Negative line/column
   increments can no longer underflow the resulting value.
 
+
 * Noteworthy changes in release 2.7.1 (2013-04-15) [stable]
 
 ** Bug fixes
@@ -2096,6 +2265,7 @@ GNU Bison NEWS
   With locations enabled, __attribute__ was used unprotected.
 
 *** Fix some compiler warnings (lalr1.cc)
+
 
 * Noteworthy changes in release 2.7 (2012-12-12) [stable]
 
@@ -2221,6 +2391,7 @@ GNU Bison NEWS
 
   The translation of midrule actions is now described.
 
+
 * Noteworthy changes in release 2.6.5 (2012-11-07) [stable]
 
   We consider compiler warnings about Bison generated parsers to be bugs.
@@ -2240,9 +2411,11 @@ GNU Bison NEWS
   When possible, yylloc is correctly initialized before calling yylex.  It
   is no longer necessary to initialize it in the %initial-action.
 
+
 * Noteworthy changes in release 2.6.4 (2012-10-23) [stable]
 
   Bison 2.6.3's --version was incorrect.  This release fixes this issue.
+
 
 * Noteworthy changes in release 2.6.3 (2012-10-22) [stable]
 
@@ -2288,6 +2461,7 @@ GNU Bison NEWS
   "function declared 'noreturn' should not return") have also been
   addressed.
 
+
 * Noteworthy changes in release 2.6.2 (2012-08-03) [stable]
 
 ** Bug fixes
@@ -2303,6 +2477,7 @@ GNU Bison NEWS
 ** Spurious spaces and end-of-lines
 
   The generated files no longer end (nor start) with empty lines.
+
 
 * Noteworthy changes in release 2.6.1 (2012-07-30) [stable]
 
@@ -2341,6 +2516,7 @@ GNU Bison NEWS
 
   will display two values for each typed and untyped symbol (provided
   that YYSTYPE has both "ival" and "fval" fields).
+
 
 * Noteworthy changes in release 2.6 (2012-07-19) [stable]
 
@@ -2475,6 +2651,7 @@ GNU Bison NEWS
 
     #endif /* !BAR_FOO_H  */            #endif /* !BAR_FOO_H  */
 
+
 * Noteworthy changes in release 2.5.1 (2012-06-05) [stable]
 
 ** Future changes:
@@ -2571,6 +2748,7 @@ GNU Bison NEWS
 
   Running "make install-pdf" (or -dvi, -html, -info, and -ps) no longer
   halts in the middle of its course.
+
 
 * Noteworthy changes in release 2.5 (2011-05-14)
 
@@ -2927,6 +3105,7 @@ GNU Bison NEWS
 
   This bug has been fixed.
 
+
 * Noteworthy changes in release 2.4.3 (2010-08-05)
 
 ** Bison now obeys -Werror and --warnings=error for warnings about
@@ -2946,6 +3125,7 @@ GNU Bison NEWS
    sufficient for POSIX while avoiding backward compatibility issues.
 
 ** Minor documentation fixes.
+
 
 * Noteworthy changes in release 2.4.2 (2010-03-20)
 
@@ -3041,6 +3221,7 @@ GNU Bison NEWS
   message translations were not installed although supported by the
   host system.
 
+
 * Noteworthy changes in release 2.4.1 (2008-12-11)
 
 ** In the GLR defines file, unexpanded M4 macros in the yylval and yylloc
@@ -3066,6 +3247,7 @@ GNU Bison NEWS
 
 ** A few minor improvements to the Bison manual.
 
+
 * Noteworthy changes in release 2.4 (2008-11-02)
 
 ** %language is an experimental feature.
@@ -3080,6 +3262,7 @@ GNU Bison NEWS
 
 ** Several bugs in the C++ skeleton and the experimental Java skeleton have been
   fixed.
+
 
 * Noteworthy changes in release 2.3b (2008-05-27)
 
@@ -3267,6 +3450,7 @@ GNU Bison NEWS
 ** The nonfunctional --no-parser, -n, and %no-parser options have been
   completely removed from Bison.
 
+
 * Noteworthy changes in release 2.3a (2006-09-13)
 
 ** Instead of %union, you can define and use your own union type
@@ -3381,6 +3565,7 @@ GNU Bison NEWS
   The old spelling still works, but is not documented and may be removed
   in a future release.
 
+
 * Noteworthy changes in release 2.3 (2006-06-05)
 
 ** GLR grammars should now use "YYRECOVERING ()" instead of "YYRECOVERING",
@@ -3388,6 +3573,7 @@ GNU Bison NEWS
 
 ** It is now documented that any definition of YYSTYPE or YYLTYPE should
   be to a type name that does not contain parentheses or brackets.
+
 
 * Noteworthy changes in release 2.2 (2006-05-19)
 
@@ -3471,6 +3657,7 @@ GNU Bison NEWS
 
 ** DJGPP support added.
 
+
 * Noteworthy changes in release 2.1 (2005-09-16)
 
 ** The C++ lalr1.cc skeleton supports %lex-param.
@@ -3497,6 +3684,7 @@ GNU Bison NEWS
   print 'syntax error, unexpected number' instead of 'syntax error,
   unexpected "number"'.
 
+
 * Noteworthy changes in release 2.0 (2004-12-25)
 
 ** Possibly-incompatible changes
@@ -3560,6 +3748,7 @@ GNU Bison NEWS
 
   - Semicolons are now allowed before "|" in grammar rules, as POSIX requires.
 
+
 * Noteworthy changes in release 1.875 (2003-01-01)
 
 ** The documentation license has been upgraded to version 1.2
@@ -3680,6 +3869,7 @@ GNU Bison NEWS
   ago, but nobody noticed until we recently asked someone to try
   building Bison with a K&R C compiler.
 
+
 * Noteworthy changes in release 1.75 (2002-10-14)
 
 ** Bison should now work on 64-bit hosts.
@@ -3711,6 +3901,7 @@ GNU Bison NEWS
   was incorrectly rejected: $1 is defined in the second midrule
   action, and is equal to the $$ of the first midrule action.
 
+
 * Noteworthy changes in release 1.50 (2002-10-04)
 
 ** GLR parsing
@@ -3855,6 +4046,7 @@ GNU Bison NEWS
 
 ** GNU M4 is now required when using Bison.
 
+
 * Noteworthy changes in release 1.35 (2002-03-25)
 
 ** C Skeleton
@@ -3870,6 +4062,7 @@ GNU Bison NEWS
   This kludge also addresses some C++ problems when the stack was
   extended.
 
+
 * Noteworthy changes in release 1.34 (2002-03-12)
 
 ** File name clashes are detected
@@ -3890,6 +4083,7 @@ GNU Bison NEWS
 
 ** Fix test suite portability problems.
 
+
 * Noteworthy changes in release 1.33 (2002-02-07)
 
 ** Fix C++ issues
@@ -3899,6 +4093,7 @@ GNU Bison NEWS
 ** Catch invalid @n
   As is done with $n.
 
+
 * Noteworthy changes in release 1.32 (2002-01-23)
 
 ** Fix Yacc output file names
@@ -3907,6 +4102,7 @@ GNU Bison NEWS
 
 ** Italian, Dutch translations
 
+
 * Noteworthy changes in release 1.31 (2002-01-14)
 
 ** Many Bug Fixes
@@ -3994,6 +4190,7 @@ GNU Bison NEWS
 ** --output
   New, aliasing "--output-file".
 
+
 * Noteworthy changes in release 1.30 (2001-10-26)
 
 ** "--defines" and "--graph" have now an optional argument which is the
@@ -4005,6 +4202,7 @@ GNU Bison NEWS
 
 ** Portability fixes.
 
+
 * Noteworthy changes in release 1.29 (2001-09-07)
 
 ** The output file does not define const, as this caused problems when used
@@ -4040,6 +4238,7 @@ GNU Bison NEWS
 ** @$
   Automatic location tracking.
 
+
 * Noteworthy changes in release 1.28 (1999-07-06)
 
 ** Should compile better now with K&R compilers.
@@ -4050,11 +4249,13 @@ GNU Bison NEWS
 
 ** There is now a FAQ.
 
+
 * Noteworthy changes in release 1.27
 
 ** The make rule which prevented bison.simple from being created on
   some systems has been fixed.
 
+
 * Noteworthy changes in release 1.26
 
 ** Bison now uses Automake.
@@ -4072,6 +4273,7 @@ GNU Bison NEWS
 ** Generated parsers should now work even on operating systems which do
   not provide alloca().
 
+
 * Noteworthy changes in release 1.25 (1995-10-16)
 
 ** Errors in the input grammar are not fatal; Bison keeps reading
@@ -4097,6 +4299,7 @@ the parser engine; a project can now use its own parser engine.
 The actions go into a separate file called NAME.act, in the form of
 a switch statement body.
 
+
 * Noteworthy changes in release 1.23
 
 The user can define YYPARSE_PARAM as the name of an argument to be
@@ -4106,72 +4309,69 @@ by casting it to the proper pointer type.
 
 Line numbers in output file corrected.
 
+
 * Noteworthy changes in release 1.22
 
 --help option added.
 
+
 * Noteworthy changes in release 1.20
 
 Output file does not redefine const for C++.
 
 -----
 
-Copyright (C) 1995-2015, 2018-2020 Free Software Foundation, Inc.
-
-This file is part of Bison, the GNU Parser Generator.
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
- LocalWords:  yacc YYBACKUP glr GCC lalr ArrayIndexOutOfBoundsException nullptr
- LocalWords:  cplusplus liby rpl fprintf mfcalc Wyacc stmt cond expr mk sym lr
- LocalWords:  IELR ielr Lookahead YYERROR nonassoc LALR's api lookaheads yychar
- LocalWords:  destructor lookahead YYRHSLOC YYLLOC Rhs ifndef YYFAIL cpp sr rr
- LocalWords:  preprocessor initializer Wno Wnone Werror FreeBSD prec livelocks
- LocalWords:  Solaris AIX UX RHEL Tru LHS gcc's Wundef YYENABLE NLS YYLTYPE VCG
- LocalWords:  yyerror cpp's Wunused yylval yylloc prepend yyparse yylex yypush
- LocalWords:  Graphviz xml nonterminals midrule destructor's YYSTYPE typedef ly
- LocalWords:  CHR chr printf stdout namespace preprocessing enum pre include's
- LocalWords:  YYRECOVERING nonfree destructors YYABORT YYACCEPT params enums de
- LocalWords:  struct yystype DJGPP lex param Haible NUM alloca YYSTACK NUL goto
- LocalWords:  YYMAXDEPTH Unescaped UCNs YYLTYPE's yyltype typedefs inline Yaccs
- LocalWords:  Heriyanto Reenable dprec Hilfinger Eggert MYEOF Folle Menezes EOF
- LocalWords:  Lackovic define's itemset Groff Gettext malloc NEWS'ed YYDEBUG YY
- LocalWords:  namespaces strerror const autoconfiguration Dconst Autoconf's FDL
- LocalWords:  Automake TMPDIR LESSEQ ylwrap endif yydebug YYTOKEN YYLSP ival hh
- LocalWords:  extern YYTOKENTYPE TOKENTYPE yytokentype tokentype STYPE lval pdf
- LocalWords:  lang yyoutput dvi html ps POSIX lvalp llocp Wother nterm arg init
- LocalWords:  TOK calc yyo fval Wconflicts parsers yystackp yyval yynerrs
- LocalWords:  Théophile Ranquet Santet fno fnone stype associativity Tolmer
- LocalWords:  Wprecedence Rassoul Wempty Paolo Bonzini parser's Michiel loc
- LocalWords:  redeclaration sval fcaret reentrant XSLT xsl Wmaybe yyvsp Tedi
- LocalWords:  pragmas noreturn untyped Rozenman unexpanded Wojciech Polak
- LocalWords:  Alexandre MERCHANTABILITY yytype emplace ptr automove lvalues
- LocalWords:  nonterminal yy args Pragma dereference yyformat rhs docdir bw
- LocalWords:  Redeclarations rpcalc Autoconf YFLAGS Makefiles PROG DECL num
- LocalWords:  Heimbigner AST src ast Makefile srcdir MinGW xxlex XXSTYPE
- LocalWords:  XXLTYPE strictfp IDEs ffixit fdiagnostics parseable fixits
- LocalWords:  Wdeprecated yytext Variadic variadic yyrhs yyphrs RCS README
- LocalWords:  noexcept constexpr ispell american deprecations backend Teoh
- LocalWords:  YYPRINT Mangold Bonzini's Wdangling exVal baz checkable gcc
- LocalWords:  fsanitize Vogelsgesang lis redeclared stdint automata yytname
- LocalWords:  yysymbol yytnamerr yyreport ctx ARGMAX yysyntax stderr LPAREN
- LocalWords:  symrec yypcontext TOKENMAX yyexpected YYEMPTY yypstate YYEOF
- LocalWords:  autocompletion bistromathic submessages Cayuela lexcalc hoc
- LocalWords:  yytoken YYUNDEF YYerror
+LocalWords:  yacc YYBACKUP glr GCC lalr ArrayIndexOutOfBoundsException nullptr
+LocalWords:  cplusplus liby rpl fprintf mfcalc Wyacc stmt cond expr mk sym lr
+LocalWords:  IELR ielr Lookahead YYERROR nonassoc LALR's api lookaheads yychar
+LocalWords:  destructor lookahead YYRHSLOC YYLLOC Rhs ifndef YYFAIL cpp sr rr
+LocalWords:  preprocessor initializer Wno Wnone Werror FreeBSD prec livelocks
+LocalWords:  Solaris AIX UX RHEL Tru LHS gcc's Wundef YYENABLE NLS YYLTYPE VCG
+LocalWords:  yyerror cpp's Wunused yylval yylloc prepend yyparse yylex yypush
+LocalWords:  Graphviz xml nonterminals midrule destructor's YYSTYPE typedef ly
+LocalWords:  CHR chr printf stdout namespace preprocessing enum pre include's
+LocalWords:  YYRECOVERING nonfree destructors YYABORT YYACCEPT params enums de
+LocalWords:  struct yystype DJGPP lex param Haible NUM alloca YYSTACK NUL goto
+LocalWords:  YYMAXDEPTH Unescaped UCNs YYLTYPE's yyltype typedefs inline Yaccs
+LocalWords:  Heriyanto Reenable dprec Hilfinger Eggert MYEOF Folle Menezes EOF
+LocalWords:  Lackovic define's itemset Groff Gettext malloc NEWS'ed YYDEBUG YY
+LocalWords:  namespaces strerror const autoconfiguration Dconst Autoconf's FDL
+LocalWords:  Automake TMPDIR LESSEQ ylwrap endif yydebug YYTOKEN YYLSP ival hh
+LocalWords:  extern YYTOKENTYPE TOKENTYPE yytokentype tokentype STYPE lval pdf
+LocalWords:  lang yyoutput dvi html ps POSIX lvalp llocp Wother nterm arg init
+LocalWords:  TOK calc yyo fval Wconflicts parsers yystackp yyval yynerrs
+LocalWords:  Théophile Ranquet Santet fno fnone stype associativity Tolmer
+LocalWords:  Wprecedence Rassoul Wempty Paolo Bonzini parser's Michiel loc
+LocalWords:  redeclaration sval fcaret reentrant XSLT xsl Wmaybe yyvsp Tedi
+LocalWords:  pragmas noreturn untyped Rozenman unexpanded Wojciech Polak
+LocalWords:  Alexandre MERCHANTABILITY yytype emplace ptr automove lvalues
+LocalWords:  nonterminal yy args Pragma dereference yyformat rhs docdir bw
+LocalWords:  Redeclarations rpcalc Autoconf YFLAGS Makefiles PROG DECL num
+LocalWords:  Heimbigner AST src ast Makefile srcdir MinGW xxlex XXSTYPE
+LocalWords:  XXLTYPE strictfp IDEs ffixit fdiagnostics parseable fixits
+LocalWords:  Wdeprecated yytext Variadic variadic yyrhs yyphrs RCS README
+LocalWords:  noexcept constexpr ispell american deprecations backend Teoh
+LocalWords:  YYPRINT Mangold Bonzini's Wdangling exVal baz checkable gcc
+LocalWords:  fsanitize Vogelsgesang lis redeclared stdint automata yytname
+LocalWords:  yysymbol yytnamerr yyreport ctx ARGMAX yysyntax stderr LPAREN
+LocalWords:  symrec yypcontext TOKENMAX yyexpected YYEMPTY yypstate YYEOF
+LocalWords:  autocompletion bistromathic submessages Cayuela lexcalc hoc
+LocalWords:  yytoken YYUNDEF YYerror basename Automake's UTF ifdef ffile
+LocalWords:  gotos readline Imbimbo Wcounterexamples
 
 Local Variables:
 ispell-dictionary: "american"
 mode: outline
 fill-column: 76
 End:
+
+Copyright (C) 1995-2015, 2018-2020 Free Software Foundation, Inc.
+
+This file is part of Bison, the GNU Parser Generator.
+
+Permission is granted to copy, distribute and/or modify this document
+under the terms of the GNU Free Documentation License, Version 1.3 or
+any later version published by the Free Software Foundation; with no
+Invariant Sections, with no Front-Cover Texts, and with no Back-Cover
+Texts.  A copy of the license is included in the "GNU Free
+Documentation License" file as part of this distribution.

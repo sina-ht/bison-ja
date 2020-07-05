@@ -225,7 +225,7 @@ struct state
   /* Its items.  Must be last, since ITEMS can be arbitrarily large.  Sorted
      ascendingly on item index in RITEM, which is sorted on rule number.  */
   size_t nitems;
-  item_number items[1];
+  item_index items[1];
 };
 
 extern state_number nstates;
@@ -233,7 +233,7 @@ extern state *final_state;
 
 /* Create a new state with ACCESSING_SYMBOL for those items.  */
 state *state_new (symbol_number accessing_symbol,
-                  size_t core_size, item_number *core);
+                  size_t core_size, item_index *core);
 state *state_new_isocore (state const *s);
 
 /* Record that from S we can reach all the DST states (NUM of them).  */
@@ -247,15 +247,15 @@ void state_reductions_set (state *s, int num, rule **reds);
 
 /* The index of the reduction of state S that corresponds to rule R.
    Aborts if there is no reduction of R in S.  */
-int state_reduction_find (state *s, rule const *r);
+int state_reduction_find (state const *s, rule const *r);
 
 /* Set the errs of STATE.  */
 void state_errs_set (state *s, int num, symbol **errors);
 
 /* Print on OUT all the lookahead tokens such that this STATE wants to
    reduce R.  */
-void state_rule_lookahead_tokens_print (state *s, rule const *r, FILE *out);
-void state_rule_lookahead_tokens_print_xml (state *s, rule const *r,
+void state_rule_lookahead_tokens_print (state const *s, rule const *r, FILE *out);
+void state_rule_lookahead_tokens_print_xml (state const *s, rule const *r,
                                             FILE *out, int level);
 
 /* Create/destroy the states hash table.  */
@@ -264,7 +264,7 @@ void state_hash_free (void);
 
 /* Find the state associated to the CORE, and return it.  If it does
    not exist yet, return NULL.  */
-state *state_hash_lookup (size_t core_size, item_number *core);
+state *state_hash_lookup (size_t core_size, const item_index *core);
 
 /* Insert STATE in the state hash table.  */
 void state_hash_insert (state *s);

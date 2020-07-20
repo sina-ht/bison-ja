@@ -144,13 +144,13 @@ init_state_items (void)
       for (int j = 0; j < s->nitems; ++j)
         {
           state_item_set (sidx, s, s->items[j]);
-          state_item *si = state_items + sidx;
+          state_item *si = &state_items[sidx];
           const rule *r = item_rule (si->item);
           if (rule_search_idx < red->num && red->rules[rule_search_idx] < r)
             ++rule_search_idx;
           if (rule_search_idx < red->num && r == red->rules[rule_search_idx])
             {
-              bitsetv lookahead = red->lookahead_tokens;
+              bitsetv lookahead = red->lookaheads;
               if (lookahead)
                 si->lookahead = lookahead[rule_search_idx];
             }
@@ -163,7 +163,7 @@ init_state_items (void)
           state_item_set (sidx, s, off);
           if (item_number_is_rule_number (ritem[off]))
             {
-              bitsetv lookahead = red->lookahead_tokens;
+              bitsetv lookahead = red->lookaheads;
               if (lookahead)
                 state_items[sidx].lookahead = lookahead[rule_search_idx];
               ++rule_search_idx;
@@ -211,7 +211,7 @@ init_trans (void)
       for (int j = 0; j < t->num; ++j)
         if (!TRANSITION_IS_DISABLED (t, j))
           hash_xinsert (transition_set, t->states[j]);
-      for (int j = state_item_map[i]; j < state_item_map[i + 1]; ++j)
+      for (state_item_number j = state_item_map[i]; j < state_item_map[i + 1]; ++j)
         {
           item_number *item = state_items[j].item;
           if (item_number_is_rule_number (*item))
@@ -222,16 +222,14 @@ init_trans (void)
           // find the item in the destination state that corresponds
           // to the transition of item
           for (int k = 0; k < dst->nitems; ++k)
-            {
-              if (item + 1 == ritem + dst->items[k])
-                {
-                  state_item_number dstSI =
-                    state_item_index_lookup (dst->number, k);
+            if (item + 1 == ritem + dst->items[k])
+              {
+                state_item_number dstSI =
+                  state_item_index_lookup (dst->number, k);
 
-                  state_items[j].trans = dstSI;
-                  bitset_set (state_items[dstSI].revs, j);
-                  break;
-                }
+                state_items[j].trans = dstSI;
+                bitset_set (state_items[dstSI].revs, j);
+                break;
             }
         }
       hash_free (transition_set);
@@ -250,10 +248,10 @@ init_prods (void)
 
       // Add the nitems of state to skip to the production portion
       // of that state's state_items
-      for (int j = state_item_map[i] + s->nitems;
+      for (state_item_number j = state_item_map[i] + s->nitems;
            j < state_item_map[i + 1]; ++j)
         {
-          state_item *src = state_items + j;
+          state_item *src = &state_items[j];
           item_number *item = src->item;
           symbol_number lhs = item_rule (item)->lhs->number;
           bitset itms = hash_pair_lookup (closure_map, lhs);
@@ -266,9 +264,9 @@ init_prods (void)
         }
       // For each item with a dot followed by a nonterminal,
       // try to create a production edge.
-      for (int j = state_item_map[i]; j < state_item_map[i + 1]; ++j)
+      for (state_item_number j = state_item_map[i]; j < state_item_map[i + 1]; ++j)
         {
-          state_item *src = state_items + j;
+          state_item *src = &state_items[j];
           item_number item = *(src->item);
           // Skip reduce items and items with terminals after the dot
           if (item_number_is_rule_number (item) || ISTOKEN (item))
@@ -301,12 +299,12 @@ gen_lookaheads (void)
 {
   for (state_item_number i = 0; i < nstate_items; ++i)
     {
-      state_item *si = state_items + i;
+      state_item *si = &state_items[i];
       if (item_number_is_symbol_number (*(si->item)) || !si->lookahead)
         continue;
 
       bitset lookahead = si->lookahead;
-      gl_list_t queue =
+      state_item_list queue =
         gl_list_create (GL_LINKED_LIST, NULL, NULL, NULL, true, 1,
                         (const void **) &si);
 
@@ -339,7 +337,7 @@ init_firsts (void)
   firsts = bitsetv_create (nnterms, nsyms, BITSET_FIXED);
   for (rule_number i = 0; i < nrules; ++i)
     {
-      rule *r = rules + i;
+      rule *r = &rules[i];
       item_number *n = r->rhs;
       // Iterate through nullable nonterminals to try to find a terminal.
       while (item_number_is_symbol_number (*n) && ISVAR (*n)
@@ -357,7 +355,7 @@ init_firsts (void)
       change = false;
       for (rule_number i = 0; i < nrules; ++i)
         {
-          rule *r = rules + i;
+          rule *r = &rules[i];
           symbol_number lhs = r->lhs->number;
           bitset f_lhs = FIRSTS (lhs);
           for (item_number *n = r->rhs;
@@ -392,7 +390,7 @@ disable_state_item (state_item *si)
 static void
 prune_forward (const state_item *si)
 {
-  gl_list_t queue =
+  state_item_list queue =
     gl_list_create (GL_LINKED_LIST, NULL, NULL, NULL, true, 1,
                     (const void **) &si);
 
@@ -401,7 +399,7 @@ prune_forward (const state_item *si)
       state_item *dsi = (state_item *) gl_list_get_at (queue, 0);
       gl_list_remove_at (queue, 0);
       if (dsi->trans >= 0)
-        gl_list_add_last (queue, state_items + dsi->trans);
+        gl_list_add_last (queue, &state_items[dsi->trans]);
 
       if (dsi->prods)
         {
@@ -409,7 +407,7 @@ prune_forward (const state_item *si)
           state_item_number sin;
           BITSET_FOR_EACH (biter, dsi->prods, sin, 0)
             {
-              const state_item *prod = state_items + sin;
+              const state_item *prod = &state_items[sin];
               bitset_reset (prod->revs, dsi - state_items);
               if (bitset_empty_p (prod->revs))
                 gl_list_add_last (queue, prod);
@@ -427,7 +425,7 @@ prune_forward (const state_item *si)
 static void
 prune_backward (const state_item *si)
 {
-  gl_list_t queue =
+  state_item_list queue =
     gl_list_create (GL_LINKED_LIST, NULL, NULL, NULL, true, 1,
                     (const void **) &si);
 
@@ -441,7 +439,7 @@ prune_backward (const state_item *si)
         {
           if (SI_DISABLED (sin))
             continue;
-          state_item *rev = state_items + sin;
+          state_item *rev = &state_items[sin];
           if (rev->prods)
             {
               bitset_reset (rev->prods, dsi - state_items);
@@ -466,7 +464,7 @@ prune_disabled_paths (void)
 {
   for (int i = nstate_items - 1; i >= 0; --i)
     {
-      state_item *si = state_items + i;
+      state_item *si = &state_items[i];
       if (si->trans == -1 && item_number_is_symbol_number (*si->item))
         {
           prune_forward (si);
@@ -494,9 +492,9 @@ state_items_report (void)
   for (state_number i = 0; i < nstates; ++i)
     {
       printf ("State %d:\n", i);
-      for (int j = state_item_map[i]; j < state_item_map[i + 1]; ++j)
+      for (state_item_number j = state_item_map[i]; j < state_item_map[i + 1]; ++j)
         {
-          state_item *si = state_items + j;
+          state_item *si = &state_items[j];
           item_print (si->item, NULL, stdout);
           if (SI_DISABLED (j))
             {
@@ -508,7 +506,7 @@ state_items_report (void)
           if (si->trans >= 0)
             {
               fputs ("    -> ", stdout);
-              print_state_item (state_items + si->trans, stdout, "");
+              print_state_item (&state_items[si->trans], stdout, "");
             }
 
           bitset sets[2] = { si->prods, si->revs };
@@ -523,7 +521,7 @@ state_items_report (void)
                   BITSET_FOR_EACH (biter, b, sin, 0)
                     {
                       fputs (txt[seti], stdout);
-                      print_state_item (state_items + sin, stdout, "");
+                      print_state_item (&state_items[sin], stdout, "");
                     }
                 }
             }
@@ -562,10 +560,10 @@ state_items_init (void)
 void
 state_items_free (void)
 {
-  for (int i = 0; i < nstate_items; ++i)
+  for (state_item_number i = 0; i < nstate_items; ++i)
     if (!SI_DISABLED (i))
       {
-        state_item *si = state_items + i;
+        state_item *si = &state_items[i];
         if (si->prods)
           bitset_free (si->prods);
         bitset_free (si->revs);
@@ -594,5 +592,5 @@ production_allowed (const state_item *si, const state_item *next)
       if (prec1 == prec2 && s1->assoc == left_assoc)
         return false;
     }
-    return true;
+  return true;
 }

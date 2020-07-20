@@ -26,6 +26,7 @@
 #include <gl_linked_list.h>
 #include <gl_rbtreehash_list.h>
 #include <hash.h>
+#include <mbswidth.h>
 #include <stdlib.h>
 #include <textstyle.h>
 #include <time.h>
@@ -76,17 +77,29 @@ typedef struct
 {
   derivation *d1;
   derivation *d2;
+  bool shift_reduce;
   bool unifying;
   bool timeout;
 } counterexample;
 
 static counterexample *
 new_counterexample (derivation *d1, derivation *d2,
+                    bool shift_reduce,
                     bool u, bool t)
 {
-  counterexample *res = xmalloc (sizeof (counterexample));
-  res->d1 = d1;
-  res->d2 = d2;
+  counterexample *res = xmalloc (sizeof *res);
+  res->shift_reduce = shift_reduce;
+  if (shift_reduce)
+    {
+      // Display the shift first.
+      res->d1 = d2;
+      res->d2 = d1;
+    }
+  else
+    {
+      res->d1 = d1;
+      res->d2 = d2;
+    }
   res->unifying = u;
   res->timeout = t;
   return res;
@@ -100,14 +113,37 @@ free_counterexample (counterexample *cex)
   free (cex);
 }
 
-static void
-print_counterexample (counterexample *cex, FILE *out, const char *prefix)
+static int max (int a, int b)
 {
-  fprintf (out, "  %s%-20s ",
-           prefix, cex->unifying ? _("Example") : _("First example"));
-  derivation_print_leaves (cex->d1, out, prefix);
-  fprintf (out, "  %s%-20s ",
-           prefix, _("First derivation"));
+  return a < b ? b : a;
+}
+
+static void
+print_counterexample (const counterexample *cex, FILE *out, const char *prefix)
+{
+  const bool flat = getenv ("YYFLAT");
+  const char *example1_label
+    = cex->unifying ? _("Example") : _("First example");
+  const char *example2_label
+    = cex->unifying ? _("Example") : _("Second example");
+  const char *deriv1_label
+    = cex->shift_reduce ? _("Shift derivation") : _("First reduce derivation");
+  const char *deriv2_label
+    = cex->shift_reduce ? _("Reduce derivation") : _("Second reduce derivation");
+  const int width =
+    max (max (mbswidth (example1_label, 0), mbswidth (example2_label, 0)),
+         max (mbswidth (deriv1_label, 0),   mbswidth (deriv2_label, 0)));
+  if (flat)
+    fprintf (out, "  %s%s%*s ", prefix,
+             example1_label, width - mbswidth (example1_label, 0), "");
+  else
+    fprintf (out, "  %s%s: ", prefix, example1_label);
+  derivation_print_leaves (cex->d1, out);
+  if (flat)
+    fprintf (out, "  %s%s%*s ", prefix,
+             deriv1_label, width - mbswidth (deriv1_label, 0), "");
+  else
+    fprintf (out, "  %s%s", prefix, deriv1_label);
   derivation_print (cex->d1, out, prefix);
 
   // If we output to the terminal (via stderr) and we have color
@@ -115,15 +151,22 @@ print_counterexample (counterexample *cex, FILE *out, const char *prefix)
   // to see the differences.
   if (!cex->unifying || is_styled (stderr))
     {
-      fprintf (out, "  %s%-20s ",
-               prefix, cex->unifying ? _("Example") : _("Second example"));
-      derivation_print_leaves (cex->d2, out, prefix);
+      if (flat)
+        fprintf (out, "  %s%s%*s ", prefix,
+                 example2_label, width - mbswidth (example2_label, 0), "");
+      else
+        fprintf (out, "  %s%s: ", prefix, example2_label);
+      derivation_print_leaves (cex->d2, out);
     }
-  fprintf (out, "  %s%-20s ",
-           prefix, _("Second derivation"));
+  if (flat)
+    fprintf (out, "  %s%s%*s ", prefix,
+             deriv2_label, width - mbswidth (deriv2_label, 0), "");
+  else
+    fprintf (out, "  %s%s", prefix, deriv2_label);
   derivation_print (cex->d2, out, prefix);
 
-  fputc ('\n', out);
+  if (out != stderr)
+    putc ('\n', out);
 }
 
 /*
@@ -144,7 +187,7 @@ typedef struct si_bfs_node
 static si_bfs_node *
 si_bfs_new (state_item_number si, si_bfs_node *parent)
 {
-  si_bfs_node *res = xcalloc (1, sizeof (si_bfs_node));
+  si_bfs_node *res = xcalloc (1, sizeof *res);
   res->si = si;
   res->parent = parent;
   res->reference_count = 1;
@@ -175,6 +218,8 @@ si_bfs_free (si_bfs_node *n)
     }
 }
 
+typedef gl_list_t si_bfs_node_list;
+
 /**
  * start is a state_item such that conflict_sym is an element of FIRSTS of the
  * nonterminal after the dot in start. Because of this, we should be able to
@@ -188,15 +233,16 @@ expand_to_conflict (state_item_number start, symbol_number conflict_sym)
 {
   si_bfs_node *init = si_bfs_new (start, NULL);
 
-  gl_list_t queue = gl_list_create (GL_LINKED_LIST, NULL, NULL,
-                                    (gl_listelement_dispose_fn) si_bfs_free,
-                                    true, 1, (const void **) &init);
+  si_bfs_node_list queue
+    = gl_list_create (GL_LINKED_LIST, NULL, NULL,
+                      (gl_listelement_dispose_fn) si_bfs_free,
+                      true, 1, (const void **) &init);
   si_bfs_node *node = NULL;
   // breadth-first search for a path of productions to the conflict symbol
   while (gl_list_size (queue) > 0)
     {
       node = (si_bfs_node *) gl_list_get_at (queue, 0);
-      state_item *silast = state_items + node->si;
+      state_item *silast = &state_items[node->si];
       symbol_number sym = item_number_as_symbol_number (*silast->item);
       if (sym == conflict_sym)
         break;
@@ -238,7 +284,7 @@ expand_to_conflict (state_item_number start, symbol_number conflict_sym)
 
   for (si_bfs_node *n = node; n != NULL; n = n->parent)
     {
-      state_item *si = state_items + n->si;
+      state_item *si = &state_items[n->si];
       item_number *pos = si->item;
       if (SI_PRODUCTION (si))
         {
@@ -274,7 +320,7 @@ expand_to_conflict (state_item_number start, symbol_number conflict_sym)
  */
 static derivation *
 complete_diverging_example (symbol_number conflict_sym,
-                            gl_list_t path, derivation_list derivs)
+                            state_item_list path, derivation_list derivs)
 {
   // The idea is to transfer each pending symbol on the productions
   // associated with the given StateItems to the resulting derivation.
@@ -395,15 +441,15 @@ complete_diverging_example (symbol_number conflict_sym,
 /* Iterate backwards through the shifts of the path in the reduce
    conflict, and find a path of shifts from the shift conflict that
    goes through the same states. */
-static gl_list_t
-nonunifying_shift_path (gl_list_t reduce_path, state_item *shift_conflict)
+static state_item_list
+nonunifying_shift_path (state_item_list reduce_path, state_item *shift_conflict)
 {
   gl_list_node_t tmp = gl_list_add_last (reduce_path, NULL);
   gl_list_node_t next_node = gl_list_previous_node (reduce_path, tmp);
   gl_list_node_t node = gl_list_previous_node (reduce_path, next_node);
   gl_list_remove_node (reduce_path, tmp);
   state_item *si = shift_conflict;
-  gl_list_t result =
+  state_item_list result =
     gl_list_create_empty (GL_LINKED_LIST, NULL, NULL, NULL, true);
   // FIXME: bool paths_merged;
   for (; node != NULL; next_node = node,
@@ -425,10 +471,10 @@ nonunifying_shift_path (gl_list_t reduce_path, state_item *shift_conflict)
 
       // bfs to find a shift to the right state
       si_bfs_node *init = si_bfs_new (si - state_items, NULL);
-      gl_list_t queue =
-        gl_list_create (GL_LINKED_LIST, NULL, NULL,
-                        (gl_listelement_dispose_fn) si_bfs_free,
-                        true, 1, (const void **) &init);
+      si_bfs_node_list queue
+        = gl_list_create (GL_LINKED_LIST, NULL, NULL,
+                          (gl_listelement_dispose_fn) si_bfs_free,
+                          true, 1, (const void **) &init);
       si_bfs_node *sis = NULL;
       state_item *prevsi = NULL;
       while (gl_list_size (queue) > 0)
@@ -438,7 +484,7 @@ nonunifying_shift_path (gl_list_t reduce_path, state_item *shift_conflict)
           if (sis->si == 0)
             break;
 
-          state_item *search_si = state_items + sis->si;
+          state_item *search_si = &state_items[sis->si];
           // if the current state-item is a production item,
           // its reverse production items get added to the queue.
           // Otherwise, look for a reverse transition to the target state.
@@ -447,7 +493,7 @@ nonunifying_shift_path (gl_list_t reduce_path, state_item *shift_conflict)
           state_item_number sin;
           BITSET_FOR_EACH (biter, rsi, sin, 0)
             {
-              prevsi = state_items + sin;
+              prevsi = &state_items[sin];
               if (SI_TRANSITION (search_si))
                 {
                   if (prevsi->state == refsi->state)
@@ -465,9 +511,9 @@ nonunifying_shift_path (gl_list_t reduce_path, state_item *shift_conflict)
       // prepend path to shift we found
       if (sis)
         {
-          gl_list_node_t ln = gl_list_add_first (result, state_items + sis->si);
+          gl_list_node_t ln = gl_list_add_first (result, &state_items[sis->si]);
           for (si_bfs_node *n = sis->parent; n; n = n->parent)
-            ln = gl_list_add_after (result, ln, state_items + n->si);
+            ln = gl_list_add_after (result, ln, &state_items[n->si]);
 
         }
       si = prevsi;
@@ -493,17 +539,17 @@ nonunifying_shift_path (gl_list_t reduce_path, state_item *shift_conflict)
 static counterexample *
 example_from_path (bool shift_reduce,
                    state_item_number itm2,
-                   gl_list_t shortest_path, symbol_number next_sym)
+                   state_item_list shortest_path, symbol_number next_sym)
 {
   derivation *deriv1 =
     complete_diverging_example (next_sym, shortest_path, NULL);
-  gl_list_t path_2
+  state_item_list path_2
     = shift_reduce
     ? nonunifying_shift_path (shortest_path, &state_items [itm2])
     : shortest_path_from_start (itm2, next_sym);
   derivation *deriv2 = complete_diverging_example (next_sym, path_2, NULL);
   gl_list_free (path_2);
-  return new_counterexample (deriv1, deriv2, false, true);
+  return new_counterexample (deriv1, deriv2, shift_reduce, false, true);
 }
 
 /*
@@ -525,7 +571,7 @@ typedef struct
 static search_state *
 initial_search_state (state_item *conflict1, state_item *conflict2)
 {
-  search_state *res = xmalloc (sizeof (search_state));
+  search_state *res = xmalloc (sizeof *res);
   res->states[0] = new_parse_state (conflict1);
   res->states[1] = new_parse_state (conflict2);
   parse_state_retain (res->states[0]);
@@ -537,7 +583,7 @@ initial_search_state (state_item *conflict1, state_item *conflict2)
 static search_state *
 new_search_state (parse_state *ps1, parse_state *ps2, int complexity)
 {
-  search_state *res = xmalloc (sizeof (search_state));
+  search_state *res = xmalloc (sizeof *res);
   res->states[0] = ps1;
   res->states[1] = ps2;
   parse_state_retain (res->states[0]);
@@ -549,8 +595,8 @@ new_search_state (parse_state *ps1, parse_state *ps2, int complexity)
 static search_state *
 copy_search_state (search_state *parent)
 {
-  search_state *res = xmalloc (sizeof (search_state));
-  memcpy (res, parent, sizeof (search_state));
+  search_state *res = xmalloc (sizeof *res);
+  *res = *parent;
   parse_state_retain (res->states[0]);
   parse_state_retain (res->states[1]);
   return res;
@@ -583,6 +629,8 @@ search_state_print (search_state *ss)
   putc ('\n', stderr);
 }
 
+typedef gl_list_t search_state_list;
+
 static inline bool
 search_state_list_next (gl_list_iterator_t *it, search_state **ss)
 {
@@ -614,18 +662,20 @@ ss_set_parse_state (search_state *ss, int idx, parse_state *ps)
  */
 static counterexample *
 complete_diverging_examples (search_state *ss,
-                             symbol_number next_sym)
+                             symbol_number next_sym,
+                             bool shift_reduce)
 {
   derivation *new_derivs[2];
   for (int i = 0; i < 2; ++i)
     {
-      gl_list_t sitems;
+      state_item_list sitems;
       derivation_list derivs;
       parse_state_lists (ss->states[i], &sitems, &derivs);
       new_derivs[i] = complete_diverging_example (next_sym, sitems, derivs);
       gl_list_free (sitems);
     }
-  return new_counterexample (new_derivs[0], new_derivs[1], false, true);
+  return new_counterexample (new_derivs[0], new_derivs[1],
+                             shift_reduce, false, true);
 }
 
 /*
@@ -635,7 +685,7 @@ complete_diverging_examples (search_state *ss,
  */
 typedef struct
 {
-  gl_list_t states;
+  search_state_list states;
   int complexity;
 } search_state_bundle;
 
@@ -664,6 +714,8 @@ ssb_equals (const search_state_bundle *s1, const search_state_bundle *s2)
   return s1->complexity == s2->complexity;
 }
 
+typedef gl_list_t ssb_list;
+
 static size_t
 visited_hasher (const search_state *ss, size_t max)
 {
@@ -679,7 +731,7 @@ visited_comparator (const search_state *ss1, const search_state *ss2)
 }
 
 /* Priority queue for search states with minimal complexity. */
-static gl_list_t ssb_queue;
+static ssb_list ssb_queue;
 static Hash_table *visited;
 /* The set of parser states on the shortest lookahead-sensitive path. */
 static bitset scp_set = NULL;
@@ -702,7 +754,7 @@ ssb_append (search_state *ss)
   parse_state_free_contents_early (ss->states[1]);
   parse_state_retain (ss->states[0]);
   parse_state_retain (ss->states[1]);
-  search_state_bundle *ssb = xmalloc (sizeof (search_state_bundle));
+  search_state_bundle *ssb = xmalloc (sizeof *ssb);
   ssb->complexity = ss->complexity;
   gl_list_node_t n = gl_list_search (ssb_queue, ssb);
   if (!n)
@@ -756,12 +808,12 @@ reduction_cost (const parse_state *ps)
   return SHIFT_COST * shifts + PRODUCTION_COST * productions;
 }
 
-static gl_list_t
+static search_state_list
 reduction_step (search_state *ss, const item_number *conflict_item,
                 int parser_state, int rule_len)
 {
   (void) conflict_item; // FIXME: Unused
-  gl_list_t result =
+  search_state_list result =
     gl_list_create_empty (GL_LINKED_LIST, NULL, NULL, NULL, 1);
 
   parse_state *ps = ss->states[parser_state];
@@ -897,7 +949,7 @@ search_state_prepend (search_state *ss, symbol_number sym, bitset guide)
  * the same prefix up to the dot.
  */
 static bool
-has_common_prefix (const item_number *itm1, const item_number *itm2)
+have_common_prefix (const item_number *itm1, const item_number *itm2)
 {
   int i = 0;
   for (; !item_number_is_rule_number (itm1[i]); ++i)
@@ -988,14 +1040,14 @@ generate_next_states (search_state *ss, state_item *conflict1,
       // prepended further, reduce.
       if (ready1 && ready2)
         {
-          gl_list_t reduced1 = reduction_step (ss, conflict1->item, 0, len1);
+          search_state_list reduced1 = reduction_step (ss, conflict1->item, 0, len1);
           gl_list_add_last (reduced1, ss);
           search_state *red1 = NULL;
           for (gl_list_iterator_t iter = gl_list_iterator (reduced1);
                search_state_list_next (&iter, &red1);
                )
             {
-              gl_list_t reduced2 =
+              search_state_list reduced2 =
                 reduction_step (red1, conflict2->item, 1, len2);
               search_state *red2 = NULL;
               for (gl_list_iterator_t iter2 = gl_list_iterator (reduced2);
@@ -1011,7 +1063,7 @@ generate_next_states (search_state *ss, state_item *conflict1,
         }
       else if (ready1)
         {
-          gl_list_t reduced1 = reduction_step (ss, conflict1->item, 0, len1);
+          search_state_list reduced1 = reduction_step (ss, conflict1->item, 0, len1);
           search_state *red1 = NULL;
           for (gl_list_iterator_t iter = gl_list_iterator (reduced1);
                search_state_list_next (&iter, &red1);
@@ -1021,7 +1073,7 @@ generate_next_states (search_state *ss, state_item *conflict1,
         }
       else if (ready2)
         {
-          gl_list_t reduced2 = reduction_step (ss, conflict2->item, 1, len2);
+          search_state_list reduced2 = reduction_step (ss, conflict2->item, 1, len2);
           search_state *red2 = NULL;
           for (gl_list_iterator_t iter2 = gl_list_iterator (reduced2);
                search_state_list_next (&iter2, &red2);
@@ -1055,10 +1107,10 @@ static counterexample *
 unifying_example (state_item_number itm1,
                   state_item_number itm2,
                   bool shift_reduce,
-                  gl_list_t reduce_path, symbol_number next_sym)
+                  state_item_list reduce_path, symbol_number next_sym)
 {
-  state_item *conflict1 = state_items + itm1;
-  state_item *conflict2 = state_items + itm2;
+  state_item *conflict1 = &state_items[itm1];
+  state_item *conflict2 = &state_items[itm2];
   search_state *initial = initial_search_state (conflict1, conflict2);
   ssb_queue = gl_list_create_empty (GL_RBTREEHASH_LIST,
                                     (gl_listelement_equals_fn) ssb_equals,
@@ -1094,7 +1146,7 @@ unifying_example (state_item_number itm1,
               const state_item *si1src = parse_state_head (ps1);
               const state_item *si2src = parse_state_head (ps2);
               if (item_rule (si1src->item)->lhs == item_rule (si2src->item)->lhs
-                  && has_common_prefix (si1src->item, si2src->item))
+                  && have_common_prefix (si1src->item, si2src->item))
                 {
                   // Stage 4: both paths share a prefix
                   derivation *d1 = parse_state_derivation (ps1);
@@ -1104,7 +1156,7 @@ unifying_example (state_item_number itm1,
                     {
                       // Once we have two derivations for the same symbol,
                       // we've found a unifying counterexample.
-                      cex = new_counterexample (d1, d2, true, false);
+                      cex = new_counterexample (d1, d2, shift_reduce, true, false);
                       derivation_retain (d1);
                       derivation_retain (d2);
                       goto cex_search_end;
@@ -1142,7 +1194,7 @@ cex_search_end:;
       // If a search state from Stage 3 is available, use it
       // to construct a more compact nonunifying counterexample.
       if (stage3result)
-        cex = complete_diverging_examples (stage3result, next_sym);
+        cex = complete_diverging_examples (stage3result, next_sym, shift_reduce);
       // Otherwise, construct a nonunifying counterexample that
       // begins from the start state using the shortest
       // lookahead-sensitive path to the reduce item.
@@ -1190,7 +1242,7 @@ counterexample_report (state_item_number itm1, state_item_number itm2,
 {
   // Compute the shortest lookahead-sensitive path and associated sets of
   // parser states.
-  gl_list_t shortest_path = shortest_path_from_start (itm1, next_sym);
+  state_item_list shortest_path = shortest_path_from_start (itm1, next_sym);
   bool reduce_prod_reached = false;
   const rule *reduce_rule = item_rule (state_items[itm1].item);
 
@@ -1219,14 +1271,24 @@ counterexample_report (state_item_number itm1, state_item_number itm2,
   free_counterexample (cex);
 }
 
+
+// ITM1 denotes a shift, ITM2 a reduce.
 static void
 counterexample_report_shift_reduce (state_item_number itm1, state_item_number itm2,
                                     symbol_number next_sym,
                                     FILE *out, const char *prefix)
 {
-  fputs (prefix, out);
-  fprintf (out, _("Shift/reduce conflict on token %s:\n"), symbols[next_sym]->tag);
-  if (*prefix)
+  if (out == stderr)
+    complain (NULL, Wcounterexamples,
+              _("shift/reduce conflict on token %s"), symbols[next_sym]->tag);
+  else
+    {
+      fputs (prefix, out);
+      fprintf (out, _("shift/reduce conflict on token %s"), symbols[next_sym]->tag);
+      fprintf (out, "%s\n", _(":"));
+    }
+  // In the report, print the items.
+  if (out != stderr || trace_flag & trace_cex)
     {
       print_state_item (&state_items[itm1], out, prefix);
       print_state_item (&state_items[itm2], out, prefix);
@@ -1240,32 +1302,49 @@ counterexample_report_reduce_reduce (state_item_number itm1, state_item_number i
                                      FILE *out, const char *prefix)
 {
   {
-    fputs (prefix, out);
-    fputs (ngettext ("Reduce/reduce conflict on token",
-                     "Reduce/reduce conflict on tokens",
-                     bitset_count (conflict_syms)), out);
+    struct obstack obstack;
+    obstack_init (&obstack);
     bitset_iterator biter;
     state_item_number sym;
-    const char *sep = " ";
+    const char *sep = "";
     BITSET_FOR_EACH (biter, conflict_syms, sym, 0)
       {
-        fprintf (out, "%s%s", sep, symbols[sym]->tag);
+        obstack_printf (&obstack, "%s%s", sep, symbols[sym]->tag);
         sep = ", ";
       }
-    fputs (_(":\n"), out);
+    char *tokens = obstack_finish0 (&obstack);
+    if (out == stderr)
+      complain (NULL, Wcounterexamples,
+                ngettext ("reduce/reduce conflict on token %s",
+                          "reduce/reduce conflict on tokens %s",
+                          bitset_count (conflict_syms)),
+                tokens);
+    else
+      {
+        fputs (prefix, out);
+        fprintf (out,
+                 ngettext ("reduce/reduce conflict on token %s",
+                           "reduce/reduce conflict on tokens %s",
+                           bitset_count (conflict_syms)),
+                 tokens);
+        fprintf (out, "%s\n", _(":"));
+      }
+    obstack_free (&obstack, NULL);
   }
-  if (*prefix)
+  // In the report, print the items.
+  if (out != stderr || trace_flag & trace_cex)
     {
       print_state_item (&state_items[itm1], out, prefix);
       print_state_item (&state_items[itm2], out, prefix);
     }
-  counterexample_report (itm1, itm2, bitset_first (conflict_syms), false, out, prefix);
+  counterexample_report (itm1, itm2, bitset_first (conflict_syms),
+                         false, out, prefix);
 }
 
 static state_item_number
 find_state_item_number (const rule *r, state_number sn)
 {
-  for (int i = state_item_map[sn]; i < state_item_map[sn + 1]; ++i)
+  for (state_item_number i = state_item_map[sn]; i < state_item_map[sn + 1]; ++i)
     if (!SI_DISABLED (i)
         && item_number_as_rule_number (*state_items[i].item) == r->number)
       return i;
@@ -1277,41 +1356,35 @@ counterexample_report_state (const state *s, FILE *out, const char *prefix)
 {
   const state_number sn = s->number;
   const reductions *reds = s->reductions;
+  bitset lookaheads = bitset_create (ntokens, BITSET_FIXED);
   for (int i = 0; i < reds->num; ++i)
     {
       const rule *r1 = reds->rules[i];
       const state_item_number c1 = find_state_item_number (r1, sn);
-      for (int j = state_item_map[sn]; j < state_item_map[sn + 1]; ++j)
-        if (!SI_DISABLED (j))
+      for (state_item_number c2 = state_item_map[sn]; c2 < state_item_map[sn + 1]; ++c2)
+        if (!SI_DISABLED (c2))
           {
-            state_item *si = state_items + j;
-            item_number conf = *si->item;
+            item_number conf = *state_items[c2].item;
             if (item_number_is_symbol_number (conf)
-              && bitset_test (reds->lookahead_tokens[i], conf))
-              counterexample_report_shift_reduce (c1, j, conf, out, prefix);
+                && bitset_test (reds->lookaheads[i], conf))
+              counterexample_report_shift_reduce (c1, c2, conf, out, prefix);
           }
       for (int j = i+1; j < reds->num; ++j)
         {
-          bitset conf = bitset_create (ntokens, BITSET_FIXED);
-          bitset_intersection (conf,
-                               reds->lookahead_tokens[i],
-                               reds->lookahead_tokens[j]);
-          if (!bitset_empty_p (conf))
-            {
-              const rule *r2 = reds->rules[j];
-              for (int k = state_item_map[sn]; k < state_item_map[sn + 1]; ++k)
-                if (!SI_DISABLED (k))
-                  {
-                    state_item *si = state_items + k;
-                    const rule *r = item_rule (si->item);
-                    if (r == r2)
-                      {
-                        counterexample_report_reduce_reduce (c1, k, conf, out, prefix);
-                        break;
-                      }
-                  }
-            }
-          bitset_free (conf);
+          const rule *r2 = reds->rules[j];
+          // Conflicts: common lookaheads.
+          bitset_intersection (lookaheads,
+                               reds->lookaheads[i],
+                               reds->lookaheads[j]);
+          if (!bitset_empty_p (lookaheads))
+            for (state_item_number c2 = state_item_map[sn]; c2 < state_item_map[sn + 1]; ++c2)
+              if (!SI_DISABLED (c2)
+                  && item_rule (state_items[c2].item) == r2)
+                {
+                  counterexample_report_reduce_reduce (c1, c2, lookaheads, out, prefix);
+                  break;
+                }
         }
     }
+  bitset_free (lookaheads);
 }

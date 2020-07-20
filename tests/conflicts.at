@@ -861,12 +861,18 @@ State 5
     OP        [reduce using rule 1 (exp)]
     $default  reduce using rule 1 (exp)
 
-    Shift/reduce conflict on token OP:
+    shift/reduce conflict on token OP:
         1 exp: exp OP exp .
         1 exp: exp . OP exp
-      Example                  exp OP exp . OP exp
-      First derivation         exp ::=[ exp ::=[ exp OP exp . ] OP exp ]
-      Second derivation        exp ::=[ exp OP exp ::=[ exp . OP exp ] ]
+      Example: exp OP exp . OP exp
+      Shift derivation
+        exp
+        `-> exp OP exp
+                   `-> exp . OP exp
+      Reduce derivation
+        exp
+        `-> exp              OP exp
+            `-> exp OP exp .
 
 ]])
 
@@ -1119,7 +1125,7 @@ m4_popdef([AT_TEST])
 # else.
 
 AT_SETUP([Defaulted Conflicted Reduction])
-AT_KEYWORDS([report])
+AT_KEYWORDS([cex report])
 
 AT_DATA([input.y],
 [[%%
@@ -1203,12 +1209,18 @@ State 1
     $end      [reduce using rule 4 (id)]
     $default  reduce using rule 3 (num)
 
-    Reduce/reduce conflict on token $end:
+    reduce/reduce conflict on token $end:
         3 num: '0' .
         4 id: '0' .
-      Example                  '0' .
-      First derivation         exp ::=[ num ::=[ '0' . ] ]
-      Second derivation        exp ::=[ id ::=[ '0' . ] ]
+      Example: '0' .
+      First reduce derivation
+        exp
+        `-> num
+            `-> '0' .
+      Second reduce derivation
+        exp
+        `-> id
+            `-> '0' .
 
 
 
@@ -1579,6 +1591,8 @@ AT_CLEANUP
 
 AT_SETUP([[Unreachable States After Conflict Resolution]])
 
+AT_KEYWORDS([cex report])
+
 # If conflict resolution makes states unreachable, remove those states, report
 # rules that are then unused, and don't report conflicts in those states.  Test
 # what happens when a nonterminal becomes useless as a result of state removal
@@ -1750,21 +1764,33 @@ State 4
 
     reported_conflicts  go to state 6
 
-    Shift/reduce conflict on token 'a':
+    shift/reduce conflict on token 'a':
        10 reported_conflicts: . %empty
         8 reported_conflicts: . 'a'
-      First example            resolved_conflict . 'a'
-      First derivation         start ::=[ resolved_conflict reported_conflicts ::=[ . ] 'a' ]
-      Second example           resolved_conflict . 'a' 'a'
-      Second derivation        start ::=[ resolved_conflict reported_conflicts ::=[ . 'a' ] 'a' ]
+      First example: resolved_conflict . 'a' 'a'
+      Shift derivation
+        start
+        `-> resolved_conflict reported_conflicts 'a'
+                              `-> . 'a'
+      Second example: resolved_conflict . 'a'
+      Reduce derivation
+        start
+        `-> resolved_conflict reported_conflicts 'a'
+                              `-> .
 
-    Shift/reduce conflict on token 'a':
+    shift/reduce conflict on token 'a':
        10 reported_conflicts: . %empty
         9 reported_conflicts: . 'a'
-      First example            resolved_conflict . 'a'
-      First derivation         start ::=[ resolved_conflict reported_conflicts ::=[ . ] 'a' ]
-      Second example           resolved_conflict . 'a' 'a'
-      Second derivation        start ::=[ resolved_conflict reported_conflicts ::=[ . 'a' ] 'a' ]
+      First example: resolved_conflict . 'a' 'a'
+      Shift derivation
+        start
+        `-> resolved_conflict reported_conflicts 'a'
+                              `-> . 'a'
+      Second example: resolved_conflict . 'a'
+      Reduce derivation
+        start
+        `-> resolved_conflict reported_conflicts 'a'
+                              `-> .
 
 
 
@@ -1777,12 +1803,16 @@ State 5
     'a'       [reduce using rule 9 (reported_conflicts)]
     $default  reduce using rule 8 (reported_conflicts)
 
-    Reduce/reduce conflict on token 'a':
+    reduce/reduce conflict on token 'a':
         8 reported_conflicts: 'a' .
         9 reported_conflicts: 'a' .
-      Example                  'a' .
-      First derivation         reported_conflicts ::=[ 'a' . ]
-      Second derivation        reported_conflicts ::=[ 'a' . ]
+      Example: 'a' .
+      First reduce derivation
+        reported_conflicts
+        `-> 'a' .
+      Second reduce derivation
+        reported_conflicts
+        `-> 'a' .
 
 
 
@@ -1904,6 +1934,8 @@ AT_CLEANUP
 
 AT_SETUP([[%nonassoc error actions for multiple reductions in a state]])
 
+AT_KEYWORDS([cex report])
+
 AT_DATA([[input.y]],
 [[%nonassoc 'a' 'b' 'c'
 %%
@@ -1961,12 +1993,18 @@ AT_CHECK([[cat input.output | sed -n '/^State 0$/,/^State 1$/p']], 0,
     Conflict between rule 10 and token 'b' resolved as an error (%nonassoc 'b').
     Conflict between rule 11 and token 'c' resolved as an error (%nonassoc 'c').
 
-    Reduce/reduce conflict on token 'c':
+    reduce/reduce conflict on token 'c':
        12 empty_c2: . %empty
        13 empty_c3: . %empty
-      Example                  . 'c'
-      First derivation         start ::=[ empty_c2 ::=[ . ] 'c' ]
-      Second derivation        start ::=[ empty_c3 ::=[ . ] 'c' ]
+      Example: . 'c'
+      First reduce derivation
+        start
+        `-> empty_c2 'c'
+            `-> .
+      Second reduce derivation
+        start
+        `-> empty_c3 'c'
+            `-> .
 
 
 

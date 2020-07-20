@@ -13,7 +13,6 @@
 /codeset.m4
 /config-h.m4
 /configmake.m4
-/dirname.m4
 /double-slash-root.m4
 /dup2.m4
 /eealloc.m4
@@ -176,6 +175,7 @@
 /stdio_h.m4
 /stdlib_h.m4
 /stpcpy.m4
+/stpncpy.m4
 /strchrnul.m4
 /strdup.m4
 /strerror.m4

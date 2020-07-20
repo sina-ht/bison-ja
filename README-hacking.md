@@ -211,6 +211,8 @@ assert/abort), and all the --trace output which is meant for the maintainers
 only.
 
 ## Vocabulary
+- "lookahead", not "look-ahead".
+- "midrule", not "mid-rule".
 - "nonterminal", not "variable" or "non-terminal" or "non terminal".
   Abbreviated as "nterm".
 - "shift/reduce" and "reduce/reduce", not "shift-reduce" or "shift reduce",
@@ -442,7 +444,7 @@ added the `[-Wother]` part to all the warnings).  Part of the update can be
 done with a crude tool: `build-aux/update-test`.
 
 Once you ran the test suite, and therefore have many `testsuite.log` files,
-run, from the source tree:
+run `make update-tests`.  Or, by hand, from the *source* tree:
 
     $ ./build-aux/update-test $build/tests/testsuite.dir/*/testsuite.log
 

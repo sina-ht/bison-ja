@@ -263,7 +263,6 @@ Writing GLR Parsers
 * Merging GLR Parses::     Using GLR parsers to resolve ambiguities.
 * GLR Semantic Actions::   Considerations for semantic values and deferred actions.
 * Semantic Predicates::    Controlling a parse with arbitrary computations.
-* Compiler Requirements for GLR::  GLR parsers require a modern C compiler.
 
 Examples
 
@@ -943,7 +942,6 @@ on the resulting values to produce an arbitrary merged result.
 * Merging GLR Parses::     Using GLR parsers to resolve ambiguities.
 * GLR Semantic Actions::   Considerations for semantic values and deferred actions.
 * Semantic Predicates::    Controlling a parse with arbitrary computations.
-* Compiler Requirements for GLR::  GLR parsers require a modern C compiler.
 @end menu
 
 @node Simple GLR Parsers
@@ -1372,14 +1370,14 @@ widget:
 @noindent
 is one way to allow the same parser to handle two different syntaxes for
 widgets.  The clause preceded by @code{%?} is treated like an ordinary
-action, except that its text is treated as an expression and is always
+midrule action, except that its text is handled as an expression and is always
 evaluated immediately (even when in nondeterministic mode).  If the
 expression yields 0 (false), the clause is treated as a syntax error,
 which, in a nondeterministic parser, causes the stack in which it is reduced
-to die.  In a deterministic parser, it acts like YYERROR.
+to die.  In a deterministic parser, it acts like @code{YYERROR}.
 
 As the example shows, predicates otherwise look like semantic actions, and
-therefore you must be take them into account when determining the numbers
+therefore you must take them into account when determining the numbers
 to use for denoting the semantic values of right-hand side symbols.
 Predicate actions, however, have no defined value, and may not be given
 labels.
@@ -1393,7 +1391,7 @@ widget:
   @{ if (!new_syntax) YYERROR; @}
     "widget" id new_args  @{ $$ = f($3, $4); @}
 |  @{ if (new_syntax) YYERROR; @}
-    "widget" id old_args   @{ $$ = f($3, $4); @}
+    "widget" id old_args  @{ $$ = f($3, $4); @}
 ;
 @end example
 
@@ -1410,36 +1408,6 @@ reports an error.
 
 Finally, be careful in writing predicates: deferred actions have not been
 evaluated, so that using them in a predicate will have undefined effects.
-
-@node Compiler Requirements for GLR
-@subsection Considerations when Compiling GLR Parsers
-@cindex @code{inline}
-@cindex GLR parsers and @code{inline}
-
-The GLR parsers require a compiler for ISO C89 or
-later.  In addition, they use the @code{inline} keyword, which is not
-C89, but is C99 and is a common extension in pre-C99 compilers.  It is
-up to the user of these parsers to handle
-portability issues.  For instance, if using Autoconf and the Autoconf
-macro @code{AC_C_INLINE}, a mere
-
-@example
-%@{
-  #include <config.h>
-%@}
-@end example
-
-@noindent
-will suffice.  Otherwise, we suggest
-
-@example
-%@{
-  #if (__STDC_VERSION__ < 199901 && ! defined __GNUC__ \
-       && ! defined inline)
-  # define inline
-  #endif
-%@}
-@end example
 
 @node Locations
 @section Locations
@@ -1676,6 +1644,31 @@ The source code for this calculator is named @file{rpcalc.y}.  The
 Here are the C and Bison declarations for the Reverse Polish Notation
 calculator.  As in C, comments are placed between @samp{/*@dots{}*/} or
 after @samp{//}.
+
+@ignore
+@comment file: rpcalc.y
+@example
+/* Parser for rpcalc.   -*- C -*-
+
+   Copyright (C) 1988-1993, 1995, 1998-2015, 2018-2020 Free Software
+   Foundation, Inc.
+
+   This file is part of Bison, the GNU Compiler Compiler.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+@end example
+@end ignore
 
 @comment file: rpcalc.y
 @example
@@ -2538,6 +2531,31 @@ Note that multiple assignment and nested function calls are permitted.
 
 Here are the C and Bison declarations for the multi-function calculator.
 
+@ignore
+@comment file: mfcalc.y
+@example
+/* Parser for mfcalc.   -*- C -*-
+
+   Copyright (C) 1988-1993, 1995, 1998-2015, 2018-2020 Free Software
+   Foundation, Inc.
+
+   This file is part of Bison, the GNU Compiler Compiler.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+@end example
+@end ignore
+
 @comment file: mfcalc.y: 1
 @example
 @group
@@ -2641,6 +2659,31 @@ requires some additional C functions for support.
 The symbol table itself consists of a linked list of records.  Its
 definition, which is kept in the header @file{calc.h}, is as follows.  It
 provides for either functions or variables to be placed in the table.
+
+@ignore
+@comment file: calc.h
+@example
+/* Functions for mfcalc.   -*- C -*-
+
+   Copyright (C) 1988-1993, 1995, 1998-2015, 2018-2020 Free Software
+   Foundation, Inc.
+
+   This file is part of Bison, the GNU Compiler Compiler.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+@end example
+@end ignore
 
 @comment file: calc.h
 @example
@@ -9861,10 +9904,10 @@ output is actually in color)}:
 @example
 Shift/reduce conflict on token "else":
 @group
-  Example            @yellow{"if" expr "then"} @blue{"if" expr "then" stmt} @red{•} @yellow{"else" stmt}
-  First derivation   @yellow{if_stmt ::=[ "if" expr "then"} @green{stmt ::=[} @blue{if_stmt ::=[ "if" expr "then" stmt} @red{•} @blue{]} @green{]} @yellow{"else" stmt ]}
   Example            @yellow{"if" expr "then"} @blue{"if" expr "then" stmt} @red{•} @blue{"else" stmt}
-  Second derivation  @yellow{if_stmt ::=[ "if" expr "then"} @green{stmt ::=[} @blue{if_stmt ::=[ "if" expr "then" stmt} @red{•} @blue{"else" stmt ]} @green{]} @yellow{]}
+  Shift derivation   @yellow{if_stmt @arrow{} [ "if" expr "then"} @green{stmt @arrow{} [} @blue{if_stmt @arrow{} [ "if" expr "then" stmt} @red{•} @blue{"else" stmt ]} @green{]} @yellow{]}
+  Example            @yellow{"if" expr "then"} @blue{"if" expr "then" stmt} @red{•} @yellow{"else" stmt}
+  Reduce derivation  @yellow{if_stmt @arrow{} [ "if" expr "then"} @green{stmt @arrow{} [} @blue{if_stmt @arrow{} [ "if" expr "then" stmt} @red{•} @blue{]} @green{]} @yellow{"else" stmt ]}
 @end group
 @end example
 @end ifhtml
@@ -9873,13 +9916,13 @@ Shift/reduce conflict on token "else":
 Shift/reduce conflict on token "else":
 @group
   Example
-    @yellow{"if" expr "then"} @blue{"if" expr "then" stmt} @red{•} @yellow{"else" stmt}
-  First derivation
-    @yellow{if_stmt ::=[ "if" expr "then"} @green{stmt ::=[} @blue{if_stmt ::=[ "if" expr "then" stmt} @red{•} @blue{]} @green{]} @yellow{"else" stmt ]}
-  Example
     @yellow{"if" expr "then"} @blue{"if" expr "then" stmt} @red{•} @blue{"else" stmt}
-  Second derivation
-    @yellow{if_stmt ::=[ "if" expr "then"} @green{stmt ::=[} @blue{if_stmt ::=[ "if" expr "then" stmt} @red{•} @blue{"else" stmt ]} @green{]} @yellow{]}
+  Shift derivation
+    @yellow{if_stmt @arrow{} [ "if" expr "then"} @green{stmt @arrow{} [} @blue{if_stmt @arrow{} [ "if" expr "then" stmt} @red{•} @blue{"else" stmt ]} @green{]} @yellow{]}
+  Example
+    @yellow{"if" expr "then"} @blue{"if" expr "then" stmt} @red{•} @yellow{"else" stmt}
+  Reduce derivation
+    @yellow{if_stmt @arrow{} [ "if" expr "then"} @green{stmt @arrow{} [} @blue{if_stmt @arrow{} [ "if" expr "then" stmt} @red{•} @blue{]} @green{]} @yellow{"else" stmt ]}
 @end group
 @end smallexample
 @end ifnothtml
@@ -9912,22 +9955,22 @@ $ @kbd{bison -Wcex sequence.y}
 sequence.y: @dwarning{warning}: 1 shift/reduce conflict [@dwarning{-Wconflicts-sr}]
 sequence.y: @dwarning{warning}: 2 reduce/reduce conflicts [@dwarning{-Wconflicts-rr}]
 Shift/reduce conflict on token "word":
-  Example              @red{•} @yellow{"word"}
-  First derivation     @yellow{sequence ::=[} @green{sequence ::=[} @red{•} @green{]} @yellow{"word" ]}
   Example              @red{•} @green{"word"}
-  Second derivation    @yellow{sequence ::=[} @green{maybeword ::=[} @red{•} @green{"word" ]} @yellow{]}
+  Shift derivation     @yellow{sequence @arrow{} [} @green{maybeword @arrow{} [} @red{•} @green{"word" ]} @yellow{]}
+  Example              @red{•} @yellow{"word"}
+  Reduce derivation    @yellow{sequence @arrow{} [} @green{sequence @arrow{} [} @red{•} @green{]} @yellow{"word" ]}
 
 Reduce/reduce conflict on tokens $end, "word":
   Example              @red{•}
-  First derivation     @yellow{sequence ::=[} @red{•} @yellow{]}
+  First derivation     @yellow{sequence @arrow{} [} @red{•} @yellow{]}
   Example              @red{•}
-  Second derivation    @yellow{sequence ::=[} @green{maybeword ::=[} @red{•} @green{]} @yellow{]}
+  Second derivation    @yellow{sequence @arrow{} [} @green{maybeword @arrow{} [} @red{•} @green{]} @yellow{]}
 
 Shift/reduce conflict on token "word":
-  Example              @red{•} @yellow{"word"}
-  First derivation     @yellow{sequence ::=[} @green{sequence ::=[} @blue{maybeword ::=[} @red{•} @blue{]} @green{]} @yellow{"word" ]}
   Example              @red{•} @green{"word"}
-  Second derivation    @yellow{sequence ::=[} @green{maybeword ::=[} @red{•} @green{"word" ]} @yellow{]}
+  Shift derivation     @yellow{sequence @arrow{} [} @green{maybeword @arrow{} [} @red{•} @green{"word" ]} @yellow{]}
+  Example              @red{•} @yellow{"word"}
+  Reduce derivation    @yellow{sequence @arrow{} [} @green{sequence @arrow{} [} @blue{maybeword @arrow{} [} @red{•} @blue{]} @green{]} @yellow{"word" ]}
 
 sequence.y:8.3-45: @dwarning{warning}: rule useless in parser due to conflicts [@dwarning{-Wother}]
     8 |   @dwarning{%empty    @{ printf ("empty maybeword\n"); @}}
@@ -9958,10 +10001,10 @@ expr: %empty | expr ID ','
 
 @smallexample
 Shift/reduce conflict on token ID:
-  First example        @blue{expr} @red{•} @green{ID} @yellow{$end}
-  First derivation     @yellow{$accept ::=[} @green{s ::=[} @blue{a ::=[ expr} @red{•} @blue{]} @green{ID ]} @yellow{$end ]}
-  Second example       @purple{expr} @red{•} @purple{ID ','} @green{ID} @yellow{$end}
-  Second derivation    @yellow{$accept ::=[} @green{s ::=[} @blue{a ::=[} @purple{expr ::=[ expr} @red{•} @purple{ID ',' ]} @blue{]} @green{ID ]} @yellow{$end ]}
+  First example        @purple{expr} @red{•} @purple{ID ','} @green{ID} @yellow{$end}
+  Shift derivation     @yellow{$accept @arrow{} [} @green{s @arrow{} [} @blue{a @arrow{} [} @purple{expr @arrow{} [ expr} @red{•} @purple{ID ',' ]} @blue{]} @green{ID ]} @yellow{$end ]}
+  Second example       @blue{expr} @red{•} @green{ID} @yellow{$end}
+  Reduce derivation    @yellow{$accept @arrow{} [} @green{s @arrow{} [} @blue{a @arrow{} [ expr} @red{•} @blue{]} @green{ID ]} @yellow{$end ]}
 @end smallexample
 
 This conflict is caused by the parser not having enough information to know
@@ -10357,10 +10400,10 @@ counterexamples within the report, augmented with the corresponding items
 Shift/reduce conflict on token '/':
     1 exp: exp '+' exp •
     4 exp: exp • '/' exp
-  Example              @green{exp '+' exp} @red{•} @yellow{'/' exp}
-  First derivation     @yellow{exp ::=[} @green{exp ::=[ exp '+' exp} @red{•} @green{]} @yellow{'/' exp ]}
   Example              @yellow{exp '+'} @green{exp} @red{•} @green{'/' exp}
-  Second derivation    @yellow{exp ::=[ exp '+'} @green{exp ::=[ exp} @red{•} @green{'/' exp ]} @yellow{]}
+  Shift derivation     @yellow{exp @arrow{} [ exp '+'} @green{exp @arrow{} [ exp} @red{•} @green{'/' exp ]} @yellow{]}
+  Example              @green{exp '+' exp} @red{•} @yellow{'/' exp}
+  Reduce derivation    @yellow{exp @arrow{} [} @green{exp @arrow{} [ exp '+' exp} @red{•} @green{]} @yellow{'/' exp ]}
 @end example
 
 This shows two separate derivations in the grammar for the same @code{exp}:
@@ -10972,7 +11015,7 @@ The exit status of @command{bison} is:
 @item 0 (success)
 when there were no errors.  Warnings, which are diagnostics about dubious
 constructs, do not change the exit status, unless they are turned into
-errors (@pxref{-Werror,,@option{-Werror}}).
+errors (@pxref{Werror,,@option{-Werror}}).
 
 @item 1 (failure)
 when there were errors.  No file was generated (except the reports generated
@@ -11209,22 +11252,22 @@ Options controlling the diagnostics.
 Output warnings falling in @var{category}.  @var{category} can be one
 of:
 @table @code
-@item conflicts-sr
-@itemx conflicts-rr
+@item @anchor{Wconflicts-sr}conflicts-sr
+@itemx @anchor{Wconflicts-rr}conflicts-rr
 S/R and R/R conflicts.  These warnings are enabled by default.  However, if
 the @code{%expect} or @code{%expect-rr} directive is specified, an
 unexpected number of conflicts is an error, and an expected number of
 conflicts is not reported, so @option{-W} and @option{--warning} then have
 no effect on the conflict report.
 
-@item counterexamples
+@item @anchor{Wcounterexamples}counterexamples
 @itemx cex
 Provide counterexamples for conflicts.  @xref{Counterexamples}.
 Counterexamples take time to compute.  The option @option{-Wcex} should be
 used by the developer when working on the grammar; it hardly makes sense to
 use it in a CI.
 
-@item dangling-alias
+@item @anchor{Wdangling-alias}dangling-alias
 Report string literals that are not bound to a token symbol.
 
 String literals, which allow for better error messages, are (too) liberally
@@ -11270,16 +11313,16 @@ foo: "baz" @{@}
       |      @dwarning{^~~~~}
 @end example
 
-@item deprecated
+@item @anchor{Wdeprecated}deprecated
 Deprecated constructs whose support will be removed in future versions of
 Bison.
 
-@item empty-rule
+@item @anchor{Wempty-rule}empty-rule
 Empty rules without @code{%empty}.  @xref{Empty Rules}.  Disabled by
 default, but enabled by uses of @code{%empty}, unless
 @option{-Wno-empty-rule} was specified.
 
-@item midrule-values
+@item @anchor{Wmidrule-values}midrule-values
 Warn about midrule values that are set but not used within any of the actions
 of the parent rule.
 For example, warn about unused @code{$2} in:
@@ -11299,7 +11342,7 @@ These warnings are not enabled by default since they sometimes prove to
 be false alarms in existing grammars employing the Yacc constructs
 @code{$0} or @code{$-@var{n}} (where @var{n} is some positive integer).
 
-@item precedence
+@item @anchor{Wprecedence}precedence
 Useless precedence and associativity directives.  Disabled by default.
 
 Consider for instance the following grammar:
@@ -11360,20 +11403,20 @@ One would get the exact same parser with the following directives instead:
 @end group
 @end example
 
-@item yacc
+@item @anchor{Wyacc}yacc
 Incompatibilities with POSIX Yacc.
 
-@item other
+@item @anchor{Wother}other
 All warnings not categorized above.  These warnings are enabled by default.
 
 This category is provided merely for the sake of completeness.  Future
 releases of Bison may move warnings from this category to new, more specific
 categories.
 
-@item all
+@item @anchor{Wall}all
 All the warnings except @code{dangling-alias} and @code{yacc}.
 
-@item none
+@item @anchor{Wnone}none
 Turn off all the warnings.
 
 @item error
@@ -11384,8 +11427,7 @@ A category can be turned off by prefixing its name with @samp{no-}.  For
 instance, @option{-Wno-yacc} will hide the warnings about
 POSIX Yacc incompatibilities.
 
-@item -Werror
-@anchor{-Werror}
+@item @anchor{Werror}-Werror
 Turn enabled warnings for every @var{category} into errors, unless they are
 explicitly disabled by @option{-Wno-error=@var{category}}.
 
@@ -11744,6 +11786,30 @@ supports the original C++98 standard.
 A Bison file has three parts.  In the first part, the prologue, we start by
 making sure we run a version of Bison which is recent enough, and that we
 generate C++.
+
+@ignore
+@comment file: c++/simple.yy: 1
+@example
+/* Simple variant-based parser.   -*- C++ -*-
+
+   Copyright (C) 2018-2020 Free Software Foundation, Inc.
+
+   This file is part of Bison, the GNU Compiler Compiler.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+@end example
+@end ignore
 
 @comment file: c++/simple.yy: 1
 @example
@@ -12817,6 +12883,30 @@ The declaration of this driver class, in @file{driver.hh}, is as follows.
 The first part includes the CPP guard and imports the required standard
 library components, and the declaration of the parser class.
 
+@ignore
+@comment file: calc++/driver.hh
+@example
+/* Driver for calc++.   -*- C++ -*-
+
+   Copyright (C) 2005--2015, 2018--2020 Free Software Foundation, Inc.
+
+   This file is part of Bison, the GNU Compiler Compiler.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+@end example
+@end ignore
+
 @comment file: calc++/driver.hh
 @example
 #ifndef DRIVER_HH
@@ -12889,6 +12979,30 @@ member functions to open and close the scanning phase.
 
 The implementation of the driver (@file{driver.cc}) is straightforward.
 
+@ignore
+@comment file: calc++/driver.cc
+@example
+/* Driver for calc++.   -*- C++ -*-
+
+   Copyright (C) 2005--2015, 2018--2020 Free Software Foundation, Inc.
+
+   This file is part of Bison, the GNU Compiler Compiler.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+@end example
+@end ignore
+
 @comment file: calc++/driver.cc
 @example
 #include "driver.hh"
@@ -12931,6 +13045,30 @@ The grammar file @file{parser.yy} starts by asking for the C++ deterministic
 parser skeleton, the creation of the parser header file.  Because the C++
 skeleton changed several times, it is safer to require the version you
 designed the grammar for.
+
+@ignore
+@comment file: calc++/parser.yy
+@example
+/* Parser for calc++.   -*- C++ -*-
+
+   Copyright (C) 2005--2015, 2018--2020 Free Software Foundation, Inc.
+
+   This file is part of Bison, the GNU Compiler Compiler.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+@end example
+@end ignore
 
 @comment file: calc++/parser.yy
 @example
@@ -13120,6 +13258,30 @@ yy::parser::error (const location_type& l, const std::string& m)
 In addition to standard headers, the Flex scanner includes the driver's,
 then the parser's to get the set of defined tokens.
 
+@ignore
+@comment file: calc++/scanner.ll
+@example
+/* Scanner for calc++.   -*- C++ -*-
+
+   Copyright (C) 2005--2015, 2018--2020 Free Software Foundation, Inc.
+
+   This file is part of Bison, the GNU Compiler Compiler.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+@end example
+@end ignore
+
 @comment file: calc++/scanner.ll
 @example
 %@{ /* -*- C++ -*- */
@@ -13293,7 +13455,7 @@ The rules are simple.  The driver is used to report errors.
 You should keep your rules simple, both in the parser and in the scanner.
 Throwing from the auxiliary functions is then very handy to report errors.
 
-@comment file: scanner.ll
+@comment file: calc++/scanner.ll
 @example
 @group
 yy::parser::symbol_type
@@ -13343,7 +13505,31 @@ driver::scan_end ()
 
 The top level file, @file{calc++.cc}, poses no problem.
 
-@comment file: calc++.cc
+@ignore
+@comment file: calc++/calc++.cc
+@example
+/* Main for calc++.   -*- C++ -*-
+
+   Copyright (C) 2005--2015, 2018--2020 Free Software Foundation, Inc.
+
+   This file is part of Bison, the GNU Compiler Compiler.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+
+   You should have received a copy of the GNU General Public License
+   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+@end example
+@end ignore
+
+@comment file: calc++/calc++.cc
 @example
 #include <iostream>
 #include "driver.hh"
@@ -14605,13 +14791,13 @@ Bison.  See the file @file{ABOUT-NLS} for more information.
 I can't build Bison because my C compiler is too old.
 @end quotation
 
-Except for GLR parsers (@pxref{Compiler Requirements for GLR}), the C
-code that Bison generates requires only C89 or later.  However, Bison
-itself requires common C99 features such as declarations after
-statements.  Bison's @code{configure} script attempts to enable C99 (or
-later) support on compilers that default to pre-C99.  If your compiler
-lacks these C99 features entirely, GCC may well be a better choice; or
-you can try upgrading to your compiler's latest version.
+Except for GLR parsers (which require C99), the C code that Bison generates
+requires only C89 or later.  However, Bison itself requires common C99
+features such as declarations after statements.  Bison's @code{configure}
+script attempts to enable C99 (or later) support on compilers that default
+to pre-C99.  If your compiler lacks these C99 features entirely, GCC may
+well be a better choice; or you can try upgrading to your compiler's latest
+version.
 
 @node Where can I find help?
 @section Where can I find help?

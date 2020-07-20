@@ -90,9 +90,9 @@ print_core (FILE *out, const state *s)
       previous_rule = r;
 
       /* Display the lookahead tokens?  */
-      if (report_flag & report_lookahead_tokens
+      if (report_flag & report_lookaheads
           && item_number_is_rule_number (*sp1))
-        state_rule_lookahead_tokens_print (s, r, out);
+        state_rule_lookaheads_print (s, r, out);
       fputc ('\n', out);
     }
 }
@@ -180,19 +180,19 @@ print_errs (FILE *out, const state *s)
 }
 
 
-/*-------------------------------------------------------------------------.
-| Report a reduction of RULE on LOOKAHEAD_TOKEN (which can be 'default').  |
-| If not ENABLED, the rule is masked by a shift or a reduce (S/R and       |
-| R/R conflicts).                                                          |
-`-------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------.
+| Report a reduction of RULE on LOOKAHEAD (which can be 'default').  |
+| If not ENABLED, the rule is masked by a shift or a reduce (S/R and |
+| R/R conflicts).                                                    |
+`-------------------------------------------------------------------*/
 
 static void
 print_reduction (FILE *out, size_t width,
-                 const char *lookahead_token,
+                 const char *lookahead,
                  rule *r, bool enabled)
 {
-  fprintf (out, "    %s", lookahead_token);
-  for (int j = width - mbswidth (lookahead_token, 0); j > 0; --j)
+  fprintf (out, "    %s", lookahead);
+  for (int j = width - mbswidth (lookahead, 0); j > 0; --j)
     fputc (' ', out);
   if (!enabled)
     fputc ('[', out);
@@ -239,13 +239,13 @@ print_reductions (FILE *out, const state *s)
   if (default_reduction)
     width = mbswidth (_("$default"), 0);
 
-  if (reds->lookahead_tokens)
+  if (reds->lookaheads)
     for (int i = 0; i < ntokens; i++)
       {
         bool count = bitset_test (no_reduce_set, i);
 
         for (int j = 0; j < reds->num; ++j)
-          if (bitset_test (reds->lookahead_tokens[j], i))
+          if (bitset_test (reds->lookaheads[j], i))
             {
               if (! count)
                 {
@@ -268,7 +268,7 @@ print_reductions (FILE *out, const state *s)
   bool default_reduction_only = true;
 
   /* Report lookahead tokens (or $default) and reductions.  */
-  if (reds->lookahead_tokens)
+  if (reds->lookaheads)
     for (int i = 0; i < ntokens; i++)
       {
         bool defaulted = false;
@@ -277,7 +277,7 @@ print_reductions (FILE *out, const state *s)
           default_reduction_only = false;
 
         for (int j = 0; j < reds->num; ++j)
-          if (bitset_test (reds->lookahead_tokens[j], i))
+          if (bitset_test (reds->lookaheads[j], i))
             {
               if (! count)
                 {
@@ -377,11 +377,11 @@ print_terminal_symbols (FILE *out)
   for (int i = 0; i < max_code + 1; ++i)
     if (token_translations[i] != undeftoken->content->number)
       {
-        const char *tag = symbols[token_translations[i]]->tag;
+        const symbol *sym = symbols[token_translations[i]];
+        const char *tag = sym->tag;
         fprintf (out, "%4s%s", "", tag);
-        if (symbols[token_translations[i]]->content->type_name)
-          fprintf (out, " <%s>",
-                   symbols[token_translations[i]]->content->type_name);
+        if (sym->content->type_name)
+          fprintf (out, " <%s>", sym->content->type_name);
         fprintf (out, " (%d)", i);
 
         for (rule_number r = 0; r < nrules; r++)
@@ -403,7 +403,8 @@ print_nonterminal_symbols (FILE *out)
   fprintf (out, "%s\n\n", _("Nonterminals, with rules where they appear"));
   for (symbol_number i = ntokens; i < nsyms; i++)
     {
-      const char *tag = symbols[i]->tag;
+      const symbol *sym = symbols[i];
+      const char *tag = sym->tag;
       bool on_left = false;
       bool on_right = false;
 
@@ -418,9 +419,9 @@ print_nonterminal_symbols (FILE *out)
 
       int column = 4 + mbswidth (tag, 0);
       fprintf (out, "%4s%s", "", tag);
-      if (symbols[i]->content->type_name)
+      if (sym->content->type_name)
         column += fprintf (out, " <%s>",
-                           symbols[i]->content->type_name);
+                           sym->content->type_name);
       fprintf (out, " (%d)\n", i);
 
       if (on_left)

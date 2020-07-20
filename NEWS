@@ -1,5 +1,35 @@
 GNU Bison NEWS
 
+* Noteworthy changes in release 3.6.93 (2020-07-20) [beta]
+
+** Bug fixes
+
+  Portability issues.
+
+
+* Noteworthy changes in release 3.6.92 (2020-07-19) [beta]
+
+Changes in the display of counterexamples.
+
+** Documentation
+
+*** Examples
+
+  The bistromathic demonstrates %param and how to quote sources in the error
+  messages:
+
+    > 123 456
+    1.5-7: syntax error: expected end of file or + or - or * or / or ^ before number
+        1 | 123 456
+          |     ^~~
+
+* Noteworthy changes in release 3.6.91 (2020-07-09) [beta]
+
+** Bug fixes
+
+  Portability issues.
+
+
 * Noteworthy changes in release 3.6.90 (2020-07-04) [beta]
 
 ** Deprecated features
@@ -23,22 +53,47 @@ GNU Bison NEWS
   strings in the grammar which can be parsed in two ways due to the
   conflict.  For example:
 
-    Example              exp '+' exp • '/' exp
-    First derivation     exp ::=[ exp ::=[ exp '+' exp • ] '/' exp ]
-    Second derivation    exp ::=[ exp '+' exp ::=[ exp • '/' exp ] ]
+    Shift/reduce conflict on token "/":
+      Example              exp "+" exp • "/" exp
+      Shift derivation
+        exp
+        ↳ exp "+" exp
+                  ↳ exp • "/" exp
+      Example              exp "+" exp • "/" exp
+      Reduce derivation
+        exp
+        ↳ exp             "/" exp
+          ↳ exp "+" exp •
+
+  When Bison is installed with text styling enabled, the example is actually
+  shown twice, with colors highlighting the ambiguity.
 
   This is a shift/reduce conflict caused by none of the operators having
-  precedence, so the example can be parsed in the two ways shown.   When
+  precedence, so the example can be parsed in the two ways shown.  When
   bison cannot find an example that can be derived in two ways, it instead
   generates two examples that are the same up until the dot:
 
-    First example        expr • ID $end
-    First derivation     $accept ::=[ s ::=[ a ::=[ expr • ] ID ] $end ]
-    Second example       expr • ID ',' ID $end
-    Second derivation    $accept ::=[ s ::=[ a ::=[ expr ::=[ expr • ID ',' ] ] ID ] $end ]
+    First example        expr • ID ',' ID $end
+    Shift derivation
+      $accept
+      ↳ s                      $end
+        ↳ a                 ID
+          ↳ expr
+            ↳ expr • ID ','
+    Second example       expr • ID $end
+    Reduce derivation
+      $accept
+      ↳ s             $end
+        ↳ a        ID
+          ↳ expr •
 
   In these cases, the parser usually doesn't have enough lookahead to
   differentiate the two given examples.
+
+  The counterexamples are "focused" in two different ways.  First, they do
+  not clutter the output with all the derivations from the start symbol,
+  rather they start on the "conflicted nonterminal". They go straight to the
+  point.  Second, they don't "expand" nonterminal symbols uselessly.
 
 *** File prefix mapping
 

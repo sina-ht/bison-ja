@@ -58,6 +58,10 @@
   #include "scan-code.h"
   #include "scan-gram.h"
 
+  /* Pretend to be at least that version, to check features published
+     in that version while developping it.  */
+  static const char* api_version = "3.7";
+
   static int current_prec = 0;
   static location current_lhs_loc;
   static named_ref *current_lhs_named_ref;
@@ -691,8 +695,8 @@ rhs:
                                   current_lhs_named_ref); }
 | rhs symbol named_ref.opt
     { grammar_current_rule_symbol_append ($2, @2, $3); }
-| rhs tag.opt "{...}"[act] named_ref.opt[name]
-    { grammar_current_rule_action_append ($act, @act, $name, $[tag.opt]); }
+| rhs tag.opt "{...}"[action] named_ref.opt[name]
+    { grammar_current_rule_action_append ($action, @action, $name, $[tag.opt]); }
 | rhs "%?{...}"
     { grammar_current_rule_predicate_append ($2, @2); }
 | rhs "%empty"
@@ -1082,9 +1086,6 @@ handle_require (location const *loc, char const *version_quoted)
     }
   else
     {
-      /* Pretend to be at least that version, to check features published
-         in that version while developping it.  */
-      const char* api_version = "3.6";
       const char* package_version =
         0 < strverscmp (api_version, PACKAGE_VERSION)
         ? api_version : PACKAGE_VERSION;

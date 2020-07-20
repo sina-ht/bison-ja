@@ -103,8 +103,6 @@
 
 # include "system.h"
 
-# include <unicodeio.h>
-
 # include "location.h"
 # include "symtab.h"
 
@@ -216,25 +214,6 @@ typedef struct
 /* The used rules (size NRULES).  */
 extern rule *rules;
 extern rule_number nrules;
-
-/* Fallback in case we can't print "•".  */
-static inline long
-print_dot_fallback (unsigned int code _GL_UNUSED,
-                    const char *msg _GL_UNUSED,
-                    void *callback_arg)
-{
-  FILE *out = (FILE *) callback_arg;
-  putc ('.', out);
-  return -1;
-}
-
-/* Print "•", the symbol used to represent a point in an item (aka, a
-   dotted rule).  */
-static inline void
-print_dot (FILE *out)
-{
-  unicode_to_mb (0x2022, fwrite_success_callback, print_dot_fallback, out);
-}
 
 /* Get the rule associated to this item.  ITEM points inside RITEM.  */
 static inline rule const *
